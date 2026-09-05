@@ -24,6 +24,7 @@
     "test:agentic": "tsx scripts/test-agentic-executor.ts",
     "test:agentic-workflow": "node scripts/test-agentic-workflow.mjs",
     "test:gis": "tsx scripts/test-gis-intelligence.ts",
+    "test:gis-agentic": "tsx scripts/test-gis-agentic-integration.ts",
     "smoke": "node scripts/smoke-test.mjs"
   },
   "dependencies": {
