@@ -1,6 +1,6 @@
 import { GisLayerData, LocationInfo, OceanData, RiskLevel, RiskPrediction } from '../../src/types.ts';
 
-export type GisZoneCategory = 'restricted_zone' | 'precaution_zone' | 'fishing_zone' | 'port_buffer';
+export type GisZoneCategory = 'restricted_zone' | 'hazard_zone' | 'precaution_zone' | 'fishing_zone' | 'port_buffer';
 
 export interface GisZone {
   id: string;
@@ -19,7 +19,7 @@ export interface GisSpatialAnalysis {
   insideZoneIds: string[];
   insideRestrictedZone: boolean;
   nearestZone?: { id: string; name: string; category: GisZoneCategory; distanceKm: number };
-  nearestPort?: { name: string; distanceKm: number };
+  nearestPort?: { name: string; distanceKm?: number; distanceAvailable: boolean };
   operationalWarnings: string[];
   dataQuality: 'DETERMINISTIC' | 'DEGRADED';
   source: string;
@@ -65,7 +65,9 @@ function squarePolygon(latitude: number, longitude: number, radiusKm: number): [
 
 /**
  * Builds the operational GIS registry for the current coastal context.
- * These are ORCA-X decision-support zones, not statutory maritime boundaries.
+ * Dynamically generated hazard/precaution zones are ORCA-X decision-support overlays,
+ * not statutory maritime boundaries. The restricted_zone category is reserved for
+ * authoritative or explicitly registered restricted areas.
  */
 export function buildOperationalZones(location: LocationInfo, risk: RiskPrediction): GisZone[] {
   const hazardRadiusKm = risk.riskLevel === 'EXTREME' ? 10 : risk.riskLevel === 'HIGH' ? 7 : risk.riskLevel === 'MODERATE' ? 4 : 2.5;
@@ -74,13 +76,13 @@ export function buildOperationalZones(location: LocationInfo, risk: RiskPredicti
   return [
     {
       id: `orca-hazard-${location.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
-      name: `${location.name} operational hazard zone`,
-      category: 'restricted_zone',
+      name: `${location.name} operational hazard overlay`,
+      category: 'hazard_zone',
       riskLevel: risk.riskLevel,
       polygon: squarePolygon(location.latitude, location.longitude + 0.04, hazardRadiusKm),
       authority: 'ORCA-X operational risk engine',
       operationalStatus: 'REFERENCE',
-      description: `Dynamic decision-support zone derived from the current ${risk.riskLevel} marine risk state.`
+      description: `Dynamic decision-support overlay derived from the current ${risk.riskLevel} marine risk state; it is not a statutory restricted area.`
     },
     {
       id: `orca-precaution-${location.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
@@ -90,7 +92,7 @@ export function buildOperationalZones(location: LocationInfo, risk: RiskPredicti
       polygon: squarePolygon(location.latitude, location.longitude, precautionRadiusKm),
       authority: 'ORCA-X operational GIS',
       operationalStatus: 'REFERENCE',
-      description: 'Dynamic buffer for additional navigation caution around the resolved operating point.'
+      description: 'Dynamic decision-support buffer for additional navigation caution around the resolved operating point.'
     }
   ];
 }
@@ -117,10 +119,13 @@ export function analyzeSpatialContext(
 
   const warnings: string[] = [];
   if (inside.some(zone => zone.category === 'restricted_zone')) {
-    warnings.push('Resolved operating point intersects an ORCA-X dynamic restricted-risk zone.');
+    warnings.push('Resolved operating point intersects an authoritative or explicitly registered restricted zone.');
+  }
+  if (inside.some(zone => zone.category === 'hazard_zone')) {
+    warnings.push('Resolved operating point intersects an ORCA-X dynamic hazard overlay derived from the current modelled marine risk state.');
   }
   if (risk.riskLevel === 'HIGH' || risk.riskLevel === 'EXTREME') {
-    warnings.push(`Current model risk is ${risk.riskLevel}; avoid treating the generated corridor as a statutory safe passage.`);
+    warnings.push(`Current model risk is ${risk.riskLevel}; avoid treating generated GIS overlays as statutory safe passage.`);
   }
   warnings.push('Geofence results are decision-support overlays and do not replace official nautical charts or statutory maritime boundaries.');
 
@@ -131,7 +136,7 @@ export function analyzeSpatialContext(
     insideRestrictedZone: inside.some(zone => zone.category === 'restricted_zone'),
     nearestZone: distances[0],
     nearestPort: location.nearestPort
-      ? { name: location.nearestPort, distanceKm: 0 }
+      ? { name: location.nearestPort, distanceAvailable: false }
       : undefined,
     operationalWarnings: warnings,
     dataQuality: 'DETERMINISTIC',
@@ -145,6 +150,7 @@ export function buildGisIntelligence(
   ocean: OceanData,
   existingLayers: GisLayerData
 ): GisLayerData & { spatialAnalysis: GisSpatialAnalysis; zones: GisZone[] } {
+  void ocean;
   const zones = buildOperationalZones(location, risk);
   const spatialAnalysis = analyzeSpatialContext(location, risk, zones);
   const geofenceFeatures = zones.map(zone => ({
@@ -152,14 +158,15 @@ export function buildGisIntelligence(
     geometry: { type: 'Polygon' as const, coordinates: [zone.polygon] },
     properties: {
       name: zone.name,
-      category: zone.category === 'restricted_zone' ? 'hazard_zone' as const : 'precaution_zone' as const,
+      category: zone.category,
       riskLevel: zone.riskLevel,
       description: zone.description,
-      color: zone.category === 'restricted_zone' ? '#c4372f' : '#de9a1f',
+      color: zone.category === 'hazard_zone' ? '#c4372f' : zone.category === 'precaution_zone' ? '#de9a1f' : '#6b7280',
       details: {
         zoneId: zone.id,
         authority: zone.authority,
-        operationalStatus: zone.operationalStatus
+        operationalStatus: zone.operationalStatus,
+        statutoryBoundary: zone.category === 'restricted_zone'
       }
     }
   }));
