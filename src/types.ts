@@ -58,7 +58,7 @@ export interface GeofenceSpatialAnalysis {
   timestamp: string;
 }
 
-export interface GisGeoJsonFeature { type: 'Feature'; geometry: { type: 'Polygon' | 'Point' | 'LineString'; coordinates: any }; properties: { name: string; category: 'hazard_zone' | 'precaution_zone' | 'safe_corridor' | 'port_shelter' | 'buoy_station' | 'bathymetry' | 'international_boundary' | 'marine_protected_area' | 'restricted_zone'; riskLevel?: RiskLevel; description: string; color: string; details?: Record<string, any>; }; }
+export interface GisGeoJsonFeature { type: 'Feature'; geometry: { type: 'Polygon' | 'Point' | 'LineString'; coordinates: any }; properties: { name: string; category: 'restricted_zone' | 'hazard_zone' | 'precaution_zone' | 'fishing_zone' | 'port_buffer' | 'safe_corridor' | 'port_shelter' | 'buoy_station' | 'bathymetry' | 'international_boundary' | 'marine_protected_area'; riskLevel?: RiskLevel; description: string; color: string; details?: Record<string, any>; }; }
 export interface GisLayerData { type: 'FeatureCollection'; features: GisGeoJsonFeature[]; geofenceAnalysis?: GeofenceSpatialAnalysis; }
 export interface EvidenceItem { id: string; title: string; sourceAuthority: string; documentType: 'Fisheries Advisory' | 'Ocean State Forecast' | 'Cyclone Bulletin' | 'Maritime Regulation' | 'Scientific Protocol'; publicationDate: string; excerpt: string; relevanceScore: number; officialUrl?: string; complianceRule?: string; }
 

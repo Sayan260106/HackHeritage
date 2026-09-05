@@ -13,6 +13,7 @@ export function createOrcaPlan(query: string, language: LanguageCode = 'en'): Or
   const asksSafety = /(safe|safety|risk|danger|venture|route|navigate|navigation)/.test(q);
   const asksSatellite = /(satellite|chlorophyll|sst|thermal front|remote sensing|sentinel|mosdac|earth observation)/.test(q);
   const asksGis = /(map|near|nearest|distance|boundary|border|imbl|restricted|geofence|sanctuary|protected|zone|route|port|harbour|harbor|avoid|corridor|coordinate|lat|lon|gps)/.test(q);
+  const needsSpatialReasoning = asksGis || isFishing || asksSafety;
   const asksEvidence = /(why|advisory|warning|regulation|rule|official|source|evidence|explain)/.test(q) || isFishing || asksSafety;
   const tasks: OrcaTask[] = [
     { id: 'resolve_location_time', label: 'Resolve location and time', dependsOn: [], required: true, enabled: true, status: 'pending', reason: 'Every marine query needs a spatial and temporal frame.' },
@@ -20,7 +21,7 @@ export function createOrcaPlan(query: string, language: LanguageCode = 'en'): Or
     { id: 'ocean', label: 'Acquire ocean conditions', dependsOn: ['resolve_location_time'], required: true, enabled: true, status: 'pending', reason: 'Waves, swell, currents and sea state are core marine signals.' },
     { id: 'satellite', label: 'Acquire satellite / EO observations', dependsOn: ['resolve_location_time'], required: false, enabled: asksSatellite || isFishing, status: 'pending', reason: asksSatellite ? 'The query explicitly requests Earth-observation intelligence.' : 'Fishing queries may benefit from EO indicators.' },
     { id: 'risk', label: 'Evaluate marine risk', dependsOn: ['weather', 'ocean'], required: true, enabled: true, status: 'pending', reason: 'Risk is a mandatory ORCA-X decision-support signal.' },
-    { id: 'gis', label: 'Perform spatial / GIS reasoning', dependsOn: ['resolve_location_time'], required: false, enabled: asksGis, status: 'pending', reason: 'Enabled for distance, zones, boundaries, routing and map-oriented questions.' },
+    { id: 'gis', label: 'Perform spatial / GIS reasoning', dependsOn: ['resolve_location_time'], required: false, enabled: needsSpatialReasoning, status: 'pending', reason: needsSpatialReasoning ? 'Enabled because the query requires spatial safety, fishing, distance, zone, boundary, routing or map reasoning.' : 'Enabled for distance, zones, boundaries, routing and map-oriented questions.' },
     { id: 'evidence', label: 'Retrieve authoritative evidence', dependsOn: ['resolve_location_time'], required: false, enabled: asksEvidence, status: 'pending', reason: 'Official advisories and domain rules strengthen operational answers but retrieval may degrade independently.' },
     { id: 'synthesis', label: `Synthesize grounded response (${language})`, dependsOn: [], required: true, enabled: true, status: 'pending', reason: 'Final synthesis consumes all selected branches.' }
   ];
