@@ -3,6 +3,7 @@ import express from 'express';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import apiRouter from './routes/index.ts';
+import gisRouter from './routes/gis.ts';
 import { errorHandler, notFound } from './middleware/errorHandler.ts';
 import { startMarineTelemetryCollector } from './services/realtime/marineTelemetryCollector.ts';
 
@@ -13,6 +14,7 @@ const IS_PRODUCTION = process.env.NODE_ENV === 'production' || process.env.ORCA_
 app.disable('x-powered-by');
 app.use(express.json({ limit: '1mb' }));
 app.use('/api', apiRouter);
+app.use('/api/gis', gisRouter);
 
 async function startServer() {
   if (!IS_PRODUCTION) {
