@@ -46,18 +46,27 @@ assert.equal(pointInPolygon(22, 87.5, square), false);
 
 const zones = buildOperationalZones(location, risk);
 assert.equal(zones.length, 2);
-assert.ok(zones.some(zone => zone.category === 'restricted_zone'));
+assert.ok(zones.some(zone => zone.category === 'hazard_zone'));
+assert.ok(zones.some(zone => zone.category === 'precaution_zone'));
+assert.ok(zones.every(zone => zone.category !== 'restricted_zone'));
 assert.ok(zones.every(zone => zone.polygon.length === 5));
+assert.ok(zones.find(zone => zone.category === 'hazard_zone')?.description.includes('not a statutory restricted area'));
 
 const spatial = analyzeSpatialContext(location, risk, zones);
-assert.equal(spatial.insideRestrictedZone, true);
+assert.equal(spatial.insideRestrictedZone, false);
 assert.ok(spatial.insideZoneIds.length >= 1);
 assert.equal(spatial.dataQuality, 'DETERMINISTIC');
-assert.ok(spatial.operationalWarnings.length >= 2);
+assert.ok(spatial.operationalWarnings.some(warning => warning.includes('decision-support overlays')));
+assert.ok(spatial.operationalWarnings.some(warning => warning.includes('dynamic hazard overlay')));
+assert.equal(spatial.nearestPort?.name, location.nearestPort);
+assert.equal(spatial.nearestPort?.distanceAvailable, false);
+assert.equal(spatial.nearestPort?.distanceKm, undefined);
 
 const layers = buildGisIntelligence(location, risk, ocean, { type: 'FeatureCollection', features: [] });
 assert.equal(layers.features.length, 2);
-assert.equal(layers.spatialAnalysis.insideRestrictedZone, true);
+assert.equal(layers.spatialAnalysis.insideRestrictedZone, false);
 assert.equal(layers.zones.length, 2);
+assert.deepEqual(layers.features.map(feature => feature.properties?.category), ['hazard_zone', 'precaution_zone']);
+assert.equal(layers.features[0].properties?.details.statutoryBoundary, false);
 
 console.log('ORCA-X GIS intelligence tests passed.');
