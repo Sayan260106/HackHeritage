@@ -61,10 +61,22 @@ assert.ok(layers.spatialAnalysis.insideZoneIds.length >= 1);
 assert.equal(layers.spatialAnalysis.insideRestrictedZone, false);
 assert.ok(layers.zones.some(zone => zone.category === 'hazard_zone'));
 assert.ok(layers.zones.some(zone => zone.category === 'precaution_zone'));
-assert.ok(layers.spatialAnalysis.operationalWarnings.some(warning => warning.includes('dynamic hazard overlay')));
 assert.equal(layers.spatialAnalysis.nearestPort?.distanceAvailable, false);
 assert.equal(layers.spatialAnalysis.nearestPort?.distanceKm, undefined);
 assert.ok(layers.features.every(feature => feature.properties?.details.statutoryBoundary === false));
+
+const highRisk: RiskPrediction = {
+  ...risk,
+  riskScore: 78,
+  riskLevel: 'HIGH',
+  primaryRecommendation: 'Avoid non-essential small-vessel operations until conditions improve.',
+  safetySummary: 'High operational risk.'
+};
+const highRiskLayers = buildGisIntelligence(location, highRisk, ocean, { type: 'FeatureCollection', features: [] });
+assert.ok(highRiskLayers.spatialAnalysis.insideZoneIds.length >= 1);
+assert.equal(highRiskLayers.spatialAnalysis.insideRestrictedZone, false);
+assert.ok(highRiskLayers.spatialAnalysis.operationalWarnings.some(warning => warning.includes('dynamic hazard overlay')));
+assert.ok(highRiskLayers.spatialAnalysis.operationalWarnings.some(warning => warning.includes('statutory safe passage')));
 
 console.log('GIS agentic integration tests passed:', {
   fishingGisEnabled: fishingGis?.enabled,
@@ -72,5 +84,6 @@ console.log('GIS agentic integration tests passed:', {
   generatedZones: layers.zones.length,
   containingZones: layers.spatialAnalysis.insideZoneIds.length,
   hazardZoneCategory: layers.zones.find(zone => zone.category === 'hazard_zone')?.category,
-  portDistanceAvailable: layers.spatialAnalysis.nearestPort?.distanceAvailable
+  portDistanceAvailable: layers.spatialAnalysis.nearestPort?.distanceAvailable,
+  highRiskHazardWarning: true
 });
