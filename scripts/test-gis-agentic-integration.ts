@@ -59,10 +59,18 @@ assert.ok(layers.zones.length >= 2);
 assert.equal(layers.features.length, layers.zones.length);
 assert.ok(layers.spatialAnalysis.insideZoneIds.length >= 1);
 assert.equal(layers.spatialAnalysis.insideRestrictedZone, false);
+assert.ok(layers.zones.some(zone => zone.category === 'hazard_zone'));
+assert.ok(layers.zones.some(zone => zone.category === 'precaution_zone'));
+assert.ok(layers.spatialAnalysis.operationalWarnings.some(warning => warning.includes('dynamic hazard overlay')));
+assert.equal(layers.spatialAnalysis.nearestPort?.distanceAvailable, false);
+assert.equal(layers.spatialAnalysis.nearestPort?.distanceKm, undefined);
+assert.ok(layers.features.every(feature => feature.properties?.details.statutoryBoundary === false));
 
 console.log('GIS agentic integration tests passed:', {
   fishingGisEnabled: fishingGis?.enabled,
   fishingGisDependencies: fishingGis?.dependsOn,
   generatedZones: layers.zones.length,
-  containingZones: layers.spatialAnalysis.insideZoneIds.length
+  containingZones: layers.spatialAnalysis.insideZoneIds.length,
+  hazardZoneCategory: layers.zones.find(zone => zone.category === 'hazard_zone')?.category,
+  portDistanceAvailable: layers.spatialAnalysis.nearestPort?.distanceAvailable
 });
