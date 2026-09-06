@@ -2,19 +2,18 @@ import React, { useEffect } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useHashRoute } from "./hooks/useHashRoute";
 import { usePrefersReducedMotion } from "./hooks/usePrefersReducedMotion";
-import { SynopsisPage } from "./pages/SynopsisPage";
+import SynopsisPage from "./pages/SynopsisPagePremium";
 import ConsolePage from "./pages/ConsolePage";
 
 /**
- * ORCA-X has two destinations: the project brief, and the live console. The
- * transition between them reads as a dive — the outgoing page sinks and dims
- * while the incoming one rises into place.
+ * ORCA-X has two destinations: the project story and the live console.
+ * The landing is intentionally cinematic; the console remains the functional
+ * application and is not changed by the landing redesign.
  */
 export default function App() {
   const { route, navigate } = useHashRoute();
   const reduced = usePrefersReducedMotion();
 
-  // The document title follows the route so browser history stays legible.
   useEffect(() => {
     document.title =
       route === "console"
@@ -22,13 +21,6 @@ export default function App() {
         : "ORCA-X — Ocean Reasoning & Collaborative AI";
   }, [route]);
 
-  /**
-   * Opacity and offset only — deliberately no `filter`. A filter value other
-   * than `none` (including `blur(0px)`) makes the element a containing block
-   * for fixed-position descendants, which would strand the brief's parallax
-   * plate, its depth gauge, the console's mobile drawer and the map's
-   * fullscreen mode. The dive reads fine without it.
-   */
   const dive = reduced
     ? { initial: false as const, animate: {}, exit: {} }
     : {
