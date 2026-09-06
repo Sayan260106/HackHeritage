@@ -2,7 +2,7 @@ import React, { useEffect } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useHashRoute } from "./hooks/useHashRoute";
 import { usePrefersReducedMotion } from "./hooks/usePrefersReducedMotion";
-import SynopsisPage from "./pages/SynopsisPage";
+import { SynopsisPage } from "./pages/SynopsisPage";
 import ConsolePage from "./pages/ConsolePage";
 
 /**
