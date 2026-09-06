@@ -119,10 +119,23 @@ router.post('/tts', async (req, res) => {
     const bhashiniKey = bhashiniApiKey || process.env.BHASHINI_API_KEY;
     const bUserId = bhashiniUserId || process.env.BHASHINI_USER_ID;
 
-    // 1. Try Sarvam AI (Bulbul:v1)
+    // 1. Try Sarvam AI (Bulbul:v3)
     if ((engine === 'sarvam' || engine === 'auto') && sarvamKey) {
       try {
         const targetLang = SARVAM_LANG_MAP[language] || 'en-IN';
+        const speakerMap: Record<string, string> = {
+          bn: 'roopa',
+          te: 'kavitha',
+          ta: 'priya',
+          hi: 'priya',
+          en: 'priya',
+          or: 'priya',
+          ml: 'priya',
+          gu: 'priya',
+          mr: 'priya',
+          kn: 'priya',
+        };
+        const speaker = speakerMap[language] || 'priya';
         const sarvamRes = await fetch('https://api.sarvam.ai/text-to-speech', {
           method: 'POST',
           headers: {
@@ -132,13 +145,13 @@ router.post('/tts', async (req, res) => {
           body: JSON.stringify({
             inputs: [text],
             target_language_code: targetLang,
-            speaker: 'meera',
+            speaker,
             pitch: 0,
             pace: 0.95,
             loudness: 1.5,
             speech_sample_rate: 22050,
             enable_preprocessing: true,
-            model: 'bulbul:v1',
+            model: 'bulbul:v3',
           }),
         });
 
@@ -153,6 +166,9 @@ router.post('/tts', async (req, res) => {
               audioBase64: base64Audio,
             });
           }
+        } else {
+          const errData = await sarvamRes.json().catch(() => null);
+          console.warn('Sarvam AI response not ok:', sarvamRes.status, errData);
         }
       } catch (err) {
         console.warn('Sarvam AI TTS error:', err);

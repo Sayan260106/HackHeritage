@@ -548,50 +548,128 @@ class VoiceWarningService {
 
   /**
    * Build localized spoken phrase for an IMBL or MPA geofence alert.
+   * Handles 4 distinct maritime scenarios with authentic coastal diction:
+   * 1. Inside Marine Protected Area / Sanctuary (depth inside + escape compass heading)
+   * 2. Crossed International Border into foreign waters (foreign water depth + escape heading)
+   * 3. Critical approach (<3 NM from boundary)
+   * 4. Proximity warning / advisory
    */
   public generateGeofencePhrase(alert: GeofenceAlert, language: LanguageCode): string {
-    const dist = alert.distanceNm.toFixed(1);
+    const isInsideMpa = alert.type === 'MPA' && (alert.isInside || alert.distanceNm === 0);
+    const hasCrossedImbl = alert.type === 'IMBL' && Boolean(alert.hasCrossedBorder);
+    const depthNm = alert.insideDepthNm ?? (alert.distanceNm > 0 ? alert.distanceNm : 0.5);
+    const dist = (isInsideMpa || hasCrossedImbl ? depthNm : alert.distanceNm).toFixed(1);
+    const heading = alert.escapeBearingDeg ?? alert.bearingDeg ?? 0;
     const boundary = resolveBoundaryName(alert.boundaryName, language);
 
     switch (language) {
       case 'hi':
+        if (isInsideMpa) {
+          return `आपातकालीन चेतावनी! पोत संरक्षित अभयारण्य ${boundary} के ${dist} नॉटिकल मील अंदर है। तुरंत ${heading} डिग्री दिशा में बाहर निकलें।`;
+        }
+        if (hasCrossedImbl) {
+          return `खतरे की चेतावनी! पोत अंतर्राष्ट्रीय सीमा ${boundary} पार कर ${dist} नॉटिकल मील विदेशी जलक्षेत्र में है। तुरंत ${heading} डिग्री पर भारतीय जलक्षेत्र में लौटें।`;
+        }
         return alert.severity === 'CRITICAL_BREACH'
           ? `चेतावनी! पोत अंतर्राष्ट्रीय सीमा ${boundary} से केवल ${dist} नॉटिकल मील दूरी पर है। तुरंत सुरक्षित जलक्षेत्र में वापस लौटें।`
           : `सूचना: पोत समुद्री सीमा ${boundary} के निकट है। दूरी ${dist} नॉटिकल मील है।`;
+
       case 'bn':
+        if (isInsideMpa) {
+          return `জরুরী সতর্কতা! বোটটি সংরক্ষিত অঞ্চল ${boundary} এর ${dist} নটিক্যাল মাইল ভেতরে রয়েছে। অবিলম্বে ${heading} ডিগ্রি অভিমুখে বের হয়ে যান।`;
+        }
+        if (hasCrossedImbl) {
+          return `বিপদ সংকেত! বোটটি আন্তর্জাতিক সীমান্ত ${boundary} অতিক্রম করে ${dist} নটিক্যাল মাইল ভেতরে চলে গেছে। অবিলম্বে ${heading} ডিগ্রিতে ভারতীয় জলসীমায় ফিরে যান।`;
+        }
         return alert.severity === 'CRITICAL_BREACH'
-          ? `জরুরী সতর্কতা! বোটটি আন্তর্জাতিক সীমান্ত ${boundary} থেকে মাত্র ${dist} নটিক্যাল মাইল দূরে। অবিলম্বে নিরাপদ অঞ্চলে ফিরে যান।`
+          ? `জরুরী সতর্কতা! বোটটি আন্তর্জাতিক সীমা ${boundary} এর মাত্র ${dist} নটিক্যাল মাইল সন্নিকটে। অবিলম্বে নিরাপদ অঞ্চলে ফিরে যান।`
           : `সতর্কতা: সামুদ্রিক সীমা ${boundary} এর সন্নিকটে। দূরত্ব ${dist} নটিক্যাল মাইল।`;
+
       case 'ta':
+        if (isInsideMpa) {
+          return `அவசர எச்சரிக்கை! படகு பாதுகாக்கப்பட்ட சரணாலயம் ${boundary} க்குள் ${dist} கடல் மைல் உள்ளே உள்ளது. உடனடியாக ${heading} டிகிரி திசையில் வெளியேறுங்கள்.`;
+        }
+        if (hasCrossedImbl) {
+          return `ஆபத்து எச்சரிக்கை! படகு சர்வதேச எல்லை ${boundary} கடந்து ${dist} கடல் மைல் உள்ளே சென்றுவிட்டது. உடனடியாக ${heading} டிகிரியில் இந்திய எல்லைக்கு திரும்புங்கள்.`;
+        }
         return alert.severity === 'CRITICAL_BREACH'
           ? `அவசர எச்சரிக்கை! படகு சர்வதேச எல்லை ${boundary} லிருந்து ${dist} கடல் மைல் தூரத்தில் உள்ளது. உடனே திரும்பி செல்லுங்கள்.`
           : `எச்சரிக்கை: கடல் எல்லை ${boundary} அருகில் உள்ளீர்கள். தூரம் ${dist} கடல் மைல்.`;
+
       case 'te':
+        if (isInsideMpa) {
+          return `అత్యవసర హెచ్చరిక! పడవ రక్షిత ప్రాంతం ${boundary} లోపల ${dist} నాటికల్ మైళ్ళ దూరంలో ఉంది. వెంటనే ${heading} డిగ్రీల దిశలో బయటకు వెళ్ళండి.`;
+        }
+        if (hasCrossedImbl) {
+          return `ప్రమాద హెచ్చరిక! పడవ అంతర్జాతీయ సరిహద్దు ${boundary} దాటి ${dist} నాటికల్ మైళ్ళు లోపలికి వెళ్ళింది. వెంటనే ${heading} డిగ్రీల వైపు భారత జలాల్లోకి తిరిగి రండి.`;
+        }
         return alert.severity === 'CRITICAL_BREACH'
           ? `అత్యవసర హెచ్చరిక! పడవ అంతర్జాతీయ సరిహద్దు ${boundary} కి ${dist} నాటికల్ మైళ్ల దూరంలో ఉంది. వెంటనే వెనక్కి తిరగండి.`
           : `హెచ్చరిక: సముద్ర సరిహద్దు ${boundary} సమీపంలో ఉంది. దూరం ${dist} నాటికల్ మైళ్ళు.`;
+
       case 'or':
+        if (isInsideMpa) {
+          return `ଜରୁରୀ ସତର୍କତା! ଡଙ୍ଗା ସଂରକ୍ଷିତ ଅଭୟାରଣ୍ୟ ${boundary} ଭିତରେ ${dist} ନଟିକାଲ ମାଇଲ ପ୍ରବେଶ କରିଛି। ତୁରନ୍ତ ${heading} ଡିଗ୍ରୀ ଦିଗରେ ବାହାରି ଯାଆନ୍ତୁ।`;
+        }
+        if (hasCrossedImbl) {
+          return `ବିପଦ ସତର୍କତା! ଡଙ୍ଗା ଆନ୍ତର୍ଜାତୀୟ ସୀମା ${boundary} ଅତିକ୍ରମ କରି ${dist} ନଟିକାଲ ମାଇଲ ଭିତରକୁ ଚାଲିଯାଇଛି। ତୁରନ୍ତ ${heading} ଡିଗ୍ରୀରେ ଭାରତୀୟ ଜଳସୀମାକୁ ଫେରିଆସନ୍ତୁ।`;
+        }
         return alert.severity === 'CRITICAL_BREACH'
           ? `ଜରୁରୀ ସତର୍କତା! ଡଙ୍ଗା ଆନ୍ତର୍ଜାତୀୟ ସୀମା ${boundary} ଠାରୁ ମାତ୍ର ${dist} ନଟିକାଲ ମାଇଲ ଦୂରରେ। ତୁରନ୍ତ ଫେରିଆସନ୍ତୁ।`
           : `ସୂଚନା: ସାମୁଦ୍ରିକ ସୀମା ${boundary} ନିକଟତର। ଦୂରତା ${dist} ନଟିକାଲ ମାଇଲ।`;
+
       case 'ml':
+        if (isInsideMpa) {
+          return `അടിയന്തര മുന്നറിയിപ്പ്! ബോട്ട് സംരക്ഷിത മേഖല ${boundary} ക്കുള്ളിൽ ${dist} നോട്ടിക്കൽ മൈൽ ഉള്ളിലാണ്. ഉടൻ ${heading} ഡിഗ്രി ദിശയിൽ പുറത്തു കടക്കുക.`;
+        }
+        if (hasCrossedImbl) {
+          return `അപകട മുന്നറിയിപ്പ്! ബോട്ട് അന്താരാഷ്ട്ര അതിർത്തി ${boundary} കടന്ന് ${dist} നോട്ടിക്കൽ മൈൽ ഉള്ളിലേക്ക് പോയിരിക്കുന്നു. ഉടൻ ${heading} ഡിഗ്രിയിൽ ഇന്ത്യൻ അതിർത്തിയിലേക്ക് തിരികെ വരിക.`;
+        }
         return alert.severity === 'CRITICAL_BREACH'
           ? `അടിയന്തര മുന്നറിയിപ്പ്! ബോട്ട് അന്താരാഷ്ട്ര അതിർത്തി ${boundary} യിൽ നിന്നും ${dist} നോട്ടിക്കൽ മൈൽ ദൂരത്തിലാണ്. ഉടൻ തിരികെ പോവുക.`
           : `മുന്നറിയിപ്പ്: സമുദ്ര അതിർത്തി ${boundary} ക്ക് അടുത്താണ്. ദൂരം ${dist} നോട്ടിക്കൽ മൈൽ.`;
+
       case 'gu':
+        if (isInsideMpa) {
+          return `કટોકટી ચેતવણી! વહાણ સંરક્ષિત અભયારણ્ય ${boundary} ની અંદર ${dist} નોટિકલ માઇલ પ્રવેશી ગયું છે. તરત જ ${heading} ડિગ્રી દિશામાં બહાર નીકળો.`;
+        }
+        if (hasCrossedImbl) {
+          return `જોખમ ચેતવણી! વહાણ આંતરરાષ્ટ્રીય સરહદ ${boundary} પાર કરીને ${dist} નોટિકલ માઇલ અંદર ગયું છે. તરત જ ${heading} ડિગ્રી પર ભારતીય જળસીમામાં પાછા ફરો.`;
+        }
         return alert.severity === 'CRITICAL_BREACH'
           ? `ચેતવણી! વહાણ આંતરરાષ્ટ્રીય સીમા ${boundary} થી માત્ર ${dist} નોટિકલ માઇલ દૂર છે. તરત જ પાછા ફરો.`
           : `સૂચના: દરિયાઈ સરહદ ${boundary} નજીક છે. અંતર ${dist} નોટિકલ માઇલ.`;
+
       case 'mr':
+        if (isInsideMpa) {
+          return `तातडीचा इशारा! बोट संरक्षित अभयारण्य ${boundary} च्या आत ${dist} नॉटिकल मैल शिरली आहे. त्वरित ${heading} अंश दिशेने बाहेर पडा.`;
+        }
+        if (hasCrossedImbl) {
+          return `धोक्याचा इशारा! बोट आंतरराष्ट्रीय सीमा ${boundary} ओलांडून ${dist} नॉटिकल मैल आत गेली आहे. त्वरित ${heading} अंशावर भारतीय सागरी हद्दीत मागे फिरा.`;
+        }
         return alert.severity === 'CRITICAL_BREACH'
           ? `तातडीचा इशारा! बोट आंतरराष्ट्रीय सीमा ${boundary} पासून फक्त ${dist} नॉटिकल मैल अंतरावर आहे. त्वरित मागे फिरा.`
           : `सूचना: सागरी सीमा ${boundary} जवळ आहे. अंतर ${dist} नॉटिकल मैल.`;
+
       case 'kn':
+        if (isInsideMpa) {
+          return `ತುರ್ತು ಎಚ್ಚರಿಕೆ! ದೋಣಿ ಸಂರಕ್ಷಿತ ಅಭಯಾರಣ್ಯ ${boundary} ಒಳಗೆ ${dist} ನಾಟಿಕಲ್ ಮೈಲಿ ಪ್ರವೇಶಿಸಿದೆ. ತಕ್ಷಣವೇ ${heading} ಡಿಗ್ರಿ ದಿಕ್ಕಿನಲ್ಲಿ ಹೊರಬನ್ನಿ.`;
+        }
+        if (hasCrossedImbl) {
+          return `ಅಪಾಯದ ಎಚ್ಚರಿಕೆ! ದೋಣಿ ಅಂತರರಾಷ್ಟ್ರೀಯ ಗಡಿ ${boundary} ದಾಟಿ ${dist} ನಾಟಿಕಲ್ ಮೈಲಿ ಒಳಗೆ ಹೋಗಿದೆ. ತಕ್ಷಣವೇ ${heading} ಡಿಗ್ರಿಯಲ್ಲಿ ಭಾರತೀಯ ಜಲಪ್ರದೇಶಕ್ಕೆ ಹಿಂತಿರುಗಿ.`;
+        }
         return alert.severity === 'CRITICAL_BREACH'
           ? `ತುರ್ತು ಎಚ್ಚರಿಕೆ! ದೋಣಿ ಅಂತರರಾಷ್ಟ್ರೀಯ ಗಡಿ ${boundary} ಯಿಂದ ಕೇವಲ ${dist} ನಾಟಿಕಲ್ ಮೈಲಿ ದೂರದಲ್ಲಿದೆ. ತಕ್ಷಣವೇ ಹಿಂತಿರುಗಿ.`
           : `ಎಚ್ಚರಿಕೆ: ಕಡಲ ಗಡಿ ${boundary} ಹತ್ತಿರದಲ್ಲಿದೆ. ದೂರ ${dist} ನಾಟಿಕಲ್ ಮೈಲಿ.`;
+
       case 'en':
       default:
+        if (isInsideMpa) {
+          return `Emergency Alert! Vessel is INSIDE protected sanctuary ${boundary}, ${dist} nautical miles deep. Exit immediately on heading ${heading} degrees.`;
+        }
+        if (hasCrossedImbl) {
+          return `Danger Alert! Vessel has CROSSED international border ${boundary} and is ${dist} nautical miles inside foreign waters. Turn back immediately on heading ${heading} degrees to return to Indian waters.`;
+        }
         return alert.severity === 'CRITICAL_BREACH'
           ? `Emergency Alert! Vessel is ${dist} nautical miles from ${boundary}. Risk of maritime breach; adjust course immediately.`
           : `Navigation advisory: Vessel approaching ${boundary}. Distance: ${dist} nautical miles.`;

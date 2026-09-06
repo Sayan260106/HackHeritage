@@ -12,6 +12,37 @@ const SAMPLE_CRITICAL_ALERT: GeofenceAlert = {
   treatyOrAuthority: 'UNCLOS 1974 Treaty',
 };
 
+const SAMPLE_INSIDE_MPA_ALERT: GeofenceAlert = {
+  boundaryId: 'mpa-sundarbans-aquatic',
+  boundaryName: 'Sundarbans Biosphere Reserve Marine Buffer Zone',
+  type: 'MPA',
+  distanceNm: 3.5,
+  distanceKm: 6.48,
+  severity: 'CRITICAL_BREACH',
+  warningMessage: 'Inside Sundarbans reserve',
+  treatyOrAuthority: 'UNESCO World Heritage',
+  isInside: true,
+  insideDepthNm: 3.5,
+  insideDepthKm: 6.48,
+  escapeBearingDeg: 195,
+};
+
+const SAMPLE_CROSSED_IMBL_ALERT: GeofenceAlert = {
+  boundaryId: 'imbl-india-bangladesh',
+  boundaryName: 'India – Bangladesh Maritime Boundary (PCA 2014 Delimitation)',
+  type: 'IMBL',
+  distanceNm: 2.4,
+  distanceKm: 4.44,
+  severity: 'CRITICAL_BREACH',
+  warningMessage: 'Crossed Bangladesh border',
+  treatyOrAuthority: 'PCA Award 2014',
+  hasCrossedBorder: true,
+  isInside: true,
+  insideDepthNm: 2.4,
+  insideDepthKm: 4.44,
+  escapeBearingDeg: 270,
+};
+
 const SAMPLE_PROXIMITY_ALERT: GeofenceAlert = {
   boundaryId: 'mpa-gahirmatha',
   boundaryName: 'Gahirmatha Marine Wildlife Sanctuary',
@@ -70,7 +101,7 @@ const BANNED_ENGLISH_WORDS = [
 
 async function runComprehensiveMatrix() {
   console.log('================================================================');
-  console.log('🌊 ORCA-X COMPREHENSIVE 10-LANGUAGE × 5-WARNING AUDIO VERIFICATION');
+  console.log('🌊 ORCA-X COMPREHENSIVE 10-LANGUAGE × 7-WARNING AUDIO VERIFICATION');
   console.log('================================================================\n');
 
   let totalTests = 0;
@@ -82,11 +113,13 @@ async function runComprehensiveMatrix() {
     console.log(`------------------------------------------------------------`);
 
     const phrases = {
-      '1. Critical Geofence Breach': voiceWarning.generateGeofencePhrase(SAMPLE_CRITICAL_ALERT, lang),
-      '2. Proximity Warning': voiceWarning.generateGeofencePhrase(SAMPLE_PROXIMITY_ALERT, lang),
-      '3. Severe Weather Warning': voiceWarning.generateWeatherPhrase(SAMPLE_RISK, lang),
-      '4. Comprehensive Risk Verdict': voiceWarning.generateRiskVerdictPhrase(SAMPLE_LOCATION, SAMPLE_RISK, SAMPLE_CRITICAL_ALERT, lang),
-      '5. System Audio Test': voiceWarning.generateTestPhrase(lang),
+      '1. Inside Sanctuary / MPA (Sundarbans)': voiceWarning.generateGeofencePhrase(SAMPLE_INSIDE_MPA_ALERT, lang),
+      '2. Crossed Border into Foreign Waters (Bangladesh)': voiceWarning.generateGeofencePhrase(SAMPLE_CROSSED_IMBL_ALERT, lang),
+      '3. Critical Border Proximity (<3 NM)': voiceWarning.generateGeofencePhrase(SAMPLE_CRITICAL_ALERT, lang),
+      '4. Boundary Proximity Warning': voiceWarning.generateGeofencePhrase(SAMPLE_PROXIMITY_ALERT, lang),
+      '5. Severe Weather Warning': voiceWarning.generateWeatherPhrase(SAMPLE_RISK, lang),
+      '6. Comprehensive Risk Verdict': voiceWarning.generateRiskVerdictPhrase(SAMPLE_LOCATION, SAMPLE_RISK, SAMPLE_CRITICAL_ALERT, lang),
+      '7. System Audio Test': voiceWarning.generateTestPhrase(lang),
     };
 
     for (const [warningType, phrase] of Object.entries(phrases)) {

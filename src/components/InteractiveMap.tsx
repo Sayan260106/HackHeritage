@@ -988,15 +988,16 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
                         {geo.nearestImbl.boundaryName.split('(')[0].replace('International Maritime Boundary Line', 'IMBL')}
                       </span>
                       <span className={`font-mono font-bold ${
+                        geo.nearestImbl.hasCrossedBorder ? 'text-red-400 font-black animate-pulse' :
                         geo.nearestImbl.distanceNm <= 3.0 ? 'text-red-400 font-black animate-pulse' :
                         geo.nearestImbl.distanceNm <= 8.0 ? 'text-amber-400' : 'text-slate-300'
                       }`}>
-                        {geo.nearestImbl.distanceNm} NM
+                        {geo.nearestImbl.hasCrossedBorder ? `CROSSED (${geo.nearestImbl.distanceNm} NM)` : `${geo.nearestImbl.distanceNm} NM`}
                       </span>
                     </div>
                     {geo.nearestImbl.bearingDeg !== undefined && (
                       <div className="text-[10px] text-slate-400 font-mono">
-                        Bearing: {geo.nearestImbl.bearingDeg}° • ({geo.nearestImbl.severity.replace('_', ' ')})
+                        {geo.nearestImbl.hasCrossedBorder ? 'Return Heading' : 'Bearing'}: {geo.nearestImbl.bearingDeg}° • ({geo.nearestImbl.hasCrossedBorder ? 'BORDER BREACH' : geo.nearestImbl.severity.replace('_', ' ')})
                       </div>
                     )}
                   </div>
@@ -1009,12 +1010,19 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
                         {geo.nearestMpa.boundaryName.split(' ')[0]} Sanctuary
                       </span>
                       <span className={`font-mono font-bold ${
-                        geo.nearestMpa.distanceNm === 0 ? 'text-red-400 font-black animate-pulse' :
+                        (geo.nearestMpa.isInside || geo.nearestMpa.distanceNm === 0) ? 'text-red-400 font-black animate-pulse' :
                         geo.nearestMpa.distanceNm <= 3.0 ? 'text-amber-400' : 'text-emerald-400'
                       }`}>
-                        {geo.nearestMpa.distanceNm === 0 ? 'INSIDE' : `${geo.nearestMpa.distanceNm} NM`}
+                        {(geo.nearestMpa.isInside || geo.nearestMpa.distanceNm === 0)
+                          ? `INSIDE (${geo.nearestMpa.insideDepthNm ?? geo.nearestMpa.distanceNm} NM)`
+                          : `${geo.nearestMpa.distanceNm} NM`}
                       </span>
                     </div>
+                    {(geo.nearestMpa.isInside || geo.nearestMpa.distanceNm === 0) && (
+                      <div className="text-[10px] text-red-300 font-mono">
+                        Escape Heading: {geo.nearestMpa.escapeBearingDeg ?? geo.nearestMpa.bearingDeg ?? 0}° • SANCTUARY INVASION
+                      </div>
+                    )}
                   </div>
                 )}
 

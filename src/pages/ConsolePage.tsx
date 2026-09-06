@@ -33,9 +33,13 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
     locOverride?: string,
     timeOverride?: string,
     responseLanguage: LanguageCode = language,
+    retryCount: number = 0,
   ) => {
     setIsLoading(true);
-    setErrorMessage(null);
+    // Only clear errorMessage on first attempt; keep previous analysisData for smooth UX
+    if (retryCount === 0) {
+      setErrorMessage(null);
+    }
 
     try {
       const response = await fetch("/api/orca/query", {
@@ -63,13 +67,24 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
       }
 
       setAnalysisData(payload as OrcaAnalysisResponse);
+      setErrorMessage(null);
+      setIsLoading(false);
     } catch (err) {
+      // Auto-retry once after 1 second for transient network or agent initialization blips
+      if (retryCount < 1) {
+        console.warn(`ORCA live-data transient hiccup, auto-retrying in 1s...`);
+        setTimeout(() => {
+          fetchAnalysis(queryText, locOverride, timeOverride, responseLanguage, retryCount + 1);
+        }, 1000);
+        return;
+      }
+
       const message =
         err instanceof Error ? err.message : "Unable to retrieve live ORCA data.";
       console.error("ORCA live-data request failed:", message);
-      setAnalysisData(null);
+      // Only nullify analysisData if there was none previously to prevent layout flashing
+      setAnalysisData((prev) => prev);
       setErrorMessage(message);
-    } finally {
       setIsLoading(false);
     }
   };

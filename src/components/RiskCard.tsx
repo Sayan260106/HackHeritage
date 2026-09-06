@@ -379,13 +379,13 @@ export const RiskCard: React.FC<RiskCardProps> = ({
               <div className="bg-slate-950/60 p-2 rounded-lg border border-slate-800/60 space-y-0.5">
                 <div className="flex items-center justify-between text-slate-300 font-bold">
                   <span className="truncate max-w-[150px]">{geofenceAnalysis.nearestImbl.boundaryName.split('(')[0]}</span>
-                  <span className={geofenceAnalysis.nearestImbl.distanceNm <= 3.0 ? 'text-red-400 font-black' : geofenceAnalysis.nearestImbl.distanceNm <= 8.0 ? 'text-amber-400' : 'text-slate-300'}>
-                    {geofenceAnalysis.nearestImbl.distanceNm} NM
+                  <span className={geofenceAnalysis.nearestImbl.hasCrossedBorder ? 'text-red-400 font-black animate-pulse' : geofenceAnalysis.nearestImbl.distanceNm <= 3.0 ? 'text-red-400 font-black' : geofenceAnalysis.nearestImbl.distanceNm <= 8.0 ? 'text-amber-400' : 'text-slate-300'}>
+                    {geofenceAnalysis.nearestImbl.hasCrossedBorder ? `CROSSED (${geofenceAnalysis.nearestImbl.distanceNm} NM)` : `${geofenceAnalysis.nearestImbl.distanceNm} NM`}
                   </span>
                 </div>
                 <div className="text-[10px] text-slate-400 flex items-center justify-between">
-                  <span>Bearing: {geofenceAnalysis.nearestImbl.bearingDeg ?? 0}°</span>
-                  <span className="text-cyan-400/80">{geofenceAnalysis.nearestImbl.severity.replace('_', ' ')}</span>
+                  <span>{geofenceAnalysis.nearestImbl.hasCrossedBorder ? 'Return Heading' : 'Bearing'}: {geofenceAnalysis.nearestImbl.bearingDeg ?? 0}°</span>
+                  <span className={geofenceAnalysis.nearestImbl.hasCrossedBorder ? 'text-red-400 font-bold' : 'text-cyan-400/80'}>{geofenceAnalysis.nearestImbl.hasCrossedBorder ? 'BORDER BREACH' : geofenceAnalysis.nearestImbl.severity.replace('_', ' ')}</span>
                 </div>
               </div>
             )}
@@ -394,13 +394,17 @@ export const RiskCard: React.FC<RiskCardProps> = ({
               <div className="bg-slate-950/60 p-2 rounded-lg border border-slate-800/60 space-y-0.5">
                 <div className="flex items-center justify-between text-slate-300 font-bold">
                   <span className="truncate max-w-[150px]">{geofenceAnalysis.nearestMpa.boundaryName.split(' ')[0]} Sanctuary</span>
-                  <span className={geofenceAnalysis.nearestMpa.distanceNm === 0 ? 'text-red-400 font-black animate-pulse' : geofenceAnalysis.nearestMpa.distanceNm <= 3.0 ? 'text-amber-400' : 'text-emerald-400'}>
-                    {geofenceAnalysis.nearestMpa.distanceNm === 0 ? 'INSIDE RESERVE' : `${geofenceAnalysis.nearestMpa.distanceNm} NM`}
+                  <span className={(geofenceAnalysis.nearestMpa.isInside || geofenceAnalysis.nearestMpa.distanceNm === 0) ? 'text-red-400 font-black animate-pulse' : geofenceAnalysis.nearestMpa.distanceNm <= 3.0 ? 'text-amber-400' : 'text-emerald-400'}>
+                    {(geofenceAnalysis.nearestMpa.isInside || geofenceAnalysis.nearestMpa.distanceNm === 0)
+                      ? `INSIDE (${geofenceAnalysis.nearestMpa.insideDepthNm ?? geofenceAnalysis.nearestMpa.distanceNm} NM)`
+                      : `${geofenceAnalysis.nearestMpa.distanceNm} NM`}
                   </span>
                 </div>
                 <div className="text-[10px] text-slate-400 flex items-center justify-between">
-                  <span>Ecological Buffer</span>
-                  <span className="text-emerald-400/80">{geofenceAnalysis.nearestMpa.severity.replace('_', ' ')}</span>
+                  <span>{(geofenceAnalysis.nearestMpa.isInside || geofenceAnalysis.nearestMpa.distanceNm === 0) ? `Escape Heading: ${geofenceAnalysis.nearestMpa.escapeBearingDeg ?? geofenceAnalysis.nearestMpa.bearingDeg ?? 0}°` : 'Ecological Buffer'}</span>
+                  <span className={(geofenceAnalysis.nearestMpa.isInside || geofenceAnalysis.nearestMpa.distanceNm === 0) ? 'text-red-400 font-bold' : 'text-emerald-400/80'}>
+                    {(geofenceAnalysis.nearestMpa.isInside || geofenceAnalysis.nearestMpa.distanceNm === 0) ? 'SANCTUARY INVASION' : geofenceAnalysis.nearestMpa.severity.replace('_', ' ')}
+                  </span>
                 </div>
               </div>
             )}

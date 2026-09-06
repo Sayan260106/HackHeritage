@@ -5,8 +5,35 @@ import {
 import { COASTAL_LOCATIONS } from '../../src/data/coastalData.ts';
 import { fetchRealtimeMarineObservation, RealtimeMarineObservation } from './realtime/realtimeObservationService.ts';
 
-export function resolveLocation(query: string, locationOverride?: string): LocationInfo {
-  const target = locationOverride || query;
+export function resolveLocation(query: string, locationOverride?: any): LocationInfo {
+  // If locationOverride is an object containing lat/lon
+  if (locationOverride && typeof locationOverride === 'object') {
+    const lat = Number(locationOverride.lat ?? locationOverride.latitude);
+    const lon = Number(locationOverride.lon ?? locationOverride.longitude);
+    if (Number.isFinite(lat) && Number.isFinite(lon) && lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180) {
+      let nearestPortName = 'Open Sea';
+      let minDist = Infinity;
+      for (const loc of Object.values(COASTAL_LOCATIONS)) {
+        const d = Math.hypot(loc.latitude - lat, loc.longitude - lon);
+        if (d < minDist) {
+          minDist = d;
+          nearestPortName = loc.name;
+        }
+      }
+      return {
+        name: locationOverride.label || locationOverride.name || `Vessel Point (${lat.toFixed(3)}°N, ${lon.toFixed(3)}°E)`,
+        country: 'India',
+        latitude: lat,
+        longitude: lon,
+        regionType: 'open_sea',
+        nearestPort: `Off ${nearestPortName}`
+      };
+    }
+  }
+
+  const target = (typeof locationOverride === 'string' && locationOverride.trim().length > 0)
+    ? locationOverride
+    : (typeof query === 'string' ? query : '');
   const q = target.toLowerCase();
 
   // 1. Check if locationOverride or query contains coordinates (e.g. "20.1234, 86.5678" or "20.1234°N, 86.5678°E")
@@ -62,8 +89,11 @@ export function resolveLocation(query: string, locationOverride?: string): Locat
   return COASTAL_LOCATIONS.digha;
 }
 
-export function resolveTimeWindow(query: string, timeOverride?: string): TimeWindow {
-  const q = (timeOverride || query).toLowerCase();
+export function resolveTimeWindow(query: string, timeOverride?: any): TimeWindow {
+  const target = (typeof timeOverride === 'string' && timeOverride.trim().length > 0)
+    ? timeOverride
+    : (typeof query === 'string' ? query : '');
+  const q = target.toLowerCase();
   const now = new Date();
   let start = new Date(now);
   let end = new Date(now.getTime() + 6 * 3600 * 1000);
