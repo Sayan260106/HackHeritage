@@ -3,99 +3,117 @@ import { motion, useTransform, type MotionValue } from "motion/react";
 
 interface Props { progress: MotionValue<number>; }
 
-const Ship = () => (
-  <svg viewBox="0 0 720 320" className="w-[min(58vw,720px)] overflow-visible drop-shadow-[0_34px_55px_rgba(0,0,0,.72)]" aria-hidden="true">
+const Vessel = () => (
+  <svg viewBox="0 0 900 430" className="w-[min(72vw,900px)] overflow-visible" aria-hidden="true">
     <defs>
-      <linearGradient id="shipHull" x1="0" x2="1"><stop offset="0" stopColor="#081923"/><stop offset=".46" stopColor="#3c7f88"/><stop offset=".75" stopColor="#153c49"/><stop offset="1" stopColor="#061018"/></linearGradient>
-      <linearGradient id="shipCabin" x1="0" y1="0" x2="0" y2="1"><stop stopColor="#3b7882"/><stop offset="1" stopColor="#0a202b"/></linearGradient>
-      <linearGradient id="wake" x1="0" x2="1"><stop stopColor="#e7fff9" stopOpacity="0"/><stop offset=".35" stopColor="#bff8eb" stopOpacity=".7"/><stop offset="1" stopColor="#7fd4c1" stopOpacity="0"/></linearGradient>
+      <linearGradient id="vxHull" x1="0" x2="1"><stop stopColor="#07131b"/><stop offset=".42" stopColor="#4c8990"/><stop offset=".68" stopColor="#194a55"/><stop offset="1" stopColor="#050c12"/></linearGradient>
+      <linearGradient id="vxCabin" x1="0" y1="0" x2="0" y2="1"><stop stopColor="#4d8d92"/><stop offset="1" stopColor="#0a2029"/></linearGradient>
+      <linearGradient id="vxWake"><stop stopColor="#eafff9" stopOpacity="0"/><stop offset=".5" stopColor="#b8f5e8" stopOpacity=".85"/><stop offset="1" stopColor="#79cdbd" stopOpacity="0"/></linearGradient>
+      <filter id="vxGlow"><feGaussianBlur stdDeviation="7"/></filter>
     </defs>
-    <path d="M54 164 L132 202 H546 L674 145 L592 229 H112 Z" fill="url(#shipHull)" stroke="#d7fff7" strokeWidth="2.2" strokeOpacity=".9"/>
-    <path d="M153 164 V75 H407 V164" fill="url(#shipCabin)" stroke="#c9f9f1" strokeWidth="2" strokeOpacity=".72"/>
-    <path d="M193 75 V38 H326 V75" fill="#174553" stroke="#d1fff8" strokeOpacity=".7" strokeWidth="1.8"/>
-    <path d="M327 40 L413 13 V82 H327" fill="#0b1d27" stroke="#d1fff8" strokeOpacity=".55" strokeWidth="2"/>
-    <path d="M415 17 V131" stroke="#d1fff8" strokeOpacity=".55" strokeWidth="3"/>
-    <path d="M423 26 L485 51 L423 76 Z" fill="#275e69" stroke="#d1fff8" strokeOpacity=".45"/>
-    {[205,244,283,322,361].map((x) => <rect key={x} x={x} y="101" width="17" height="12" rx="2" fill="#c5fff4" fillOpacity=".84"/>)}
-    <rect x="371" y="103" width="26" height="15" rx="2" fill="#f6c45d"/>
-    <circle cx="239" cy="67" r="7" fill="#f6c45d" className="animate-pulse"/>
-    <path d="M0 252 C102 207 160 277 262 241 S468 209 720 255" fill="none" stroke="url(#wake)" strokeWidth="11"/>
-    <path d="M34 274 C132 240 197 294 302 265 S505 238 662 280" fill="none" stroke="#e9fff9" strokeOpacity=".28" strokeWidth="5"/>
+    <path d="M38 215 L160 275 H650 L844 180 L714 306 H135 Z" fill="url(#vxHull)" stroke="#dcfff8" strokeWidth="3" strokeOpacity=".9"/>
+    <path d="M176 215 V91 H492 V215" fill="url(#vxCabin)" stroke="#cffff7" strokeWidth="2.5" strokeOpacity=".78"/>
+    <path d="M214 91 V45 H381 V91" fill="#1c4b57" stroke="#d5fff8" strokeWidth="2"/>
+    <path d="M382 48 L496 16 V104 H382" fill="#0a1c25" stroke="#d5fff8" strokeWidth="2" strokeOpacity=".7"/>
+    <path d="M500 18 V173" stroke="#d5fff8" strokeWidth="3" strokeOpacity=".65"/>
+    <path d="M510 31 L580 60 L510 89 Z" fill="#2c626b" stroke="#d5fff8" strokeWidth="2" strokeOpacity=".5"/>
+    {[226,268,310,352,394,436].map(x => <rect key={x} x={x} y="122" width="21" height="15" rx="2" fill="#cffff7" fillOpacity=".9"/>)}
+    <rect x="448" y="125" width="30" height="19" rx="2" fill="#f4c55d"/>
+    <circle cx="263" cy="73" r="8" fill="#f4c55d"/>
+    <path d="M0 355 C145 286 230 392 370 332 S610 286 900 362" fill="none" stroke="url(#vxWake)" strokeWidth="18" filter="url(#vxGlow)"/>
+    <path d="M0 355 C145 286 230 392 370 332 S610 286 900 362" fill="none" stroke="#e9fff9" strokeOpacity=".48" strokeWidth="6"/>
+    <path d="M90 393 C220 350 310 415 432 380 S665 352 835 400" fill="none" stroke="#bdf6eb" strokeOpacity=".2" strokeWidth="4"/>
   </svg>
 );
 
-const Person = () => (
-  <svg viewBox="0 0 300 430" className="w-[min(20vw,300px)] overflow-visible drop-shadow-[0_30px_45px_rgba(0,0,0,.62)]" aria-hidden="true">
-    <circle cx="150" cy="62" r="38" fill="#b88968"/>
-    <path d="M113 63 C111 30 131 10 155 10 C183 12 200 31 191 64 C172 45 145 46 113 63Z" fill="#0a1116"/>
-    <path d="M89 205 C92 143 116 111 150 111 C185 111 210 147 214 205 L195 324 H105Z" fill="#143943" stroke="#b8eee4" strokeOpacity=".38" strokeWidth="2"/>
-    <path d="M107 323 L78 407 M194 323 L225 407" stroke="#07131a" strokeWidth="32" strokeLinecap="round"/>
-    <path d="M106 166 L61 244 M195 166 L236 232" stroke="#1c505c" strokeWidth="25" strokeLinecap="round"/>
-    <rect x="208" y="219" width="48" height="83" rx="8" fill="#061017" stroke="#b8eee4" strokeWidth="2"/>
-    <rect x="216" y="228" width="32" height="57" rx="4" fill="#0d3540"/>
-    <circle cx="232" cy="291" r="3" fill="#f6c45d"/>
+const PersonWithPhone = () => (
+  <svg viewBox="0 0 360 520" className="w-[min(25vw,360px)] overflow-visible" aria-hidden="true">
+    <circle cx="176" cy="72" r="46" fill="#b88968"/>
+    <path d="M132 73 C128 35 151 9 181 10 C215 11 232 39 219 77 C196 51 164 53 132 73Z" fill="#071017"/>
+    <path d="M100 245 C101 164 130 122 176 122 C224 122 251 170 254 245 L228 389 H126Z" fill="#123b45" stroke="#baf2e7" strokeOpacity=".5" strokeWidth="2"/>
+    <path d="M130 389 L92 492 M225 389 L265 492" stroke="#061016" strokeWidth="38" strokeLinecap="round"/>
+    <path d="M119 181 L73 281 M229 180 L277 255" stroke="#1e5661" strokeWidth="29" strokeLinecap="round"/>
+    <rect x="250" y="241" width="59" height="105" rx="10" fill="#050c12" stroke="#d0fff6" strokeWidth="2.5"/>
+    <rect x="258" y="253" width="43" height="70" rx="5" fill="#0c3440"/>
+    <path d="M266 275 H292 M266 288 H287" stroke="#9be6d8" strokeWidth="3" strokeLinecap="round" opacity=".8"/>
+    <circle cx="279" cy="332" r="4" fill="#f4c55d"/>
   </svg>
 );
 
 const Satellite = () => (
-  <svg viewBox="0 0 280 170" className="w-[min(22vw,280px)] drop-shadow-[0_0_40px_rgba(127,212,193,.32)]" aria-hidden="true">
-    <rect x="117" y="58" width="48" height="40" rx="5" fill="#102d39" stroke="#d4fff7" strokeWidth="2"/>
-    <rect x="15" y="47" width="82" height="62" rx="3" fill="#1b4c5a" stroke="#a7eee1" strokeWidth="2"/>
-    <rect x="183" y="47" width="82" height="62" rx="3" fill="#1b4c5a" stroke="#a7eee1" strokeWidth="2"/>
-    <path d="M141 58 V20 M141 98 V150 M117 78 H83 M165 78 H199" stroke="#d7fff7" strokeWidth="2.5" strokeOpacity=".72"/>
-    <circle cx="141" cy="78" r="9" fill="#f6c45d"/>
+  <svg viewBox="0 0 330 190" className="w-[min(24vw,330px)]" aria-hidden="true">
+    <rect x="139" y="62" width="52" height="48" rx="6" fill="#0d2a35" stroke="#d5fff8" strokeWidth="2.5"/>
+    <rect x="16" y="49" width="101" height="73" rx="3" fill="#1a4d5b" stroke="#a8eee2" strokeWidth="2.5"/>
+    <rect x="213" y="49" width="101" height="73" rx="3" fill="#1a4d5b" stroke="#a8eee2" strokeWidth="2.5"/>
+    <path d="M165 62 V20 M165 110 V170 M139 86 H105 M191 86 H225" stroke="#d7fff7" strokeWidth="3" strokeOpacity=".72"/>
+    <circle cx="165" cy="86" r="10" fill="#f4c55d"/>
   </svg>
 );
 
 export const OrcaCinematicWorldPremium: React.FC<Props> = ({ progress }) => {
-  const sea = useTransform(progress, [0, .22, .42, .58], [1.12, 1.06, .92, .68]);
-  const horizon = useTransform(progress, [0, .18, .4, .58], ["58%", "50%", "34%", "15%"]);
-  const shipY = useTransform(progress, [0, .14, .29, .44, .53], ["67%", "65%", "53%", "35%", "20%"]);
-  const shipScale = useTransform(progress, [0, .12, .28, .44, .53], [1.05, 1.12, .88, .48, .08]);
-  const shipOpacity = useTransform(progress, [0, .37, .5, .56], [1, 1, .55, 0]);
-  const clouds = useTransform(progress, [.18, .36, .6, .8], [0, .45, 1, .7]);
-  const stars = useTransform(progress, [.45, .62, 1], [0, .65, 1]);
-  const personOpacity = useTransform(progress, [.54, .63, .84], [0, 1, 1]);
-  const personX = useTransform(progress, [.54, .63, .84], ["8%", "22%", "22%"]);
-  const satelliteOpacity = useTransform(progress, [.58, .69, .9], [0, 1, 1]);
-  const satelliteX = useTransform(progress, [.58, .69, .9], ["96%", "78%", "78%"]);
-  const routeOpacity = useTransform(progress, [.55, .64, .95], [0, 1, 1]);
-  const packet = useTransform(progress, [.58, .68, .78, .9], [0, 1, .7, 1]);
-  const routeScale = useTransform(progress, [.56, 1], [.5, 2.7]);
-  const sun = useTransform(progress, [0, .28, .52], [.9, .7, 0]);
+  const oceanScale = useTransform(progress, [0, .18, .34, .52], [1.08, 1.18, .96, .7]);
+  const horizonY = useTransform(progress, [0, .2, .38, .54], ["58%", "52%", "34%", "11%"]);
+  const vesselY = useTransform(progress, [0, .1, .23, .36, .47], ["67%", "64%", "55%", "39%", "21%"]);
+  const vesselScale = useTransform(progress, [0, .11, .25, .38, .49], [1.0, 1.16, .92, .52, .05]);
+  const vesselOpacity = useTransform(progress, [0, .32, .43, .51], [1, 1, .62, 0]);
+  const sunOpacity = useTransform(progress, [0, .3, .55], [.95, .55, 0]);
+  const atmosphere = useTransform(progress, [.18, .38, .6, .8], [0, .55, 1, .7]);
+  const stars = useTransform(progress, [.42, .58, 1], [0, .7, 1]);
+  const personOpacity = useTransform(progress, [.51, .59, .82], [0, 1, 1]);
+  const personX = useTransform(progress, [.51, .59, .82], ["8%", "20%", "20%"]);
+  const satelliteOpacity = useTransform(progress, [.56, .65, .9], [0, 1, 1]);
+  const satelliteX = useTransform(progress, [.56, .65, .9], ["96%", "78%", "78%"]);
+  const routeOpacity = useTransform(progress, [.52, .61, .96], [0, 1, 1]);
+  const routeDraw = useTransform(progress, [.58, .74, .9], [0, 1, 1]);
+  const packetScale = useTransform(progress, [.57, .67, .78, .9], [.2, 1.2, .75, 1]);
+  const packetX = useTransform(progress, [.57, .68, .8, .92], ["20%", "42%", "62%", "79%"]);
+  const packetY = useTransform(progress, [.57, .68, .8, .92], ["77%", "59%", "39%", "20%"]);
+  const answerGlow = useTransform(progress, [.77, .86, 1], [0, 1, 1]);
 
   return (
     <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden bg-[#02080d]" aria-hidden="true">
-      <motion.div className="absolute inset-[-14%]" style={{ scale: sea }}>
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_34%,rgba(84,189,187,.32),transparent_42%),linear-gradient(180deg,#061923_0%,#07313b_48%,#02080d_100%)]"/>
-        <motion.div className="absolute inset-x-[-10%] h-[72%] bg-[radial-gradient(ellipse_at_center,rgba(31,146,151,.78),rgba(5,62,73,.96)_48%,#02080d_80%)]" style={{ top: horizon }}/>
-        <div className="absolute inset-x-[-15%] bottom-[-15%] h-[60%] opacity-80 [background-image:repeating-radial-gradient(ellipse_at_center,rgba(188,246,235,.16)_0_1px,transparent_1px_25px)] [background-size:100%_42px] [transform:perspective(720px)_rotateX(64deg)]"/>
-        <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_32%,rgba(2,8,13,.08)_48%,rgba(2,8,13,.92)_100%)]"/>
+      <motion.div className="absolute inset-[-12%]" style={{ scale: oceanScale }}>
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_52%_28%,rgba(91,201,195,.34),transparent_40%),linear-gradient(180deg,#061821_0%,#083742_46%,#02080d_100%)]"/>
+        <motion.div className="absolute inset-x-[-15%] h-[72%] bg-[radial-gradient(ellipse_at_center,rgba(29,151,156,.8),rgba(5,67,77,.96)_47%,#02080d_82%)]" style={{ top: horizonY }}/>
+        <div className="absolute inset-x-[-18%] bottom-[-18%] h-[62%] opacity-80 [background-image:repeating-radial-gradient(ellipse_at_center,rgba(195,250,240,.15)_0_1px,transparent_1px_27px)] [background-size:100%_43px] [transform:perspective(760px)_rotateX(63deg)]"/>
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_28%,rgba(2,8,13,.04)_46%,rgba(2,8,13,.94)_100%)]"/>
       </motion.div>
-      <motion.div className="absolute right-[17%] top-[17%] h-40 w-40 rounded-full bg-[#f6c45d]/25 blur-3xl" style={{ opacity: sun }}/>
-      <motion.div className="absolute inset-0" style={{ opacity: clouds }}>
-        <div className="absolute -left-[8%] top-[13%] h-28 w-[34%] rounded-full bg-white/[.09] blur-3xl"/>
-        <div className="absolute left-[18%] top-[25%] h-32 w-[42%] rounded-full bg-white/[.08] blur-3xl"/>
-        <div className="absolute right-[2%] top-[15%] h-28 w-[35%] rounded-full bg-white/[.08] blur-3xl"/>
-        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(232,250,247,.08),transparent_48%,rgba(2,8,13,.72))]"/>
+
+      <motion.div className="absolute right-[18%] top-[18%] h-52 w-52 rounded-full bg-[#f4c55d]/25 blur-3xl" style={{ opacity: sunOpacity }}/>
+
+      <motion.div className="absolute inset-0" style={{ opacity: atmosphere }}>
+        <div className="absolute -left-[10%] top-[12%] h-32 w-[38%] rounded-full bg-white/[.09] blur-3xl"/>
+        <div className="absolute left-[22%] top-[23%] h-36 w-[42%] rounded-full bg-white/[.08] blur-3xl"/>
+        <div className="absolute right-[-4%] top-[14%] h-32 w-[38%] rounded-full bg-white/[.08] blur-3xl"/>
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(235,252,249,.08),transparent_50%,rgba(2,8,13,.76))]"/>
       </motion.div>
+
       <motion.div className="absolute inset-0" style={{ opacity: stars }}>
-        {[["7%","15%"],["17%","8%"],["29%","19%"],["43%","11%"],["58%","7%"],["70%","16%"],["88%","9%"],["81%","29%"],["35%","31%"]].map(([left,top],i)=><span key={i} className="absolute h-1 w-1 rounded-full bg-white/70 shadow-[0_0_10px_rgba(220,255,247,.7)]" style={{left,top}}/>)}
+        {[["7%","13%"],["17%","8%"],["29%","18%"],["42%","10%"],["57%","7%"],["70%","15%"],["88%","9%"],["81%","29%"],["35%","30%"],["63%","27%"]].map(([left, top], i) => <span key={i} className="absolute h-1 w-1 rounded-full bg-white/75 shadow-[0_0_11px_rgba(220,255,247,.75)]" style={{ left, top }}/>) }
       </motion.div>
-      <motion.div className="absolute left-1/2" style={{ top: shipY, scale: shipScale, opacity: shipOpacity, x: "-50%", y: "-50%" }}><Ship/></motion.div>
-      <motion.svg className="absolute inset-0 h-full w-full" viewBox="0 0 1400 900" preserveAspectRatio="none" style={{ opacity: routeOpacity }}>
-        <defs><linearGradient id="premiumRoute" x1="0" x2="1"><stop stopColor="#7fd4c1" stopOpacity="0"/><stop offset=".5" stopColor="#7fd4c1" stopOpacity=".85"/><stop offset="1" stopColor="#f6c45d" stopOpacity=".9"/></linearGradient></defs>
-        <path d="M170 690 C350 560 475 470 620 390 S890 245 1120 160" fill="none" stroke="rgba(255,255,255,.08)" strokeWidth="3"/>
-        <path d="M170 690 C350 560 475 470 620 390 S890 245 1120 160" fill="none" stroke="url(#premiumRoute)" strokeWidth="2.5" strokeDasharray="7 16"/>
-        <circle cx="170" cy="690" r="9" fill="#7fd4c1"/><circle cx="620" cy="390" r="6" fill="#7fd4c1"/><circle cx="1120" cy="160" r="9" fill="#f6c45d"/>
-      </motion.svg>
-      <motion.div className="absolute" style={{ left: personX, top: "58%", opacity: personOpacity, x: "-50%", y: "-50%" }}><Person/></motion.div>
+
+      <motion.div className="absolute left-1/2" style={{ top: vesselY, scale: vesselScale, opacity: vesselOpacity, x: "-50%", y: "-50%" }}><Vessel/></motion.div>
+
+      <motion.div className="absolute inset-0" style={{ opacity: routeOpacity }}>
+        <motion.svg className="absolute inset-0 h-full w-full" viewBox="0 0 1400 900" preserveAspectRatio="none" style={{ opacity: routeDraw }}>
+          <defs><linearGradient id="vxRoute" x1="0" x2="1"><stop stopColor="#7fd4c1" stopOpacity="0"/><stop offset=".5" stopColor="#7fd4c1" stopOpacity=".9"/><stop offset="1" stopColor="#f4c55d" stopOpacity=".95"/></linearGradient></defs>
+          <path d="M160 705 C330 580 470 495 615 405 S880 250 1135 145" fill="none" stroke="rgba(255,255,255,.09)" strokeWidth="5"/>
+          <path d="M160 705 C330 580 470 495 615 405 S880 250 1135 145" fill="none" stroke="url(#vxRoute)" strokeWidth="3" strokeDasharray="8 17"/>
+          <circle cx="160" cy="705" r="10" fill="#7fd4c1"/><circle cx="615" cy="405" r="7" fill="#7fd4c1"/><circle cx="1135" cy="145" r="10" fill="#f4c55d"/>
+        </motion.svg>
+        <motion.div className="absolute h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#9ff0df] shadow-[0_0_44px_15px_rgba(127,212,193,.55)]" style={{ left: packetX, top: packetY, scale: packetScale }} />
+        <motion.div className="absolute h-28 w-28 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#7fd4c1]/35" style={{ left: packetX, top: packetY, scale: packetScale }} />
+      </motion.div>
+
+      <motion.div className="absolute" style={{ left: personX, top: "60%", opacity: personOpacity, x: "-50%", y: "-50%" }}><PersonWithPhone/></motion.div>
       <motion.div className="absolute" style={{ left: satelliteX, top: "19%", opacity: satelliteOpacity, x: "-50%", y: "-50%" }}><Satellite/></motion.div>
-      <motion.div className="absolute left-[44%] top-[47%] h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#7fd4c1] shadow-[0_0_36px_12px_rgba(127,212,193,.48)]" style={{ opacity: routeOpacity, scale: packet }}/>
-      <motion.div className="absolute left-[44%] top-[47%] h-24 w-24 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#7fd4c1]/30" style={{ opacity: routeOpacity, scale: routeScale }}/>
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_18%,rgba(2,8,13,.44)_100%)]"/>
-      <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-[#02080d] to-transparent"/>
-      <div className="absolute inset-0 opacity-30 [background-image:linear-gradient(rgba(127,212,193,.035)_1px,transparent_1px),linear-gradient(90deg,rgba(127,212,193,.035)_1px,transparent_1px)] [background-size:96px_96px]"/>
+
+      <motion.div className="absolute inset-0" style={{ opacity: answerGlow }}>
+        <div className="absolute right-[17%] top-[36%] h-64 w-64 rounded-full bg-[#7fd4c1]/10 blur-3xl"/>
+        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-[#02080d] via-[#02080d]/40 to-transparent"/>
+      </motion.div>
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_17%,rgba(2,8,13,.48)_100%)]"/>
+      <div className="absolute inset-0 opacity-25 [background-image:linear-gradient(rgba(127,212,193,.035)_1px,transparent_1px),linear-gradient(90deg,rgba(127,212,193,.035)_1px,transparent_1px)] [background-size:110px_110px]"/>
     </div>
   );
 };
