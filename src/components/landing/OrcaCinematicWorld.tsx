@@ -43,21 +43,23 @@ export const OrcaCinematicWorld: React.FC<OrcaCinematicWorldProps> = ({ progress
   const oceanScale = useTransform(progress, [0,.2,.42], [1.18,1.03,.76]);
   const horizonY = useTransform(progress, [0,.2,.42], ["50%","40%","22%"]);
   const horizonOpacity = useTransform(progress, [0,.28,.5,.64], [1,1,.55,0]);
-  const vesselX = useTransform(progress, [0,.2,.36], ["51%","53%","57%");
-  const vesselY = useTransform(progress, [0,.2,.38,.5], ["68%","66%","52%","30%");
+  const vesselX = useTransform(progress, [0,.2,.36], ["51%","53%","57%"]);
+  const vesselY = useTransform(progress, [0,.2,.38,.5], ["68%","66%","52%","30%"]);
   const vesselScale = useTransform(progress, [0,.2,.38,.5], [.95,1.05,.72,.24]);
   const vesselOpacity = useTransform(progress, [0,.34,.48,.58], [1,1,.55,0]);
   const cloudOpacity = useTransform(progress, [.18,.36,.58,.72], [0,.7,1,.4]);
   const starsOpacity = useTransform(progress, [.52,.7,1], [0,.75,1]);
   const personOpacity = useTransform(progress, [.54,.64,.86], [0,1,1]);
-  const personX = useTransform(progress, [.54,.64,.86], ["-15%","19%","19%");
-  const personY = useTransform(progress, [.54,.64,.86], ["62%","56%","53%");
+  const personX = useTransform(progress, [.54,.64,.86], ["-15%","19%","19%"]);
+  const personY = useTransform(progress, [.54,.64,.86], ["62%","56%","53%"]);
   const personScale = useTransform(progress, [.54,.64,.86], [.5,.92,1]);
   const satelliteOpacity = useTransform(progress, [.58,.68,.9], [0,1,1]);
-  const satelliteX = useTransform(progress, [.58,.68,.9], ["91%","72%","77%");
-  const satelliteY = useTransform(progress, [.58,.68,.9], ["15%","21%","20%");
+  const satelliteX = useTransform(progress, [.58,.68,.9], ["91%","72%","77%"]);
+  const satelliteY = useTransform(progress, [.58,.68,.9], ["15%","21%","20%"]);
   const routeOpacity = useTransform(progress, [.56,.68,.96], [0,1,1]);
   const packetScale = useTransform(progress, [.56,.66,.78,.92], [.3,1,.7,1.2]);
+  const atmosphereOpacity = useTransform(progress, [.42,.68,1], [0,.42,1]);
+  const routeScale = useTransform(progress, [.56,1], [.4,3.2]);
 
   return <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0 overflow-hidden bg-[#02070b]">
     <motion.div className="absolute inset-[-16%]" style={{scale:oceanScale}}>
@@ -87,8 +89,8 @@ export const OrcaCinematicWorld: React.FC<OrcaCinematicWorldProps> = ({ progress
     <motion.div className="absolute" style={{left:personX,top:personY,scale:personScale,opacity:personOpacity,x:'-50%',y:'-50%'}}><Person/></motion.div>
     <motion.div className="absolute" style={{left:satelliteX,top:satelliteY,opacity:satelliteOpacity,x:'-50%',y:'-50%'}}><Satellite/></motion.div>
     <motion.div className="absolute left-[51%] top-[43%] h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#7fd4c1] shadow-[0_0_30px_8px_rgba(127,212,193,.4)]" style={{opacity:routeOpacity,scale:packetScale}}/>
-    <motion.div className="absolute left-[51%] top-[43%] h-28 w-28 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#7fd4c1]/20" style={{opacity:routeOpacity,scale:useTransform(progress,[.56,1],[.4,3.2])}}/>
-    <motion.div className="absolute inset-0" style={{opacity:useTransform(progress,[.42,.68,1],[0,.4,1])}}><div className="absolute inset-0 [background-image:linear-gradient(rgba(127,212,193,.05)_1px,transparent_1px),linear-gradient(90deg,rgba(127,212,193,.05)_1px,transparent_1px)] [background-size:80px_80px]"/></motion.div>
+    <motion.div className="absolute left-[51%] top-[43%] h-28 w-28 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#7fd4c1]/20" style={{opacity:routeOpacity,scale:routeScale}}/>
+    <motion.div className="absolute inset-0" style={{opacity:atmosphereOpacity}}><div className="absolute inset-0 [background-image:linear-gradient(rgba(127,212,193,.05)_1px,transparent_1px),linear-gradient(90deg,rgba(127,212,193,.05)_1px,transparent_1px)] [background-size:80px_80px]"/></motion.div>
     <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_26%,rgba(2,7,11,.62)_100%)]"/><div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(2,7,11,.08),transparent_34%,rgba(2,7,11,.94)_100%)]"/>
   </div>;
 };
