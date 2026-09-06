@@ -17,6 +17,8 @@ import {
 } from 'lucide-react';
 import { RiskPrediction, LanguageCode, LocationInfo, TimeWindow, GeofenceSpatialAnalysis } from '../types';
 import { MULTILINGUAL_DICTIONARY } from '../data/coastalData';
+import { maritimeSiren } from '../services/audio/maritimeSirenService';
+import { voiceWarning } from '../services/audio/voiceWarningService';
 
 interface RiskCardProps {
   risk: RiskPrediction;
@@ -38,89 +40,100 @@ export const RiskCard: React.FC<RiskCardProps> = ({
   const [isPlayingAudio, setIsPlayingAudio] = useState<boolean>(false);
   const dict = MULTILINGUAL_DICTIONARY[language] || MULTILINGUAL_DICTIONARY.en;
 
-  // Speak the verdict using browser SpeechSynthesis
-  const handleToggleAudio = () => {
-    if (!('speechSynthesis' in window)) {
-      alert('Text-to-speech is not supported in your browser.');
-      return;
-    }
-
+  // Speak the verdict using browser SpeechSynthesis & Maritime Siren
+  const handleToggleAudio = async () => {
     if (isPlayingAudio) {
-      window.speechSynthesis.cancel();
+      voiceWarning.cancel();
+      maritimeSiren.stop();
       setIsPlayingAudio(false);
       return;
     }
 
-    window.speechSynthesis.cancel(); // Stop existing
+    await maritimeSiren.unlock();
+    setIsPlayingAudio(true);
 
-    // Determine speech text including boundary proximity warnings
-    let geofenceSpeech = '';
-    if (geofenceAnalysis?.activeAlerts && geofenceAnalysis.activeAlerts.length > 0) {
-      geofenceSpeech = ` Warning: ${geofenceAnalysis.activeAlerts[0].warningMessage}`;
-    } else if (geofenceAnalysis?.nearestImbl) {
-      geofenceSpeech = ` Distance to nearest international maritime boundary is ${geofenceAnalysis.nearestImbl.distanceNm} nautical miles.`;
+    const isBreach =
+      geofenceAnalysis?.inRestrictedWaters ||
+      geofenceAnalysis?.status === 'RESTRICTED_BREACH' ||
+      geofenceAnalysis?.activeAlerts?.some((a) => a.severity === 'CRITICAL_BREACH');
+    const isCaution =
+      !isBreach &&
+      (geofenceAnalysis?.status === 'CAUTION' ||
+        geofenceAnalysis?.activeAlerts?.some((a) => a.severity === 'PROXIMITY_WARNING'));
+
+    // Prioritize geofence breach/proximity announcements
+    if (isBreach) {
+      // Pick the most critical alert (CRITICAL_BREACH first, then by nearest distance)
+      const criticalAlert =
+        geofenceAnalysis?.activeAlerts?.find((a) => a.severity === 'CRITICAL_BREACH') ||
+        geofenceAnalysis?.activeAlerts?.[0];
+      const fallbackAlert = geofenceAnalysis?.nearestImbl || geofenceAnalysis?.nearestMpa;
+      const alert = criticalAlert || fallbackAlert;
+      if (alert) {
+        const alertWithSeverity = { ...alert, severity: 'CRITICAL_BREACH' as const };
+        const phrase = voiceWarning.generateGeofencePhrase(alertWithSeverity, language);
+        await voiceWarning.speak(phrase, language, { playSirenFirst: true, isCritical: true, force: true });
+        setIsPlayingAudio(false);
+        return;
+      }
     }
-    const textToSpeak = `${location.name}. Marine Risk Level: ${risk.riskLevel}.${geofenceSpeech} Risk score ${risk.riskScore} out of 100. Recommendation: ${risk.primaryRecommendation}. ${risk.safetySummary}`;
-    const utterance = new SpeechSynthesisUtterance(textToSpeak);
 
-    // Map language
-    const langMap: Record<LanguageCode, string> = {
-      en: 'en-IN',
-      bn: 'bn-IN',
-      hi: 'hi-IN',
-      ta: 'ta-IN',
-      or: 'or-IN',
-      te: 'te-IN',
-      ml: 'ml-IN',
-      gu: 'gu-IN',
-      mr: 'mr-IN',
-      kn: 'kn-IN'
-    };
-    utterance.lang = langMap[language] || 'en-IN';
-    utterance.rate = 0.95;
+    if (isCaution) {
+      const alert =
+        geofenceAnalysis?.activeAlerts?.find((a) => a.severity === 'PROXIMITY_WARNING') ||
+        geofenceAnalysis?.activeAlerts?.[0] ||
+        geofenceAnalysis?.nearestImbl ||
+        geofenceAnalysis?.nearestMpa;
+      if (alert) {
+        const alertWithSeverity = { ...alert, severity: 'PROXIMITY_WARNING' as const };
+        const phrase = voiceWarning.generateGeofencePhrase(alertWithSeverity, language);
+        await voiceWarning.speak(phrase, language, { playSirenFirst: true, isCritical: false, force: true });
+        setIsPlayingAudio(false);
+        return;
+      }
+    }
 
-    utterance.onstart = () => setIsPlayingAudio(true);
-    utterance.onend = () => setIsPlayingAudio(false);
-    utterance.onerror = () => setIsPlayingAudio(false);
-
-    window.speechSynthesis.speak(utterance);
+    // No geofence alert — speak the risk verdict (weather/safety status)
+    const isCritical = risk.riskLevel === 'EXTREME' || risk.riskLevel === 'HIGH';
+    const textToSpeak = voiceWarning.generateRiskVerdictPhrase(location, risk, undefined, language);
+    await voiceWarning.speak(textToSpeak, language, { playSirenFirst: true, isCritical, force: true });
+    setIsPlayingAudio(false);
   };
 
-  // Semantic styles for Risk Level
+  // Semantic styles for Risk Level (Minimalist Premium UI)
   const getRiskTheme = (level: string) => {
+    // Base elegant glass container for all states
+    const baseBg = 'bg-[#090d16]/80 border-slate-800/60 text-slate-300';
+    
     switch (level) {
       case 'LOW':
         return {
-          bg: 'bg-emerald-950/40 border-emerald-500/40 text-emerald-300',
+          bg: baseBg,
           badgeBg: 'badge-neon-low',
-          icon: <ShieldCheck className="h-6 w-6 text-emerald-400" />,
-          gaugeColor: '#6fd6ae',
-          shadow: 'shadow-emerald-500/10'
+          icon: <ShieldCheck className="h-5 w-5 text-emerald-400" />,
+          gaugeColor: '#34d399',
         };
       case 'MODERATE':
         return {
-          bg: 'bg-amber-950/40 border-amber-500/40 text-amber-300',
+          bg: baseBg,
           badgeBg: 'badge-neon-moderate',
-          icon: <AlertTriangle className="h-6 w-6 text-amber-400" />,
-          gaugeColor: '#f2b33d',
-          shadow: 'shadow-amber-500/10'
+          icon: <AlertTriangle className="h-5 w-5 text-amber-400" />,
+          gaugeColor: '#fbbf24',
         };
       case 'HIGH':
         return {
-          bg: 'bg-rose-950/40 border-rose-500/40 text-rose-300',
+          bg: baseBg,
           badgeBg: 'badge-neon-high',
-          icon: <AlertTriangle className="h-6 w-6 text-rose-400" />,
+          icon: <AlertTriangle className="h-5 w-5 text-orange-400" />,
           gaugeColor: '#fb923c',
-          shadow: 'shadow-rose-500/10'
         };
       case 'EXTREME':
       default:
         return {
-          bg: 'bg-red-950/50 border-red-500/60 text-red-300',
+          bg: baseBg,
           badgeBg: 'badge-neon-extreme',
-          icon: <AlertOctagon className="h-6 w-6 text-red-400 animate-pulse" />,
-          gaugeColor: '#f43f5e',
-          shadow: 'shadow-red-500/20'
+          icon: <AlertOctagon className="h-5 w-5 text-rose-500" />,
+          gaugeColor: '#e11d48',
         };
     }
   };
@@ -128,34 +141,76 @@ export const RiskCard: React.FC<RiskCardProps> = ({
   const theme = getRiskTheme(risk.riskLevel);
 
   return (
-    <div className={`rounded-2xl border ${theme.bg} p-4 sm:p-5 shadow-xl ${theme.shadow} space-y-4 transition-all backdrop-blur-sm`}>
+    <div className={`rounded-2xl border ${theme.bg} p-6 shadow-2xl shadow-black/40 space-y-6 transition-all backdrop-blur-md`}>
       
-      {/* FISHERMAN HIGH-VISIBILITY TRAFFIC LIGHT ADVISORY BANNER */}
-      <div className={`p-4 rounded-xl border-2 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left ${
-        risk.riskLevel === 'LOW' 
-          ? 'bg-emerald-900/80 border-emerald-400 text-emerald-100 shadow-lg shadow-emerald-900/40' 
-          : risk.riskLevel === 'MODERATE' 
-          ? 'bg-amber-900/80 border-amber-400 text-amber-100 shadow-lg shadow-amber-900/40' 
-          : 'bg-red-900/90 border-red-400 text-red-100 shadow-lg shadow-red-900/50 animate-pulse'
-      }`}>
-        <div className="flex items-center space-x-3">
-          <div className="p-2.5 rounded-full bg-slate-950/40 shrink-0">
-            {theme.icon}
-          </div>
-          <div>
-            <span className="text-[10px] font-mono uppercase tracking-widest opacity-80 block">
-              {location.name} • Official Sea Advisory
-            </span>
-            <h2 className="text-xl sm:text-2xl font-black tracking-tight leading-none mt-0.5">
-              {risk.riskLevel === 'LOW' && '🟢 SAFE TO SAIL'}
-              {risk.riskLevel === 'MODERATE' && '🟡 CAUTION ADVISED'}
-              {(risk.riskLevel === 'HIGH' || risk.riskLevel === 'EXTREME') && '🔴 STAY IN PORT / DO NOT SAIL'}
-            </h2>
-            <p className="text-xs font-semibold opacity-90 mt-1">
-              {risk.primaryRecommendation}
-            </p>
-          </div>
-        </div>
+      {/* ADVISORY BANNER (Premium Minimalist Strip) */}
+      {(() => {
+        // Geofence breach overrides weather risk
+        const hasGeofenceBreach =
+          geofenceAnalysis?.inRestrictedWaters ||
+          geofenceAnalysis?.status === 'RESTRICTED_BREACH' ||
+          geofenceAnalysis?.activeAlerts?.some((a) => a.severity === 'CRITICAL_BREACH');
+        const hasGeofenceCaution =
+          !hasGeofenceBreach &&
+          (geofenceAnalysis?.status === 'CAUTION' ||
+            geofenceAnalysis?.activeAlerts?.some((a) => a.severity === 'PROXIMITY_WARNING'));
+
+        // Determine sleek banner style
+        const bannerClass = hasGeofenceBreach
+          ? 'bg-rose-950/40 border-l-4 border-l-rose-500 border-y border-y-rose-900/30 border-r border-r-rose-900/30 text-rose-200'
+          : hasGeofenceCaution
+          ? 'bg-amber-950/40 border-l-4 border-l-amber-500 border-y border-y-amber-900/30 border-r border-r-amber-900/30 text-amber-200'
+          : risk.riskLevel === 'LOW'
+          ? 'bg-emerald-950/30 border-l-4 border-l-emerald-500 border-y border-y-emerald-900/30 border-r border-r-emerald-900/30 text-emerald-200'
+          : risk.riskLevel === 'MODERATE'
+          ? 'bg-amber-950/40 border-l-4 border-l-amber-500 border-y border-y-amber-900/30 border-r border-r-amber-900/30 text-amber-200'
+          : 'bg-rose-950/40 border-l-4 border-l-rose-500 border-y border-y-rose-900/30 border-r border-r-rose-900/30 text-rose-200';
+
+        const bannerIcon = hasGeofenceBreach
+          ? <AlertOctagon className="h-5 w-5 text-rose-500" />
+          : hasGeofenceCaution
+          ? <AlertTriangle className="h-5 w-5 text-amber-400" />
+          : theme.icon;
+
+        // Banner headline
+        const bannerHeadline = hasGeofenceBreach
+          ? 'MARITIME BREACH'
+          : hasGeofenceCaution
+          ? 'BOUNDARY PROXIMITY'
+          : risk.riskLevel === 'LOW'
+          ? 'SAFE TO SAIL'
+          : risk.riskLevel === 'MODERATE'
+          ? 'CAUTION ADVISED'
+          : 'DO NOT SAIL';
+
+        // Sub-message: for breach, show localized native-language phrase with real distance
+        const breachAlert =
+          geofenceAnalysis?.activeAlerts?.find((a) => a.severity === 'CRITICAL_BREACH') ||
+          geofenceAnalysis?.activeAlerts?.find((a) => a.severity === 'PROXIMITY_WARNING');
+        const bannerSubtext = hasGeofenceBreach && breachAlert
+          ? voiceWarning.generateGeofencePhrase({ ...breachAlert, severity: 'CRITICAL_BREACH' }, language)
+          : hasGeofenceCaution && breachAlert
+          ? voiceWarning.generateGeofencePhrase({ ...breachAlert, severity: 'PROXIMITY_WARNING' }, language)
+          : risk.primaryRecommendation;
+
+        return (
+          <div className={`p-4 rounded-xl border-2 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left ${bannerClass}`}>
+            <div className="flex items-center space-x-3">
+              <div className="p-2.5 rounded-full bg-slate-950/40 shrink-0">
+                {bannerIcon}
+              </div>
+              <div>
+                <span className="text-[10px] font-mono uppercase tracking-widest opacity-80 block">
+                  {location.name} • {hasGeofenceBreach ? 'Geofence Breach Alert' : hasGeofenceCaution ? 'Boundary Proximity Alert' : 'Official Sea Advisory'}
+                </span>
+                <h2 className="text-xl sm:text-2xl font-black tracking-tight leading-none mt-0.5">
+                  {bannerHeadline}
+                </h2>
+                <p className="text-xs font-semibold opacity-90 mt-1">
+                  {bannerSubtext}
+                </p>
+              </div>
+            </div>
 
         {/* Big One-Handed Listen Button */}
         <button
@@ -171,7 +226,9 @@ export const RiskCard: React.FC<RiskCardProps> = ({
           {isPlayingAudio ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5 text-cyan-400" />}
           <span>{isPlayingAudio ? 'Stop Audio' : '🔊 Listen Warning'}</span>
         </button>
-      </div>
+          </div>
+        );
+      })()}
 
       {/* Header with Risk Level Badge & Audio Narration */}
       <div className="flex items-start justify-between pt-1">
@@ -223,63 +280,61 @@ export const RiskCard: React.FC<RiskCardProps> = ({
       </div>
 
       {/* Main Score & Categorical Card */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center bg-slate-950/70 border border-slate-800/80 rounded-xl p-4">
+      <div className="flex flex-col md:flex-row gap-6 items-center md:items-start bg-[#0b121f]/50 border border-slate-800/40 rounded-xl p-6 shadow-inner">
         
         {/* Score Circular Gauge */}
-        <div className="md:col-span-4 flex items-center space-x-3.5 border-b md:border-b-0 md:border-r border-slate-800 pb-3 md:pb-0 md:pr-4">
+        <div className="flex items-center space-x-6 md:border-r border-slate-800/60 md:pr-6 shrink-0">
           <div className="relative w-16 h-16 shrink-0 flex items-center justify-center">
             {/* SVG Circle Progress */}
             <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
               <path
-                className="text-slate-800"
-                strokeWidth="3.5"
+                className="text-slate-800/40"
+                strokeWidth="2.5"
                 stroke="currentColor"
                 fill="none"
                 d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
               />
               <path
                 strokeDasharray={`${risk.riskScore}, 100`}
-                strokeWidth="3.5"
+                strokeWidth="2.5"
                 strokeLinecap="round"
                 stroke={theme.gaugeColor}
                 fill="none"
                 d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                className="transition-all duration-1000 ease-out"
               />
             </svg>
-            <div className="absolute flex flex-col items-center">
-              <span className="text-base font-extrabold text-white font-mono tabular-nums">{risk.riskScore}</span>
-              <span className="text-[9px] text-slate-400 uppercase font-mono">/ 100</span>
+            <div className="absolute flex flex-col items-center justify-center mt-0.5">
+              <span className="text-lg font-bold text-white font-mono tabular-nums leading-none tracking-tight">{risk.riskScore}</span>
             </div>
           </div>
 
-          <div>
-            <div className="flex items-center space-x-1.5">
-              {theme.icon}
-              <span className={`px-2.5 py-0.5 rounded-md text-xs font-black uppercase tracking-wider border ${theme.badgeBg}`}>
+          <div className="flex flex-col justify-center space-y-1.5">
+            <div className="flex items-center space-x-2">
+              <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest border ${theme.badgeBg}`}>
                 {risk.riskLevel === 'LOW' ? dict.lowRisk : risk.riskLevel === 'MODERATE' ? dict.moderateRisk : risk.riskLevel === 'HIGH' ? dict.highRisk : dict.extremeRisk}
               </span>
             </div>
-            <div className="text-[11px] text-slate-400 mt-1 font-mono flex items-center gap-1">
-              <Cpu className="h-3 w-3 text-cyan-400" />
-              <span>{dict.confidence}: <strong className="text-slate-200 tabular-nums">{risk.confidenceScore}%</strong></span>
+            <div className="text-[10px] text-slate-500 font-mono flex items-center gap-1.5 uppercase tracking-wider">
+              <Cpu className="h-3 w-3 text-slate-400" />
+              <span>Model Conf: <span className="text-slate-300 tabular-nums font-semibold">{risk.confidenceScore}%</span></span>
             </div>
           </div>
         </div>
 
         {/* Primary Verdict & Safety Recommendation */}
-        <div className="md:col-span-8 space-y-1.5">
-          <div className="text-xs font-bold text-slate-100 flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-cyan-400"></span>
+        <div className="space-y-2 flex-1 pt-1">
+          <div className="text-[10px] uppercase tracking-widest font-semibold text-slate-500 flex items-center gap-2">
+            <span className="h-1.5 w-1.5 rounded-full bg-slate-400/50"></span>
             <span>{dict.primaryDirective}</span>
           </div>
-          <p className="text-sm font-semibold text-slate-200 leading-snug">
+          <p className="text-sm font-medium text-slate-200 leading-relaxed max-w-xl">
             {risk.primaryRecommendation}
           </p>
-          <p className="text-xs text-slate-400 leading-relaxed line-clamp-2">
+          <p className="text-xs text-slate-400/80 leading-relaxed line-clamp-2 max-w-xl font-mono mt-2">
             {risk.safetySummary}
           </p>
         </div>
-
       </div>
 
       {/* Geofencing & Boundary Security Alert Banner */}

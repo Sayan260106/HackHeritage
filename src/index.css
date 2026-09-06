@@ -475,18 +475,17 @@
   border: 1px solid rgba(127, 212, 193, 0.15);
 }
 
-/* Glowing animated border frame */
+/* Subtle animated map frame */
 .orca-frame-glow {
   box-shadow:
-    inset 0 0 0 1px rgba(127, 212, 193, 0.12),
-    inset 0 0 40px rgba(34, 211, 238, 0.04),
-    0 0 24px rgba(34, 211, 238, 0.08);
-  animation: orcaFrameBreathe 4s ease-in-out infinite;
+    inset 0 0 0 1px rgba(127, 212, 193, 0.05),
+    0 0 10px rgba(34, 211, 238, 0.02);
+  animation: orcaFrameBreathe 6s ease-in-out infinite;
 }
 
 @keyframes orcaFrameBreathe {
-  0%, 100% { box-shadow: inset 0 0 0 1px rgba(127, 212, 193, 0.10), inset 0 0 30px rgba(34, 211, 238, 0.03), 0 0 18px rgba(34, 211, 238, 0.06); }
-  50% { box-shadow: inset 0 0 0 1px rgba(127, 212, 193, 0.22), inset 0 0 50px rgba(34, 211, 238, 0.07), 0 0 30px rgba(34, 211, 238, 0.12); }
+  0%, 100% { box-shadow: inset 0 0 0 1px rgba(127, 212, 193, 0.05), 0 0 5px rgba(34, 211, 238, 0.02); }
+  50% { box-shadow: inset 0 0 0 1px rgba(127, 212, 193, 0.1), 0 0 15px rgba(34, 211, 238, 0.05); }
 }
 
 /* Corner brackets — HUD / tactical chart styling */
@@ -529,33 +528,29 @@
   transform: translateY(-2px);
 }
 
-/* Color-Coded Neon Risk Badges & Status Glows */
+/* Color-Coded Minimalist Risk Badges */
 .badge-neon-low {
-  background: rgba(16, 185, 129, 0.15);
-  color: #6fd6ae;
-  border: 1px solid rgba(111, 214, 174, 0.45);
-  box-shadow: 0 0 10px rgba(111, 214, 174, 0.25);
+  background: rgba(16, 185, 129, 0.1);
+  color: #34d399; /* emerald-400 */
+  border: 1px solid rgba(16, 185, 129, 0.2);
 }
 
 .badge-neon-moderate {
-  background: rgba(245, 158, 11, 0.15);
-  color: #f7ce7a;
-  border: 1px solid rgba(247, 206, 122, 0.45);
-  box-shadow: 0 0 10px rgba(247, 206, 122, 0.25);
+  background: rgba(245, 158, 11, 0.1);
+  color: #fbbf24; /* amber-400 */
+  border: 1px solid rgba(245, 158, 11, 0.2);
 }
 
 .badge-neon-high {
-  background: rgba(249, 115, 22, 0.18);
-  color: #fb923c;
-  border: 1px solid rgba(251, 146, 60, 0.5);
-  box-shadow: 0 0 12px rgba(251, 146, 60, 0.35);
+  background: rgba(249, 115, 22, 0.1);
+  color: #fb923c; /* orange-400 */
+  border: 1px solid rgba(249, 115, 22, 0.25);
 }
 
 .badge-neon-extreme {
-  background: rgba(244, 63, 94, 0.2);
-  color: #fda4af;
-  border: 1px solid rgba(244, 63, 94, 0.6);
-  animation: extremeRiskPulse 1.8s ease-in-out infinite;
+  background: rgba(225, 29, 72, 0.15); /* rose-600 */
+  color: #fb7185; /* rose-400 */
+  border: 1px solid rgba(225, 29, 72, 0.3);
 }
 
 

@@ -390,14 +390,14 @@ export const LeftNavbar: React.FC<LeftNavbarProps> = ({
               onClick={() => setCurrentTab(item.id)}
               className={`relative flex flex-col items-center justify-center min-h-[52px] flex-1 py-1 px-1 rounded-xl transition-all btn-micro-interactive ${
                 isActive
-                  ? 'bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-400/40 shadow-md shadow-cyan-500/20'
-                  : 'text-slate-400 hover:text-slate-200 active:scale-95'
+                  ? 'bg-slate-800/80 text-white font-bold border border-slate-700/60 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-300 active:scale-95'
               }`}
             >
               {isActive && (
-                <span className="absolute -top-1 h-1 w-5 rounded-full bg-cyan-400 shadow-[0_0_8px_#22d3ee]" />
+                <span className="absolute -top-1 h-1 w-6 rounded-full bg-slate-300" />
               )}
-              <Icon className={`h-5 w-5 ${isActive ? 'text-cyan-300' : 'text-slate-400'}`} />
+              <Icon className={`h-5 w-5 ${isActive ? 'text-white' : 'text-slate-500'}`} />
               <span className="text-[9.5px] tracking-tight mt-1 font-mono truncate max-w-[62px]">
                 {item.label.split(' ')[0]}
               </span>

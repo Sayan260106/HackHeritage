@@ -7,6 +7,7 @@ import gisRouter from './routes/gis.ts';
 import pfzRouter from './routes/pfz.ts';
 import routingRouter from './routes/routing.ts';
 import alertsRouter from './routes/alerts.ts';
+import indicVoiceRouter from './routes/indicVoice.ts';
 import { errorHandler, notFound } from './middleware/errorHandler.ts';
 import { startMarineTelemetryCollector } from './services/realtime/marineTelemetryCollector.ts';
 
@@ -21,6 +22,7 @@ app.use('/api/gis', gisRouter);
 app.use('/api/pfz', pfzRouter);
 app.use('/api/routing', routingRouter);
 app.use('/api/alerts', alertsRouter);
+app.use('/api/indic-voice', indicVoiceRouter);
 
 async function startServer() {
   if (!IS_PRODUCTION) {
