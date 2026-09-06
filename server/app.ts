@@ -8,6 +8,7 @@ import pfzRouter from './routes/pfz.ts';
 import routingRouter from './routes/routing.ts';
 import alertsRouter from './routes/alerts.ts';
 import indicVoiceRouter from './routes/indicVoice.ts';
+import vesselsRouter from './routes/vessels.ts';
 import { errorHandler, notFound } from './middleware/errorHandler.ts';
 import { startMarineTelemetryCollector } from './services/realtime/marineTelemetryCollector.ts';
 
@@ -17,12 +18,13 @@ const IS_PRODUCTION = process.env.NODE_ENV === 'production' || process.env.ORCA_
 
 app.disable('x-powered-by');
 app.use(express.json({ limit: '1mb' }));
-app.use('/api', apiRouter);
 app.use('/api/gis', gisRouter);
 app.use('/api/pfz', pfzRouter);
 app.use('/api/routing', routingRouter);
 app.use('/api/alerts', alertsRouter);
 app.use('/api/indic-voice', indicVoiceRouter);
+app.use('/api/vessels', vesselsRouter);
+app.use('/api', apiRouter);
 
 async function startServer() {
   if (!IS_PRODUCTION) {
