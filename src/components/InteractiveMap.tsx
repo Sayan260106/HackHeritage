@@ -324,23 +324,40 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
     });
   }, [location.latitude, location.longitude, reducedMotion]);
 
-  // Handle container resize & visibility changes (e.g., tab switches or fullscreen)
+  // Handle container resize & visibility changes with ResizeObserver & window resize events
   useEffect(() => {
-    const map = mapInstanceRef.current;
-    if (!map) return;
+    const container = mapContainerRef.current;
+    if (!container) return;
 
-    // Immediately invalidate size to prevent tile vanishing
-    map.invalidateSize();
+    const handleResize = () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.invalidateSize({ animate: false });
+      }
+    };
 
-    // Staggered invalidations to account for CSS transition animations
-    const t1 = setTimeout(() => map.invalidateSize(), 50);
-    const t2 = setTimeout(() => map.invalidateSize(), 150);
-    const t3 = setTimeout(() => map.invalidateSize(), 350);
+    // Immediately trigger invalidateSize
+    handleResize();
+
+    // Observe element dimensions for layout changes (e.g. flex expansion or tab switch)
+    const observer = new ResizeObserver(handleResize);
+    observer.observe(container);
+
+    // Also listen to window resize events
+    window.addEventListener('resize', handleResize);
+
+    // Staggered invalidations for CSS & Framer Motion transitions
+    const t1 = setTimeout(handleResize, 100);
+    const t2 = setTimeout(handleResize, 300);
+    const t3 = setTimeout(handleResize, 600);
+    const t4 = setTimeout(handleResize, 1000);
 
     return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', handleResize);
       clearTimeout(t1);
       clearTimeout(t2);
       clearTimeout(t3);
+      clearTimeout(t4);
     };
   }, [isFullscreen, location]);
 
@@ -1126,8 +1143,8 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         </div>
       </div>
 
-      {/* Actual Leaflet Container — untouched */}
-      <div ref={mapContainerRef} className="w-full h-full" />
+      {/* Actual Leaflet Container */}
+      <div ref={mapContainerRef} className="w-full h-full min-h-[440px] sm:min-h-[480px] lg:min-h-[540px]" />
 
     </div>
   );
