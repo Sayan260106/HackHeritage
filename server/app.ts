@@ -23,8 +23,13 @@ app.use('/api/pfz', pfzRouter);
 app.use('/api/routing', routingRouter);
 app.use('/api/alerts', alertsRouter);
 app.use('/api/indic-voice', indicVoiceRouter);
+
 app.use('/api/vessels', vesselsRouter);
 app.use('/api', apiRouter);
+
+app.use('/frames', express.static(path.resolve(process.cwd(), 'public/frames')));
+app.use('/PicturesBG', express.static(path.resolve(process.cwd(), 'PicturesBG/Create_a_premium_photorealist_frames')));
+
 
 async function startServer() {
   if (!IS_PRODUCTION) {
