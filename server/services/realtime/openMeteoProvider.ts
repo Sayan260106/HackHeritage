@@ -32,7 +32,58 @@ interface OpenMeteoCurrentMarine {
   ocean_current_direction?: number;
   sea_level_height_msl?: number;
 }
-interface OpenMeteoMarineResponse { current?: OpenMeteoCurrentMarine; daily?: { wave_height_max?: number[] }; }
+interface OpenMeteoMarineResponse {
+  current?: OpenMeteoCurrentMarine;
+  hourly?: {
+    time?: string[];
+    sea_level_height_msl?: Array<number | null>;
+  };
+  daily?: { wave_height_max?: number[] };
+}
+
+export function computeTidalPhase(
+  currentTimeStr: string,
+  hourlyTimes?: string[],
+  hourlyLevels?: Array<number | null>
+): 'High Tide' | 'Low Tide' | 'Flood Tide' | 'Ebb Tide' | 'Unknown' {
+  if (!hourlyTimes?.length || !hourlyLevels?.length) return 'Unknown';
+
+  const targetMs = new Date(currentTimeStr).getTime();
+  let closestIdx = -1;
+  let minDiff = Infinity;
+  for (let i = 0; i < hourlyTimes.length; i++) {
+    const diff = Math.abs(new Date(hourlyTimes[i]).getTime() - targetMs);
+    if (diff < minDiff) {
+      minDiff = diff;
+      closestIdx = i;
+    }
+  }
+
+  if (closestIdx < 0) return 'Unknown';
+
+  const prev = hourlyLevels[closestIdx - 1];
+  const curr = hourlyLevels[closestIdx];
+  const next = hourlyLevels[closestIdx + 1];
+
+  if (typeof curr !== 'number') return 'Unknown';
+
+  if (typeof prev === 'number' && typeof next === 'number') {
+    if (curr >= prev && curr >= next && (curr - prev > 0.02 || curr - next > 0.02)) {
+      return 'High Tide';
+    }
+    if (curr <= prev && curr <= next && (prev - curr > 0.02 || next - curr > 0.02)) {
+      return 'Low Tide';
+    }
+    if (next < prev) return 'Ebb Tide';
+    return 'Flood Tide';
+  } else if (typeof next === 'number') {
+    return next > curr ? 'Flood Tide' : 'Ebb Tide';
+  } else if (typeof prev === 'number') {
+    return curr > prev ? 'Flood Tide' : 'Ebb Tide';
+  }
+
+  return 'Unknown';
+}
 
 function compass(degrees: number): string {
   const points = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
@@ -56,7 +107,7 @@ export async function fetchOpenMeteoCurrent(lat: number, lon: number): Promise<{
   }
 
   const weatherParams = new URLSearchParams({ latitude: String(lat), longitude: String(lon), current: 'temperature_2m,relative_humidity_2m,precipitation,weather_code,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m,visibility,cloud_cover', wind_speed_unit: 'kn', timezone: 'auto' });
-  const marineParams = new URLSearchParams({ latitude: String(lat), longitude: String(lon), current: 'wave_height,wave_direction,wave_period,swell_wave_height,swell_wave_direction,swell_wave_period,sea_surface_temperature,ocean_current_velocity,ocean_current_direction,sea_level_height_msl', daily: 'wave_height_max', timezone: 'auto' });
+  const marineParams = new URLSearchParams({ latitude: String(lat), longitude: String(lon), current: 'wave_height,wave_direction,wave_period,swell_wave_height,swell_wave_direction,swell_wave_period,sea_surface_temperature,ocean_current_velocity,ocean_current_direction,sea_level_height_msl', hourly: 'sea_level_height_msl', daily: 'wave_height_max', timezone: 'auto' });
   const retrievedAt = new Date().toISOString();
   const [weatherResponse, marineResponse] = await Promise.all([
     fetchJson<OpenMeteoWeatherResponse>(`${WEATHER_API_URL}?${weatherParams.toString()}`),
@@ -90,11 +141,13 @@ export async function fetchOpenMeteoCurrent(lat: number, lon: number): Promise<{
   else if (waveHeight >= 1.25) { seaStateIndex = 4; seaStateDescription = 'Moderate (Wave 1.25 - 2.5m)'; }
   else if (waveHeight >= 0.5) { seaStateIndex = 3; seaStateDescription = 'Slight (Wave 0.5 - 1.25m)'; }
 
+  const tidePhase = computeTidalPhase(observedMarineAt, marineResponse.hourly?.time, marineResponse.hourly?.sea_level_height_msl);
+
   const weather: WeatherData = {
     airTemperatureC: requiredNumber(currentW.temperature_2m, 'air temperature'), windSpeedKts: Number(windSpeedKts.toFixed(1)), windGustKts: Number(windGustKts.toFixed(1)), windDirectionDeg, windDirectionCompass: compass(windDirectionDeg), precipitationMm: requiredNumber(currentW.precipitation, 'precipitation'), cloudCoverPct: requiredNumber(currentW.cloud_cover, 'cloud cover'), visibilityKm: Number((requiredNumber(currentW.visibility, 'visibility') / 1000).toFixed(1)), pressureHpa: requiredNumber(currentW.surface_pressure, 'surface pressure'), weatherCode: requiredNumber(currentW.weather_code, 'weather code'), weatherDescription: `Open-Meteo WMO weather code ${currentW.weather_code}`, source: 'Open-Meteo Weather API', sourceUrl: WEATHER_API_URL, observedAt: observedWeatherAt, retrievedAt, dataQuality: 'LIVE',
   };
   const ocean: OceanData = {
-    waveHeightMeters: Number(waveHeight.toFixed(2)), maxWaveHeightMeters: Number((typeof dailyMaxWave === 'number' ? dailyMaxWave : waveHeight).toFixed(2)), wavePeriodSec: Number(wavePeriod.toFixed(1)), waveDirectionDeg: Number(waveDirection.toFixed(1)), swellHeightMeters: Number(swellHeight.toFixed(2)), swellPeriodSec: Number(swellPeriod.toFixed(1)), swellDirectionDeg: Number(swellDirection.toFixed(1)), seaSurfaceTemperatureC: Number(sst.toFixed(1)), currentSpeedKts: Number((currentVelocityKmh * 0.539957).toFixed(2)), currentDirectionDeg: Number(currentDirectionDeg.toFixed(1)), seaStateIndex, seaStateDescription, tidePhase: 'Unknown', tideHeightMeters: Number(seaLevel.toFixed(2)), source: 'Open-Meteo Marine API', sourceUrl: MARINE_API_URL, observedAt: observedMarineAt, retrievedAt, dataQuality: 'LIVE',
+    waveHeightMeters: Number(waveHeight.toFixed(2)), maxWaveHeightMeters: Number((typeof dailyMaxWave === 'number' ? dailyMaxWave : waveHeight).toFixed(2)), wavePeriodSec: Number(wavePeriod.toFixed(1)), waveDirectionDeg: Number(waveDirection.toFixed(1)), swellHeightMeters: Number(swellHeight.toFixed(2)), swellPeriodSec: Number(swellPeriod.toFixed(1)), swellDirectionDeg: Number(swellDirection.toFixed(1)), seaSurfaceTemperatureC: Number(sst.toFixed(1)), currentSpeedKts: Number((currentVelocityKmh * 0.539957).toFixed(2)), currentDirectionDeg: Number(currentDirectionDeg.toFixed(1)), seaStateIndex, seaStateDescription, tidePhase, tideHeightMeters: Number(seaLevel.toFixed(2)), source: 'Open-Meteo Marine API', sourceUrl: MARINE_API_URL, observedAt: observedMarineAt, retrievedAt, dataQuality: 'LIVE',
   };
   return { weather, ocean, retrievedAt };
 }
