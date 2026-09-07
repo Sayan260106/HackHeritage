@@ -88,13 +88,27 @@ export const Header: React.FC<HeaderProps> = ({
           
           {/* Logo & Identity */}
           <div className="flex items-center space-x-3">
-            <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-cyan-500 via-blue-600 to-indigo-700 flex items-center justify-center shadow-lg shadow-cyan-500/20 border border-cyan-400/30">
-              <Waves className="h-6 w-6 text-white animate-pulse" />
+            {/* Logo — sonar ring fires on hover, waves icon travels on hover */}
+            <div
+              className="orca-logo-box h-10 w-10 rounded-lg
+                         bg-gradient-to-br from-cyan-500 via-blue-600 to-indigo-700
+                         flex items-center justify-center
+                         shadow-lg shadow-cyan-500/20 border border-cyan-400/30
+                         cursor-pointer"
+            >
+              <Waves className="orca-logo-icon h-6 w-6 text-white" />
             </div>
+
             <div>
               <div className="flex items-center space-x-2">
-                <span className="font-extrabold text-xl tracking-tight bg-gradient-to-r from-cyan-400 via-sky-300 to-blue-200 bg-clip-text text-transparent">
-                  ORCA-X
+                {/* ORCA-X — each letter pings like a sonar echo on hover */}
+                <span className="orca-wordmark font-extrabold text-xl bg-gradient-to-r from-cyan-400 via-sky-300 to-blue-200 bg-clip-text text-transparent">
+                  <span className="orca-wordmark-letter">O</span>
+                  <span className="orca-wordmark-letter">R</span>
+                  <span className="orca-wordmark-letter">C</span>
+                  <span className="orca-wordmark-letter">A</span>
+                  <span className="orca-wordmark-letter">‑</span>
+                  <span className="orca-wordmark-letter">X</span>
                 </span>
                 <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-cyan-950/80 border border-cyan-700/50 text-cyan-300 font-mono">
                   v2.4 SIH
