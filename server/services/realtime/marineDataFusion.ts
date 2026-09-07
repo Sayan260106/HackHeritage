@@ -60,7 +60,10 @@ function variableScore(source: ReturnType<typeof normalizeMarineObservation>): n
 }
 
 function pickBaseSources(normalizedSources: ReturnType<typeof normalizeMarineObservation>[]) {
-  const usable = normalizedSources.filter((source) => source.ageHours <= MAX_STALENESS_HOURS && source.availability === 'LIVE');
+  let usable = normalizedSources.filter((source) => source.ageHours <= MAX_STALENESS_HOURS && source.availability === 'LIVE');
+  if (usable.length === 0) {
+    usable = normalizedSources.filter((source) => source.weather || source.ocean);
+  }
   const withWeather = [...usable.filter((source) => source.weather)].sort((a, b) => b.qualityScore - a.qualityScore);
   const withOcean = [...usable.filter((source) => source.ocean)].sort((a, b) => b.qualityScore - a.qualityScore);
   return {
@@ -93,6 +96,16 @@ export async function fetchFusedRealtimeMarineObservation(lat: number, lon: numb
 
   const ranked = normalizedSources.map((source) => ({ source, score: variableScore(source) }));
   const base = pickBaseSources(normalizedSources);
+
+  if (!base.weather || !base.ocean) {
+    try {
+      const direct = await fetchOpenMeteoCurrent(lat, lon);
+      if (!base.weather) base.weather = direct.weather;
+      if (!base.ocean) base.ocean = direct.ocean;
+    } catch {
+      // Keep going if base already has partial
+    }
+  }
   if (!base.weather || !base.ocean) throw new Error('No complete real-time weather and ocean observation is available for ML inference.');
 
   const featureSources: Partial<Record<MarineObservationVariable, MarineSourceId>> = {};
