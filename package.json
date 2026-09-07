@@ -42,8 +42,10 @@
     "test:mosdac-cache": "tsx scripts/test-mosdac-cache.ts",
     "test:conversation": "tsx scripts/test-conversation-session.ts",
     "test:forecast": "tsx scripts/test-marine-forecast.ts",
+    "test:rag": "tsx scripts/test-rag-evidence.ts",
     "smoke": "node scripts/smoke-test.mjs"
   },
+
 
   "dependencies": {
     "@google/genai": "^2.4.0",
