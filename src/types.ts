@@ -22,9 +22,8 @@ export interface TimeWindow {
 }
 
 export type DataQuality = 'LIVE' | 'DEGRADED' | 'UNAVAILABLE';
-
 export interface WeatherData { airTemperatureC: number; windSpeedKts: number; windGustKts: number; windDirectionDeg: number; windDirectionCompass: string; precipitationMm: number; cloudCoverPct: number; visibilityKm: number; pressureHpa: number; weatherCode: number; weatherDescription: string; source: string; sourceUrl?: string; observedAt: string; retrievedAt?: string; dataQuality?: DataQuality; }
-export interface OceanData { waveHeightMeters: number; maxWaveHeightMeters: number; wavePeriodSec: number; waveDirectionDeg: number; swellHeightMeters: number; swellPeriodSec: number; swellDirectionDeg: number; seaSurfaceTemperatureC: number; currentSpeedKts: number; currentDirectionDeg: number; salinityPsu?: number; seaStateIndex: number; seaStateDescription: string; tidePhase: 'High Tide' | 'Low Tide' | 'Flood Tide' | 'Ebb Tide' | 'Unknown'; tideHeightMeters?: number; source: string; sourceUrl?: string; observedAt: string; retrievedAt?: string; dataQuality?: DataQuality; }
+export interface OceanData { waveHeightMeters: number; maxWaveHeightMeters: number; wavePeriodSec: number; waveDirectionDeg: number; swellHeightMeters: number; swellPeriodSec: number; swellDirectionDeg: number; salinityPsu?: number; seaSurfaceTemperatureC: number; currentSpeedKts: number; currentDirectionDeg: number; seaStateIndex: number; seaStateDescription: string; tidePhase: 'High Tide' | 'Low Tide' | 'Flood Tide' | 'Ebb Tide' | 'Unknown'; tideHeightMeters?: number; source: string; sourceUrl?: string; observedAt: string; retrievedAt?: string; dataQuality?: DataQuality; }
 export interface RealtimeObservationMetadata { retrievedAt: string; providers: string[]; dataQuality: DataQuality; warnings: string[]; }
 export interface SatelliteObservation { collectionId: string; collectionTitle: string; productId: string; productUrl?: string; platform?: string; instrument?: string; acquisitionTime?: string; cloudCoverPct?: number; distanceKm?: number; observationAgeHours?: number; processingLevel?: string; productType?: string; timeliness?: string; orbitState?: string; relativeOrbit?: number; productSizeMb?: number; assetCount?: number; sceneWaterPct?: number; sceneVegetationPct?: number; sceneCloudShadowPct?: number; sceneHighCloudPct?: number; sceneMediumCloudPct?: number; }
 export type SatelliteStatus = 'LIVE' | 'DEGRADED' | 'UNAVAILABLE' | 'SIMULATED';
@@ -34,38 +33,63 @@ export interface RiskDomainValidation { status: 'UNVALIDATED_DEPLOYMENT_DOMAIN' 
 export interface RiskPrediction { riskScore: number; riskLevel: RiskLevel; confidenceScore: number; modelVersion: string; predictionTarget: string; primaryRecommendation: string; safetySummary: string; actionableAdvisories: string[]; restrictedCraftTypes: string[]; safeCraftTypes: string[]; featureContributions: FeatureContribution[]; domainValidation?: RiskDomainValidation; validUntil: string; generatedAt: string; }
 export type GeofenceBreachSeverity = 'SAFE' | 'ADVISORY' | 'PROXIMITY_WARNING' | 'CRITICAL_BREACH';
 
-export interface GeofenceAlert {
-  boundaryId: string;
-  boundaryName: string;
-  type: 'IMBL' | 'MPA' | 'RESTRICTED';
-  distanceNm: number;
-  distanceKm: number;
-  bearingDeg?: number;
-  severity: GeofenceBreachSeverity;
-  warningMessage: string;
-  treatyOrAuthority: string;
-  regulations?: string;
-  enforcementNotice?: string;
-}
-
-export interface GeofenceSpatialAnalysis {
-  operatingCoordinates: { latitude: number; longitude: number };
-  nearestImbl?: GeofenceAlert;
-  nearestMpa?: GeofenceAlert;
-  activeAlerts: GeofenceAlert[];
-  inRestrictedWaters: boolean;
-  status: 'CLEAR' | 'CAUTION' | 'RESTRICTED_BREACH';
-  timestamp: string;
-}
-
+export interface GeofenceAlert { boundaryId: string; boundaryName: string; type: 'IMBL' | 'MPA' | 'RESTRICTED'; distanceNm: number; distanceKm: number; bearingDeg?: number; severity: GeofenceBreachSeverity; warningMessage: string; treatyOrAuthority: string; regulations?: string; enforcementNotice?: string; isInside?: boolean; insideDepthNm?: number; insideDepthKm?: number; escapeBearingDeg?: number; hasCrossedBorder?: boolean; }
+export interface GeofenceSpatialAnalysis { operatingCoordinates: { latitude: number; longitude: number }; nearestImbl?: GeofenceAlert; nearestMpa?: GeofenceAlert; activeAlerts: GeofenceAlert[]; inRestrictedWaters: boolean; status: 'CLEAR' | 'CAUTION' | 'RESTRICTED_BREACH'; timestamp: string; }
 export interface GisGeoJsonFeature { type: 'Feature'; geometry: { type: 'Polygon' | 'Point' | 'LineString'; coordinates: any }; properties: { name: string; category: 'restricted_zone' | 'hazard_zone' | 'precaution_zone' | 'fishing_zone' | 'port_buffer' | 'safe_corridor' | 'port_shelter' | 'buoy_station' | 'bathymetry' | 'international_boundary' | 'marine_protected_area'; riskLevel?: RiskLevel; description: string; color: string; details?: Record<string, any>; }; }
 export interface GisLayerData { type: 'FeatureCollection'; features: GisGeoJsonFeature[]; geofenceAnalysis?: GeofenceSpatialAnalysis; }
 export interface EvidenceItem { id: string; title: string; sourceAuthority: string; documentType: 'Fisheries Advisory' | 'Ocean State Forecast' | 'Cyclone Bulletin' | 'Maritime Regulation' | 'Scientific Protocol'; publicationDate: string; excerpt: string; relevanceScore: number; officialUrl?: string; complianceRule?: string; }
-
-export interface AgentStepTrace { agentName: 'Planner' | 'LocationTimeResolver' | 'WeatherAgent' | 'OceanAgent' | 'SatelliteAgent' | 'RiskEngine' | 'GisAgent' | 'EvidenceRetrieval' | 'ResponseGrounding'; status: 'pending' | 'running' | 'completed' | 'failed' | 'skipped'; startedAt: string; completedAt?: string; durationMs?: number; inputSummary: string; outputSummary: string; logs: string[]; error?: string; taskId?: string; dependencies?: string[]; }
+export interface AgentStepTrace { agentName: 'Planner' | 'LocationTimeResolver' | 'WeatherAgent' | 'OceanAgent' | 'SatelliteAgent' | 'RiskEngine' | 'GisAgent' | 'PFZAgent' | 'SafeRoutingAgent' | 'AlertAgent' | 'EvidenceRetrieval' | 'ResponseGrounding'; status: 'pending' | 'running' | 'completed' | 'failed' | 'skipped'; startedAt: string; completedAt?: string; durationMs?: number; inputSummary: string; outputSummary: string; logs: string[]; error?: string; taskId?: string; dependencies?: string[]; }
 export interface OrcaExecutionTask { id: string; label: string; dependsOn: string[]; required: boolean; enabled: boolean; status: 'pending' | 'running' | 'completed' | 'failed' | 'skipped'; reason: string; }
 export interface OrcaExecutionPlan { planId: string; intent: string; rationale: string; tasks: OrcaExecutionTask[]; generatedAt: string; }
-
-export interface OrcaAnalysisResponse { queryId: string; originalQuery: string; language: LanguageCode; detectedIntent: string; location: LocationInfo; timeWindow: TimeWindow; weather: WeatherData; ocean: OceanData; satellite: SatelliteData; risk: RiskPrediction; gisLayers: GisLayerData; geofenceAnalysis?: GeofenceSpatialAnalysis; evidence: EvidenceItem[]; agentTraces: AgentStepTrace[]; groundedSummary: string; translatedSummary?: Record<string, string>; isDataDegraded?: boolean; warnings?: string[]; freshnessTimestamp: string; officialDisclaimer: string; executionPlan?: OrcaExecutionPlan; }
+export interface OperationalDecision { decision: 'PROCEED' | 'CAUTION' | 'AVOID' | 'UNAVAILABLE'; confidence: 'HIGH' | 'MEDIUM' | 'LOW' | 'UNAVAILABLE'; score: number; rationale: string; factors: string[]; warnings: string[]; selectedZone?: string; }
+export interface SafeRouteSummary { status: 'ROUTE_FOUND' | 'ROUTE_UNAVAILABLE' | 'ROUTE_BLOCKED' | 'ROUTE_NOT_REQUESTED'; destinationLabel?: string; distanceKm?: number; directDistanceKm?: number; routeEfficiencyPct?: number; waypointCount: number; warnings: string[]; rationale: string; source: string; }
+export interface AlertSummary { decision: 'CLEAR' | 'MONITOR' | 'ACT'; highestSeverity: 'INFO' | 'ADVISORY' | 'WARNING' | 'CRITICAL' | 'NONE'; activeAlertCount: number; rationale: string; nextActions: string[]; alerts: Array<{ id: string; type: string; severity: string; title: string; message: string; source: string; confidence: string; actionable: string; }>; }
+export interface OrcaAnalysisResponse { queryId: string; originalQuery: string; language: LanguageCode; detectedIntent: string; location: LocationInfo; timeWindow: TimeWindow; weather: WeatherData; ocean: OceanData; satellite: SatelliteData; risk: RiskPrediction; gisLayers: GisLayerData; geofenceAnalysis?: GeofenceSpatialAnalysis; pfz?: unknown; operationalDecision?: OperationalDecision; safeRoute?: SafeRouteSummary; alertSummary?: AlertSummary; evidence: EvidenceItem[]; agentTraces: AgentStepTrace[]; groundedSummary: string; translatedSummary?: Record<string, string>; isDataDegraded?: boolean; warnings?: string[]; freshnessTimestamp: string; officialDisclaimer: string; executionPlan?: OrcaExecutionPlan; }
 
 export interface QueryRequest { query: string; locationOverride?: string; timeOverride?: string; language?: LanguageCode; includeSatellite?: boolean; }
+
+export type VesselType = 'FISHING_TRAWLER' | 'CARGO_CONTAINER' | 'TANKER' | 'COAST_GUARD_PATROL' | 'NAVY_FRIGATE' | 'UNKNOWN_DARK_VESSEL';
+export type VesselAisStatus = 'ACTIVE_BROADCAST' | 'TRANSPONDER_SILENT' | 'SPOOFED_LOCATION' | 'UNREGISTERED_SAR_TARGET';
+
+export interface VesselTarget {
+  id: string;
+  mmsi: string;
+  name: string;
+  type: VesselType;
+  flagState: string;
+  latitude: number;
+  longitude: number;
+  speedKts: number;
+  headingDeg: number;
+  destination?: string;
+  aisStatus: VesselAisStatus;
+  isDarkVessel: boolean;
+  sarDetectionConfidencePct: number;
+  lastAisTimestamp: string;
+  suspiciousReason?: string;
+  distanceFromBoatKm?: number;
+  distanceFromBoatNm?: number;
+}
+
+export interface DarkVesselAlert {
+  vesselId: string;
+  mmsi: string;
+  name: string;
+  severity: 'HIGH' | 'CRITICAL';
+  title: string;
+  description: string;
+  latitude: number;
+  longitude: number;
+  recommendedAction: string;
+}
+
+export interface DarkVesselAnalysis {
+  timestamp: string;
+  totalTrackedVessels: number;
+  activeAisVessels: number;
+  darkVesselCount: number;
+  sentinel1PassTime: string;
+  targetVessels: VesselTarget[];
+  alerts: DarkVesselAlert[];
+}
+

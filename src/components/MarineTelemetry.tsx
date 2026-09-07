@@ -64,156 +64,156 @@ export const MarineTelemetry: React.FC<MarineTelemetryProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5">
 
         {/* 4 Primary Metric Cards (Col Span 8) */}
-        <div className="lg:col-span-8 grid grid-cols-2 sm:grid-cols-2 gap-3">
+        <div className="lg:col-span-8 grid grid-cols-2 sm:grid-cols-2 gap-4">
 
           {/* 1. Significant Wave Height */}
-          <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3.5 shadow-md space-y-2 relative overflow-hidden group hover:border-cyan-500/40 transition-all">
+          <div className="bg-[#0b121f]/50 border border-slate-800/40 rounded-xl p-4 space-y-3 relative overflow-hidden group hover:bg-[#0b121f]/80 transition-all">
             <div className="flex items-center justify-between text-slate-400 text-xs">
-              <span className="flex items-center gap-1 font-medium">
-                <Waves className="h-4 w-4 text-cyan-400" />
-                <span className="font-semibold text-slate-200">{dict.significantWave || 'Wave Height (Hs)'}</span>
+              <span className="flex items-center gap-1.5 font-medium">
+                <Waves className="h-4 w-4 text-cyan-500/80" />
+                <span className="font-semibold text-slate-300 tracking-wide">{dict.significantWave || 'Wave Height (Hs)'}</span>
               </span>
-              <span className="text-[10px] font-mono text-cyan-400 font-bold">{dict.max || 'Max'} {ocean.maxWaveHeightMeters}m</span>
+              <span className="text-[10px] font-mono text-cyan-500/80 font-bold">{dict.max || 'Max'} {ocean.maxWaveHeightMeters}m</span>
             </div>
             <div className="flex items-baseline justify-between pt-1">
               <div className="flex items-baseline space-x-1.5">
-                <span className="text-3xl font-black text-slate-100 font-mono tracking-tight tabular-nums">
+                <span className="text-3xl font-bold text-white font-mono tracking-tight tabular-nums leading-none">
                   {ocean.waveHeightMeters}
                 </span>
-                <span className="text-xs font-semibold text-slate-400">{dict.meters || 'meters'}</span>
+                <span className="text-xs font-medium text-slate-500">{dict.meters || 'meters'}</span>
               </div>
               <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border ${
                 ocean.waveHeightMeters > 2.0
-                  ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
+                  ? 'bg-rose-500/10 text-rose-400 border-rose-500/20'
                   : ocean.waveHeightMeters > 1.25
-                    ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
-                    : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                    ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                    : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
               }`}>
                 {ocean.waveHeightMeters > 2.0 ? 'ROUGH' : ocean.waveHeightMeters > 1.25 ? 'MODERATE' : 'SLIGHT'}
               </span>
             </div>
 
             {/* Visual Gauge Bar */}
-            <div className="w-full h-1.5 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
+            <div className="w-full h-1 bg-slate-800/50 rounded-full overflow-hidden">
               <div
-                className={`h-full transition-all duration-700 ${
-                  ocean.waveHeightMeters > 2.0 ? 'bg-rose-500' : ocean.waveHeightMeters > 1.25 ? 'bg-amber-400' : 'bg-cyan-400'
+                className={`h-full transition-all duration-1000 ease-out ${
+                  ocean.waveHeightMeters > 2.0 ? 'bg-rose-500' : ocean.waveHeightMeters > 1.25 ? 'bg-amber-400' : 'bg-cyan-500/80'
                 }`}
                 style={{ width: `${wavePct}%` }}
               />
             </div>
 
-            <div className="text-[11px] text-slate-400 font-mono flex items-center justify-between pt-1 border-t border-slate-800/80">
-              <span>{dict.period || 'Period'}: <strong className="text-slate-200 tabular-nums">{ocean.wavePeriodSec}s</strong></span>
-              <span>{dict.direction || 'Heading'}: <strong className="text-slate-200 tabular-nums">{ocean.waveDirectionDeg}°</strong></span>
+            <div className="text-[10px] uppercase tracking-widest text-slate-500 font-medium flex items-center justify-between pt-2">
+              <span>{dict.period || 'Period'}: <strong className="text-slate-300 tabular-nums">{ocean.wavePeriodSec}s</strong></span>
+              <span>{dict.direction || 'Heading'}: <strong className="text-slate-300 tabular-nums">{ocean.waveDirectionDeg}°</strong></span>
             </div>
           </div>
 
           {/* 2. Swell Wave Surge */}
-          <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3.5 shadow-md space-y-2 relative overflow-hidden group hover:border-indigo-500/40 transition-all">
+          <div className="bg-[#0b121f]/50 border border-slate-800/40 rounded-xl p-4 space-y-3 relative overflow-hidden group hover:bg-[#0b121f]/80 transition-all">
             <div className="flex items-center justify-between text-slate-400 text-xs">
-              <span className="flex items-center gap-1 font-medium">
-                <ArrowUpRight className="h-4 w-4 text-indigo-400" />
-                <span className="font-semibold text-slate-200">{dict.swellPeriod || 'Swell Period'}</span>
+              <span className="flex items-center gap-1.5 font-medium">
+                <ArrowUpRight className="h-4 w-4 text-indigo-400/80" />
+                <span className="font-semibold text-slate-300 tracking-wide">{dict.swellPeriod || 'Swell Period'}</span>
               </span>
-              <span className="text-[10px] font-mono text-indigo-400 font-bold tabular-nums">{ocean.swellHeightMeters}m {dict.swell || 'Swell'}</span>
+              <span className="text-[10px] font-mono text-indigo-400/80 font-bold tabular-nums">{ocean.swellHeightMeters}m {dict.swell || 'Swell'}</span>
             </div>
             <div className="flex items-baseline justify-between pt-1">
               <div className="flex items-baseline space-x-1.5">
-                <span className="text-3xl font-black text-slate-100 font-mono tracking-tight tabular-nums">
+                <span className="text-3xl font-bold text-white font-mono tracking-tight tabular-nums leading-none">
                   {ocean.swellPeriodSec}
                 </span>
-                <span className="text-xs font-semibold text-slate-400">{dict.seconds || 'seconds'}</span>
+                <span className="text-xs font-medium text-slate-500">{dict.seconds || 'seconds'}</span>
               </div>
               <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border ${
-                ocean.swellPeriodSec > 13 ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 animate-pulse' : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                ocean.swellPeriodSec > 13 ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
               }`}>
                 {ocean.swellPeriodSec > 13 ? (dict.highSurge || 'SURGE HAZARD') : (dict.stable || 'STABLE')}
               </span>
             </div>
 
             {/* Visual Gauge Bar */}
-            <div className="w-full h-1.5 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
+            <div className="w-full h-1 bg-slate-800/50 rounded-full overflow-hidden">
               <div
-                className={`h-full transition-all duration-700 ${ocean.swellPeriodSec > 13 ? 'bg-rose-500' : 'bg-indigo-400'}`}
+                className={`h-full transition-all duration-1000 ease-out ${ocean.swellPeriodSec > 13 ? 'bg-rose-500' : 'bg-indigo-400/80'}`}
                 style={{ width: `${swellPct}%` }}
               />
             </div>
 
-            <div className="text-[11px] text-slate-400 font-mono flex items-center justify-between pt-1 border-t border-slate-800/80">
-              <span>{dict.direction || 'Heading'}: <strong className="text-slate-200 tabular-nums">{ocean.swellDirectionDeg}°</strong></span>
-              <span className={ocean.swellPeriodSec > 13 ? 'text-rose-400 font-bold' : 'text-emerald-400'}>
+            <div className="text-[10px] uppercase tracking-widest text-slate-500 font-medium flex items-center justify-between pt-2">
+              <span>{dict.direction || 'Heading'}: <strong className="text-slate-300 tabular-nums">{ocean.swellDirectionDeg}°</strong></span>
+              <span className={ocean.swellPeriodSec > 13 ? 'text-rose-400 font-bold' : 'text-emerald-400/80'}>
                 {ocean.swellPeriodSec > 13 ? (dict.breakerSurge || 'Long Swell Surge') : (dict.shortChop || 'Short Swell')}
               </span>
             </div>
           </div>
 
           {/* 3. Wind Speed & Gusts */}
-          <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3.5 shadow-md space-y-2 relative overflow-hidden group hover:border-sky-500/40 transition-all">
+          <div className="bg-[#0b121f]/50 border border-slate-800/40 rounded-xl p-4 space-y-3 relative overflow-hidden group hover:bg-[#0b121f]/80 transition-all">
             <div className="flex items-center justify-between text-slate-400 text-xs">
-              <span className="flex items-center gap-1 font-medium">
-                <Wind className="h-4 w-4 text-sky-400" />
-                <span className="font-semibold text-slate-200">{dict.windSpeed || 'Wind Velocity'}</span>
+              <span className="flex items-center gap-1.5 font-medium">
+                <Wind className="h-4 w-4 text-sky-400/80" />
+                <span className="font-semibold text-slate-300 tracking-wide">{dict.windSpeed || 'Wind Velocity'}</span>
               </span>
-              <span className="text-[10px] font-mono text-sky-400 font-bold tabular-nums">{weather.windDirectionCompass} ({weather.windDirectionDeg}°)</span>
+              <span className="text-[10px] font-mono text-sky-400/80 font-bold tabular-nums">{weather.windDirectionCompass} ({weather.windDirectionDeg}°)</span>
             </div>
             <div className="flex items-baseline justify-between pt-1">
               <div className="flex items-baseline space-x-1.5">
-                <span className="text-3xl font-black text-slate-100 font-mono tracking-tight tabular-nums">
+                <span className="text-3xl font-bold text-white font-mono tracking-tight tabular-nums leading-none">
                   {weather.windSpeedKts}
                 </span>
-                <span className="text-xs font-semibold text-slate-400">{dict.knots || 'knots'}</span>
+                <span className="text-xs font-medium text-slate-500">{dict.knots || 'knots'}</span>
               </div>
-              <span className="text-[10px] font-mono text-amber-400 bg-amber-500/10 border border-amber-500/30 px-1.5 py-0.5 rounded font-bold tabular-nums">
+              <span className="text-[10px] font-mono text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded font-bold tabular-nums">
                 {dict.gusts || 'Gust'} {weather.windGustKts} kts
               </span>
             </div>
 
             {/* Visual Gauge Bar */}
-            <div className="w-full h-1.5 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
+            <div className="w-full h-1 bg-slate-800/50 rounded-full overflow-hidden">
               <div
-                className={`h-full transition-all duration-700 ${weather.windSpeedKts > 20 ? 'bg-rose-500' : weather.windSpeedKts > 12 ? 'bg-amber-400' : 'bg-sky-400'}`}
+                className={`h-full transition-all duration-1000 ease-out ${weather.windSpeedKts > 20 ? 'bg-rose-500' : weather.windSpeedKts > 12 ? 'bg-amber-400' : 'bg-sky-400/80'}`}
                 style={{ width: `${windPct}%` }}
               />
             </div>
 
-            <div className="text-[11px] text-slate-400 font-mono flex items-center justify-between pt-1 border-t border-slate-800/80">
+            <div className="text-[10px] uppercase tracking-widest text-slate-500 font-medium flex items-center justify-between pt-2">
               <span>Gust Factor: <strong className="text-amber-400 tabular-nums">{(weather.windGustKts / (weather.windSpeedKts || 1)).toFixed(1)}x</strong></span>
               <span>Beaufort Scale</span>
             </div>
           </div>
 
           {/* 4. Ocean Currents */}
-          <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3.5 shadow-md space-y-2 relative overflow-hidden group hover:border-teal-500/40 transition-all">
+          <div className="bg-[#0b121f]/50 border border-slate-800/40 rounded-xl p-4 space-y-3 relative overflow-hidden group hover:bg-[#0b121f]/80 transition-all">
             <div className="flex items-center justify-between text-slate-400 text-xs">
-              <span className="flex items-center gap-1 font-medium">
-                <Navigation2 className="h-4 w-4 text-teal-400" />
-                <span className="font-semibold text-slate-200">{dict.currentVelocity || 'Current Speed'}</span>
+              <span className="flex items-center gap-1.5 font-medium">
+                <Navigation2 className="h-4 w-4 text-teal-400/80" />
+                <span className="font-semibold text-slate-300 tracking-wide">{dict.currentVelocity || 'Current Speed'}</span>
               </span>
-              <span className="text-[10px] font-mono text-teal-400 font-bold tabular-nums">{ocean.currentDirectionDeg}° {dict.set || 'Set'}</span>
+              <span className="text-[10px] font-mono text-teal-400/80 font-bold tabular-nums">{ocean.currentDirectionDeg}° {dict.set || 'Set'}</span>
             </div>
             <div className="flex items-baseline justify-between pt-1">
               <div className="flex items-baseline space-x-1.5">
-                <span className="text-3xl font-black text-slate-100 font-mono tracking-tight tabular-nums">
+                <span className="text-3xl font-bold text-white font-mono tracking-tight tabular-nums leading-none">
                   {ocean.currentSpeedKts}
                 </span>
-                <span className="text-xs font-semibold text-slate-400">{dict.knots || 'knots'}</span>
+                <span className="text-xs font-medium text-slate-500">{dict.knots || 'knots'}</span>
               </div>
-              <span className="text-[10px] font-mono text-slate-300 bg-slate-950 border border-slate-800 px-1.5 py-0.5 rounded tabular-nums">
+              <span className="text-[10px] font-mono text-slate-300 bg-slate-800/50 border border-slate-700/50 px-1.5 py-0.5 rounded tabular-nums">
                 {dict.tide || 'Tide'} {ocean.tideHeightMeters}m
               </span>
             </div>
 
             {/* Visual Gauge Bar */}
-            <div className="w-full h-1.5 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
+            <div className="w-full h-1 bg-slate-800/50 rounded-full overflow-hidden">
               <div
-                className="h-full bg-teal-400 transition-all duration-700"
+                className="h-full bg-teal-400/80 transition-all duration-1000 ease-out"
                 style={{ width: `${currentPct}%` }}
               />
             </div>
 
-            <div className="text-[11px] text-slate-400 font-mono flex items-center justify-between pt-1 border-t border-slate-800/80">
-              <span>Phase: <strong className="text-slate-200">{localizeSeaState(ocean.tidePhase, language)}</strong></span>
+            <div className="text-[10px] uppercase tracking-widest text-slate-500 font-medium flex items-center justify-between pt-2">
+              <span>Phase: <strong className="text-slate-300">{localizeSeaState(ocean.tidePhase, language)}</strong></span>
               <span>Drift Vector</span>
             </div>
           </div>
@@ -221,34 +221,34 @@ export const MarineTelemetry: React.FC<MarineTelemetryProps> = ({
         </div>
 
         {/* High-Tech Vector Compass Dial (Col Span 4) */}
-        <div className="lg:col-span-4 bg-slate-900/90 border border-slate-800 rounded-xl p-4 flex flex-col justify-between items-center relative overflow-hidden shadow-lg">
-          <div className="w-full flex items-center justify-between text-xs font-mono">
-            <span className="text-slate-400 flex items-center gap-1.5 font-bold">
-              <Compass className="h-4 w-4 text-cyan-400" />
+        <div className="lg:col-span-4 bg-[#0b121f]/50 border border-slate-800/40 rounded-xl p-5 flex flex-col justify-between items-center relative overflow-hidden shadow-inner hover:bg-[#0b121f]/80 transition-all">
+          <div className="w-full flex items-center justify-between text-[10px] font-mono uppercase tracking-widest text-slate-500 font-semibold mb-4">
+            <span className="flex items-center gap-1.5">
+              <Compass className="h-4 w-4 text-slate-400" />
               <span>Vector Dial</span>
             </span>
-            <span className={`text-[10px] font-mono px-2 py-0.5 rounded border ${
+            <span className={`px-2 py-0.5 rounded border ${
               isWindAgainstSwell
-                ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 animate-pulse font-bold'
-                : 'bg-slate-950 text-cyan-400 border-slate-800'
+                ? 'bg-rose-500/10 text-rose-400 border-rose-500/30 animate-pulse font-bold'
+                : 'bg-slate-800/50 text-cyan-500/80 border-slate-700/50'
             }`}>
               {isWindAgainstSwell ? 'WIND-VS-SWELL' : 'CO-ALIGNED'}
             </span>
           </div>
 
           {/* Compass Visual Instrument */}
-          <div className="relative w-36 h-36 my-2 flex items-center justify-center">
+          <div className="relative w-40 h-40 flex items-center justify-center my-2">
 
             {/* Outer Compass Ring */}
-            <div className="absolute inset-0 rounded-full border-2 border-slate-800 bg-slate-950/80 shadow-inner flex items-center justify-center">
-              <div className="absolute top-1 text-[10px] font-mono font-bold text-slate-400">N</div>
-              <div className="absolute right-1.5 text-[10px] font-mono font-bold text-slate-500">E</div>
-              <div className="absolute bottom-1 text-[10px] font-mono font-bold text-slate-500">S</div>
-              <div className="absolute left-1.5 text-[10px] font-mono font-bold text-slate-500">W</div>
+            <div className="absolute inset-0 rounded-full border border-slate-800/80 bg-[#06090e]/80 shadow-[inset_0_4px_20px_rgba(0,0,0,0.5)] flex items-center justify-center">
+              <div className="absolute top-2 text-[10px] font-mono font-bold text-slate-500">N</div>
+              <div className="absolute right-2 text-[10px] font-mono font-bold text-slate-600">E</div>
+              <div className="absolute bottom-2 text-[10px] font-mono font-bold text-slate-600">S</div>
+              <div className="absolute left-2 text-[10px] font-mono font-bold text-slate-600">W</div>
             </div>
 
             {/* Inner Degree Tick Marks */}
-            <svg className="w-full h-full transform -rotate-90 text-slate-800/80" viewBox="0 0 100 100">
+            <svg className="w-full h-full transform -rotate-90 text-slate-700/40" viewBox="0 0 100 100">
               <circle cx="50" cy="50" r="42" fill="none" stroke="currentColor" strokeWidth="1" strokeDasharray="2 4" />
             </svg>
 
@@ -257,7 +257,7 @@ export const MarineTelemetry: React.FC<MarineTelemetryProps> = ({
               className="absolute w-full h-full flex items-center justify-center transition-transform duration-1000 ease-out"
               style={{ transform: `rotate(${weather.windDirectionDeg}deg)` }}
             >
-              <div className="h-14 w-1 bg-gradient-to-t from-transparent via-sky-400 to-sky-300 rounded-t shadow-sm shadow-sky-400/50 -translate-y-4 relative">
+              <div className="h-16 w-1 bg-gradient-to-t from-transparent via-sky-500/80 to-sky-400 rounded-t -translate-y-4 relative shadow-sm">
                 <div className="absolute -top-1 -left-1 text-sky-400">▲</div>
               </div>
             </div>
@@ -267,33 +267,33 @@ export const MarineTelemetry: React.FC<MarineTelemetryProps> = ({
               className="absolute w-full h-full flex items-center justify-center transition-transform duration-1000 ease-out"
               style={{ transform: `rotate(${ocean.swellDirectionDeg}deg)` }}
             >
-              <div className="h-10 w-0.5 bg-gradient-to-t from-transparent via-indigo-400 to-indigo-300 rounded-t -translate-y-2 relative opacity-80">
-                <div className="absolute -top-1 -left-0.5 text-indigo-400 text-[8px]">●</div>
+              <div className="h-12 w-[3px] bg-gradient-to-t from-transparent via-indigo-500/60 to-indigo-400/80 rounded-t -translate-y-3 relative opacity-80">
+                <div className="absolute -top-1 -left-[3px] text-indigo-400/80 text-[10px]">●</div>
               </div>
             </div>
 
             {/* Central Hub Display */}
-            <div className="absolute w-12 h-12 rounded-full bg-slate-900 border border-slate-700 flex flex-col items-center justify-center shadow-lg">
-              <span className="text-[10px] font-black text-slate-100 font-mono">{weather.windDirectionCompass}</span>
-              <span className="text-[8px] font-mono text-cyan-400">{weather.windDirectionDeg}°</span>
+            <div className="absolute w-14 h-14 rounded-full bg-[#0b121f] border border-slate-700/50 flex flex-col items-center justify-center shadow-2xl">
+              <span className="text-[11px] font-black text-slate-200 font-mono tracking-wider">{weather.windDirectionCompass}</span>
+              <span className="text-[9px] font-mono text-slate-400">{weather.windDirectionDeg}°</span>
             </div>
 
           </div>
 
           {/* Compass Legend & Hazard Warning */}
-          <div className="w-full space-y-1">
-            <div className="flex items-center justify-around text-[10px] font-mono text-slate-400 border-t border-slate-800/80 pt-2">
-              <span className="flex items-center gap-1">
-                <span className="h-2 w-2 rounded-full bg-sky-400"></span>
+          <div className="w-full space-y-2 mt-4">
+            <div className="flex items-center justify-around text-[10px] font-mono text-slate-500 font-medium uppercase tracking-widest pt-3 border-t border-slate-800/40">
+              <span className="flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-sky-500/80"></span>
                 <span>Wind ({weather.windDirectionDeg}°)</span>
               </span>
-              <span className="flex items-center gap-1">
-                <span className="h-2 w-2 rounded-full bg-indigo-400"></span>
+              <span className="flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-indigo-500/80"></span>
                 <span>Swell ({ocean.swellDirectionDeg}°)</span>
               </span>
             </div>
             {isWindAgainstSwell && (
-              <p className="text-[10px] text-rose-300 bg-rose-500/10 p-1.5 rounded border border-rose-500/30 text-center font-mono leading-tight">
+              <p className="text-[10px] text-rose-400 bg-rose-500/10 p-2 rounded border border-rose-500/20 text-center font-mono leading-relaxed mt-2">
                 ⚠️ Wind opposing swell heading! Risk of steep breaking waves.
               </p>
             )}
@@ -304,95 +304,95 @@ export const MarineTelemetry: React.FC<MarineTelemetryProps> = ({
       </div>
 
       {/* Secondary Environmental Indicators */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         
         {/* 1. Sea Surface Temp */}
-        <div className="bg-slate-950/95 border border-slate-800/90 rounded-xl p-3 flex flex-col justify-between space-y-2 hover:border-rose-500/40 transition-all min-w-0 shadow-sm">
-          <div className="flex items-center space-x-1.5 min-w-0">
-            <div className="p-1.5 rounded-md bg-rose-500/15 border border-rose-500/30 text-rose-400 shrink-0">
-              <Thermometer className="h-3.5 w-3.5" />
+        <div className="bg-[#0b121f]/50 border border-slate-800/40 rounded-xl p-4 flex flex-col justify-between space-y-3 hover:bg-[#0b121f]/80 transition-all min-w-0">
+          <div className="flex items-center space-x-2 min-w-0">
+            <div className="text-rose-500/80 shrink-0">
+              <Thermometer className="h-4 w-4" />
             </div>
-            <span className="text-xs font-extrabold text-slate-200 font-mono uppercase tracking-wider truncate">
+            <span className="text-[10px] font-bold text-slate-400 font-mono uppercase tracking-widest truncate">
               {dict.seaSurfaceTemp || 'Sea Surface Temp'}
             </span>
           </div>
-          <div className="flex items-baseline justify-between pt-0.5 border-t border-slate-800/60">
+          <div className="flex items-baseline justify-between">
             <div className="flex items-baseline space-x-1">
-              <span className="text-xl font-black text-white font-mono tracking-tight">
+              <span className="text-2xl font-bold text-white font-mono tracking-tight leading-none">
                 {ocean.seaSurfaceTemperatureC.toFixed(1)}
               </span>
-              <span className="text-xs font-bold text-slate-400">°C</span>
+              <span className="text-[10px] font-bold text-slate-500">°C</span>
             </div>
-            <span className="text-[10px] font-mono text-cyan-300 font-bold bg-cyan-950/80 px-2 py-0.5 rounded border border-cyan-700/50 shrink-0">
+            <span className="text-[9px] font-mono text-cyan-400 font-bold bg-cyan-500/10 px-1.5 py-0.5 rounded border border-cyan-500/20 shrink-0">
               {typeof satellite.sstAnomalyC === 'number' ? `${satellite.sstAnomalyC > 0 ? '+' : ''}${satellite.sstAnomalyC.toFixed(1)}°C` : (dict.sstAnomaly || 'SST Live')}
             </span>
           </div>
         </div>
 
         {/* 2. Douglas Sea State */}
-        <div className="bg-slate-950/95 border border-slate-800/90 rounded-xl p-3 flex flex-col justify-between space-y-2 hover:border-cyan-500/40 transition-all min-w-0 shadow-sm">
-          <div className="flex items-center space-x-1.5 min-w-0">
-            <div className="p-1.5 rounded-md bg-cyan-500/15 border border-cyan-500/30 text-cyan-400 shrink-0">
-              <Compass className="h-3.5 w-3.5" />
+        <div className="bg-[#0b121f]/50 border border-slate-800/40 rounded-xl p-4 flex flex-col justify-between space-y-3 hover:bg-[#0b121f]/80 transition-all min-w-0">
+          <div className="flex items-center space-x-2 min-w-0">
+            <div className="text-cyan-500/80 shrink-0">
+              <Compass className="h-4 w-4" />
             </div>
-            <span className="text-xs font-extrabold text-slate-200 font-mono uppercase tracking-wider truncate">
+            <span className="text-[10px] font-bold text-slate-400 font-mono uppercase tracking-widest truncate">
               {dict.douglasSeaState || 'Douglas Sea State'}
             </span>
           </div>
-          <div className="flex items-baseline justify-between pt-0.5 border-t border-slate-800/60">
+          <div className="flex items-baseline justify-between">
             <div className="flex items-baseline space-x-1">
-              <span className="text-xs text-slate-400 font-mono font-bold uppercase">{dict.scale || 'Scale'}</span>
-              <span className="text-xl font-black text-white font-mono tracking-tight">
+              <span className="text-[10px] text-slate-500 font-mono font-bold uppercase">{dict.scale || 'Scale'}</span>
+              <span className="text-2xl font-bold text-white font-mono tracking-tight leading-none ml-1">
                 {ocean.seaStateIndex}
               </span>
             </div>
-            <span className="text-[10px] font-mono text-slate-200 font-bold bg-slate-900 px-2 py-0.5 rounded border border-slate-700 shrink-0">
+            <span className="text-[9px] font-mono text-slate-300 font-bold bg-slate-800/50 px-1.5 py-0.5 rounded border border-slate-700/50 shrink-0 uppercase">
               {localizeSeaState(ocean.seaStateDescription.split(' ')[0], language)}
             </span>
           </div>
         </div>
 
         {/* 3. Visibility & Rain */}
-        <div className="bg-slate-950/95 border border-slate-800/90 rounded-xl p-3 flex flex-col justify-between space-y-2 hover:border-blue-500/40 transition-all min-w-0 shadow-sm">
-          <div className="flex items-center space-x-1.5 min-w-0">
-            <div className="p-1.5 rounded-md bg-blue-500/15 border border-blue-500/30 text-blue-400 shrink-0">
-              <Eye className="h-3.5 w-3.5" />
+        <div className="bg-[#0b121f]/50 border border-slate-800/40 rounded-xl p-4 flex flex-col justify-between space-y-3 hover:bg-[#0b121f]/80 transition-all min-w-0">
+          <div className="flex items-center space-x-2 min-w-0">
+            <div className="text-blue-500/80 shrink-0">
+              <Eye className="h-4 w-4" />
             </div>
-            <span className="text-xs font-extrabold text-slate-200 font-mono uppercase tracking-wider truncate">
+            <span className="text-[10px] font-bold text-slate-400 font-mono uppercase tracking-widest truncate">
               {dict.visibility || 'Visibility'}
             </span>
           </div>
-          <div className="flex items-baseline justify-between pt-0.5 border-t border-slate-800/60">
+          <div className="flex items-baseline justify-between">
             <div className="flex items-baseline space-x-1">
-              <span className="text-xl font-black text-white font-mono tracking-tight">
+              <span className="text-2xl font-bold text-white font-mono tracking-tight leading-none">
                 {weather.visibilityKm.toFixed(1)}
               </span>
-              <span className="text-xs font-bold text-slate-400">km</span>
+              <span className="text-[10px] font-bold text-slate-500">km</span>
             </div>
-            <span className="text-[10px] font-mono text-slate-300 font-bold bg-slate-900 px-2 py-0.5 rounded border border-slate-700 shrink-0">
+            <span className="text-[9px] font-mono text-slate-400 font-bold bg-slate-800/50 px-1.5 py-0.5 rounded border border-slate-700/50 shrink-0">
               {weather.precipitationMm}mm {dict.rain || 'rain'}
             </span>
           </div>
         </div>
 
         {/* 4. Barometric Pressure */}
-        <div className="bg-slate-950/95 border border-slate-800/90 rounded-xl p-3 flex flex-col justify-between space-y-2 hover:border-purple-500/40 transition-all min-w-0 shadow-sm">
-          <div className="flex items-center space-x-1.5 min-w-0">
-            <div className="p-1.5 rounded-md bg-purple-500/15 border border-purple-500/30 text-purple-400 shrink-0">
-              <Gauge className="h-3.5 w-3.5" />
+        <div className="bg-[#0b121f]/50 border border-slate-800/40 rounded-xl p-4 flex flex-col justify-between space-y-3 hover:bg-[#0b121f]/80 transition-all min-w-0">
+          <div className="flex items-center space-x-2 min-w-0">
+            <div className="text-purple-500/80 shrink-0">
+              <Gauge className="h-4 w-4" />
             </div>
-            <span className="text-xs font-extrabold text-slate-200 font-mono uppercase tracking-wider truncate">
+            <span className="text-[10px] font-bold text-slate-400 font-mono uppercase tracking-widest truncate">
               {dict.surfacePressure || 'Surface Pressure'}
             </span>
           </div>
-          <div className="flex items-baseline justify-between pt-0.5 border-t border-slate-800/60">
+          <div className="flex items-baseline justify-between">
             <div className="flex items-baseline space-x-1">
-              <span className="text-xl font-black text-white font-mono tracking-tight">
+              <span className="text-2xl font-bold text-white font-mono tracking-tight leading-none">
                 {weather.pressureHpa}
               </span>
-              <span className="text-xs font-bold text-slate-400">hPa</span>
+              <span className="text-[10px] font-bold text-slate-500">hPa</span>
             </div>
-            <span className="text-[10px] font-mono text-emerald-300 font-bold bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-700/50 shrink-0">
+            <span className="text-[9px] font-mono text-emerald-400/80 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 shrink-0 uppercase">
               {dict.stable || 'Stable'}
             </span>
           </div>

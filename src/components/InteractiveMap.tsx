@@ -17,9 +17,11 @@ import {
   ShieldCheck,
   AlertTriangle
 } from 'lucide-react';
-import { LocationInfo, GisLayerData, RiskLevel, OceanData, LanguageCode, GeofenceSpatialAnalysis } from '../types';
+import { LocationInfo, GisLayerData, RiskLevel, RiskPrediction, OceanData, LanguageCode, GeofenceSpatialAnalysis, DarkVesselAnalysis, VesselTarget } from '../types';
 import { COASTAL_LOCATIONS, MULTILINGUAL_DICTIONARY } from '../data/coastalData';
 import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion';
+import { maritimeSiren } from '../services/audio/maritimeSirenService';
+import { voiceWarning } from '../services/audio/voiceWarningService';
 
 interface InteractiveMapProps {
   location: LocationInfo;
@@ -27,6 +29,7 @@ interface InteractiveMapProps {
   geofenceAnalysis?: GeofenceSpatialAnalysis;
   ocean: OceanData;
   riskLevel: RiskLevel;
+  risk?: RiskPrediction;
   onSelectLocation: (locKey: string) => void;
   onCoordinateClick?: (lat: number, lon: number) => void;
   language: LanguageCode;
@@ -38,6 +41,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   geofenceAnalysis,
   ocean,
   riskLevel,
+  risk,
   onSelectLocation,
   onCoordinateClick,
   language
@@ -48,6 +52,9 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   const mapInstanceRef = useRef<L.Map | null>(null);
   const tileLayerRef = useRef<L.TileLayer | null>(null);
   const geojsonLayerRef = useRef<L.GeoJSON | null>(null);
+  const pfzLayerGroupRef = useRef<L.LayerGroup | null>(null);
+  const routeLayerGroupRef = useRef<L.LayerGroup | null>(null);
+  const vesselLayerGroupRef = useRef<L.LayerGroup | null>(null);
   const targetMarkerRef = useRef<L.Marker | null>(null);
   const clickMarkerRef = useRef<L.Marker | null>(null);
   const onCoordinateClickRef = useRef(onCoordinateClick);
@@ -56,18 +63,59 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   }, [onCoordinateClick]);
 
   const [isLocating, setIsLocating] = useState<boolean>(false);
+  const [pfzZones, setPfzZones] = useState<any[]>([]);
 
-  // Global callback for leaflet popups to relocate boat
+  // Safe Routing Navigation State
+  const [routeDestination, setRouteDestination] = useState<{ latitude: number; longitude: number; name?: string } | null>(null);
+  const [safeRouteResult, setSafeRouteResult] = useState<any | null>(null);
+  const [isCalculatingRoute, setIsCalculatingRoute] = useState<boolean>(false);
+  const [showSafeRouteLayer, setShowSafeRouteLayer] = useState<boolean>(true);
+
+  // Global callbacks for leaflet popups (relocate boat, plot safe route & dispatch Coast Guard warning)
   useEffect(() => {
     (window as any).__orcaSetBoatLocation = (lat: number, lon: number) => {
       if (onCoordinateClickRef.current) {
         onCoordinateClickRef.current(lat, lon);
       }
     };
+    (window as any).__orcaPlotRouteTo = (lat: number, lon: number, name?: string) => {
+      setRouteDestination({ latitude: lat, longitude: lon, name });
+    };
+    (window as any).__orcaDispatchCoastGuardAlert = async (mmsi: string, name: string, lat: number, lon: number, reason: string) => {
+      await maritimeSiren.unlock();
+      const alertText = `Alert Coast Guard Command: Unregistered Dark Vessel target detected at ${lat.toFixed(4)} degrees North, ${lon.toFixed(4)} degrees East. ${reason}`;
+      voiceWarning.speak(alertText, language, {
+        playSirenFirst: true,
+        isCritical: true,
+        force: true,
+      });
+
+      fetch('/api/alerts/dispatch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          targetType: 'DARK_VESSEL',
+          mmsi,
+          name,
+          latitude: lat,
+          longitude: lon,
+          reason,
+          recipient: 'INDIAN_COAST_GUARD_ICGS_PATROL'
+        })
+      }).catch(() => {});
+
+      if (onCoordinateClickRef.current) {
+        onCoordinateClickRef.current(lat, lon);
+      }
+
+      alert(`🚨 COAST GUARD INTERCEPT WARNING DISPATCHED!\n\nTarget: ${name} (${mmsi})\nPosition: ${lat}°N, ${lon}°E\nRecipient: Indian Coast Guard ICGS Patrol Unit\nStatus: Transmitted to Maritime Security Command.\nAudio Siren Activated.`);
+    };
     return () => {
       delete (window as any).__orcaSetBoatLocation;
+      delete (window as any).__orcaPlotRouteTo;
+      delete (window as any).__orcaDispatchCoastGuardAlert;
     };
-  }, []);
+  }, [language]);
 
   const handleLocateBoat = () => {
     if (!navigator.geolocation) {
@@ -100,8 +148,85 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   const [showBuoys, setShowBuoys] = useState<boolean>(true);
   const [showImbl, setShowImbl] = useState<boolean>(true);
   const [showMpas, setShowMpas] = useState<boolean>(true);
+  const [showPfz, setShowPfz] = useState<boolean>(true);
+  const [showVessels, setShowVessels] = useState<boolean>(true);
+  const [vesselsData, setVesselsData] = useState<DarkVesselAnalysis | null>(null);
   const [showSstOverlay, setShowSstOverlay] = useState<boolean>(true);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+
+  // Fetch live AIS vessel traffic & Sentinel-1 SAR dark vessel analysis
+  useEffect(() => {
+    let isMounted = true;
+    fetch(`/api/vessels/live?lat=${location.latitude}&lon=${location.longitude}`)
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (isMounted && data && Array.isArray(data.targetVessels)) {
+          setVesselsData(data);
+        }
+      })
+      .catch(err => console.error('Failed to fetch live AIS vessel traffic:', err));
+
+    return () => { isMounted = false; };
+  }, [location.latitude, location.longitude]);
+
+  // Fetch live PFZ satellite analysis for current location
+  useEffect(() => {
+    let isMounted = true;
+    fetch('/api/pfz/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        latitude: location.latitude,
+        longitude: location.longitude,
+        query: location.name
+      })
+    })
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (isMounted && data && Array.isArray(data.zones)) {
+          setPfzZones(data.zones);
+        }
+      })
+      .catch(err => console.error('Failed to fetch real-time PFZ satellite zones:', err));
+
+    return () => { isMounted = false; };
+  }, [location.latitude, location.longitude, location.name]);
+
+  // Fetch dynamic conflict-free safe navigation route
+  useEffect(() => {
+    if (!routeDestination) {
+      setSafeRouteResult(null);
+      return;
+    }
+
+    let isMounted = true;
+    setIsCalculatingRoute(true);
+
+    fetch('/api/routing/safe-route', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        origin: { latitude: location.latitude, longitude: location.longitude },
+        destination: { latitude: routeDestination.latitude, longitude: routeDestination.longitude },
+        riskLevel: riskLevel
+      })
+    })
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (isMounted) {
+          setIsCalculatingRoute(false);
+          if (data) setSafeRouteResult(data);
+        }
+      })
+      .catch(err => {
+        if (isMounted) {
+          setIsCalculatingRoute(false);
+          console.error('Failed to calculate safe navigation route:', err);
+        }
+      });
+
+    return () => { isMounted = false; };
+  }, [location.latitude, location.longitude, routeDestination, riskLevel]);
 
   // Native Fullscreen API Handler
   const toggleFullscreen = () => {
@@ -154,10 +279,15 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       });
 
       // OpenStreetMap Detailed Map Engine (Google Maps-level details: cities, towns, villages, beaches, ports, roads)
-      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        subdomains: ['a', 'b', 'c'],
         maxZoom: 19,
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
       }).addTo(map);
+
+      // Force Leaflet to recalculate container size immediately
+      requestAnimationFrame(() => map.invalidateSize());
+      setTimeout(() => map.invalidateSize(), 200);
 
       // Custom Zoom control in bottom right
       L.control.zoom({ position: 'bottomright' }).addTo(map);
@@ -188,12 +318,25 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         const newMarker = L.marker([lat, lon], { icon: clickIcon })
           .addTo(map)
           .bindPopup(`
-            <div class="p-2 space-y-1">
+            <div class="p-2 space-y-1.5 min-w-[190px]">
               <div class="font-bold text-cyan-300 text-xs flex items-center gap-1">
-                <span>📍 Boat Position Selected</span>
+                <span>📍 Map Location Selected</span>
               </div>
               <div class="text-[11px] font-mono text-slate-200">${lat.toFixed(4)}°N, ${lon.toFixed(4)}°E</div>
-              <p class="text-[10px] text-amber-300 animate-pulse">Calculating live distance to IMBL & zones...</p>
+              <div class="pt-1 border-t border-slate-700 space-y-1">
+                <button 
+                  onclick="window.__orcaSetBoatLocation && window.__orcaSetBoatLocation(${lat}, ${lon})"
+                  class="w-full py-1 px-2 rounded bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-[10px] flex items-center justify-center gap-1 shadow cursor-pointer transition-all"
+                >
+                  ⚓ Set Boat Position Here
+                </button>
+                <button 
+                  onclick="window.__orcaPlotRouteTo && window.__orcaPlotRouteTo(${lat}, ${lon}, 'Custom Target Point')"
+                  class="w-full py-1 px-2 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] flex items-center justify-center gap-1 shadow cursor-pointer transition-all"
+                >
+                  🧭 Plot Safe Route to Here
+                </button>
+              </div>
             </div>
           `)
           .openPopup();
@@ -238,23 +381,40 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
     });
   }, [location.latitude, location.longitude, reducedMotion]);
 
-  // Handle container resize & visibility changes (e.g., tab switches or fullscreen)
+  // Handle container resize & visibility changes with ResizeObserver & window resize events
   useEffect(() => {
-    const map = mapInstanceRef.current;
-    if (!map) return;
+    const container = mapContainerRef.current;
+    if (!container) return;
 
-    // Immediately invalidate size to prevent tile vanishing
-    map.invalidateSize();
+    const handleResize = () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.invalidateSize({ animate: false });
+      }
+    };
 
-    // Staggered invalidations to account for CSS transition animations
-    const t1 = setTimeout(() => map.invalidateSize(), 50);
-    const t2 = setTimeout(() => map.invalidateSize(), 150);
-    const t3 = setTimeout(() => map.invalidateSize(), 350);
+    // Immediately trigger invalidateSize
+    handleResize();
+
+    // Observe element dimensions for layout changes (e.g. flex expansion or tab switch)
+    const observer = new ResizeObserver(handleResize);
+    observer.observe(container);
+
+    // Also listen to window resize events
+    window.addEventListener('resize', handleResize);
+
+    // Staggered invalidations for CSS & Framer Motion transitions
+    const t1 = setTimeout(handleResize, 100);
+    const t2 = setTimeout(handleResize, 300);
+    const t3 = setTimeout(handleResize, 600);
+    const t4 = setTimeout(handleResize, 1000);
 
     return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', handleResize);
       clearTimeout(t1);
       clearTimeout(t2);
       clearTimeout(t3);
+      clearTimeout(t4);
     };
   }, [isFullscreen, location]);
 
@@ -438,6 +598,320 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
     }
   }, [gisLayers, location, riskLevel, ocean, showHazardZones, showSafeCorridors, showBuoys, showImbl, showMpas]);
 
+  // Render Real-Time Potential Fishing Zones (PFZ) Layer
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+
+    if (pfzLayerGroupRef.current) {
+      map.removeLayer(pfzLayerGroupRef.current);
+      pfzLayerGroupRef.current = null;
+    }
+
+    if (!showPfz || !pfzZones || pfzZones.length === 0) return;
+
+    const layerGroup = L.layerGroup();
+
+    pfzZones.forEach((zone: any) => {
+      const isHigh = zone.suitability === 'HIGH';
+      const isMod = zone.suitability === 'MODERATE';
+      const isRestricted = zone.geofenceStatus === 'RESTRICTED';
+
+      const strokeColor = isRestricted ? '#f43f5e' : isHigh ? '#10b981' : isMod ? '#f59e0b' : '#3b82f6';
+      const fillColor = isRestricted ? '#9f1239' : isHigh ? '#059669' : isMod ? '#d97706' : '#1d4ed8';
+
+      // 1. Chlorophyll & Thermal Front Gradient Circle
+      const circle = L.circle([zone.latitude, zone.longitude], {
+        radius: isHigh ? 3000 : 2000,
+        color: strokeColor,
+        weight: isHigh ? 2.5 : 1.5,
+        opacity: 0.85,
+        fillColor: fillColor,
+        fillOpacity: isHigh ? 0.25 : 0.15,
+        dashArray: isRestricted ? '5, 5' : undefined
+      });
+
+      // 2. Custom Glowing Fish Icon Pin
+      const fishIcon = L.divIcon({
+        className: 'custom-pfz-marker-icon',
+        html: `
+          <div class="relative flex items-center justify-center cursor-pointer">
+            <div class="absolute w-8 h-8 rounded-full ${isHigh ? 'bg-emerald-500/40 animate-ping' : 'bg-amber-500/30'}"></div>
+            <div class="px-2 py-0.5 rounded-full ${isRestricted ? 'bg-rose-700 border-rose-400' : isHigh ? 'bg-emerald-600 border-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.5)]' : 'bg-amber-600 border-amber-300'} border flex items-center gap-1 shadow-xl text-white font-bold text-[10px] whitespace-nowrap">
+              <span>🐟</span>
+              <span>PFZ #${zone.rank}</span>
+              <span class="font-mono text-[9px] ${isHigh ? 'text-emerald-200' : 'text-amber-200'}">(${zone.score}%)</span>
+            </div>
+          </div>
+        `,
+        iconSize: [85, 26],
+        iconAnchor: [42, 13]
+      });
+
+      const marker = L.marker([zone.latitude, zone.longitude], { icon: fishIcon });
+
+      const popupContent = `
+        <div class="p-2.5 space-y-2 max-w-[260px] bg-slate-900 text-slate-100 rounded-lg">
+          <div class="flex items-center justify-between border-b border-slate-700/80 pb-1.5">
+            <div class="flex items-center gap-1.5 font-bold text-xs text-emerald-400">
+              <span>🐟 ${zone.id}</span>
+              <span class="text-[10px] text-slate-300 font-mono">(Rank #${zone.rank})</span>
+            </div>
+            <span class="px-1.5 py-0.5 rounded text-[9px] font-black tracking-wider uppercase ${
+              isRestricted ? 'bg-rose-600 text-white' :
+              isHigh ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' :
+              'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+            }">
+              ${zone.suitability} SUITABILITY
+            </span>
+          </div>
+
+          <div class="text-[11px] font-mono space-y-1 bg-slate-950/80 p-2 rounded border border-slate-800">
+            <div class="flex justify-between">
+              <span class="text-slate-400">Fishing Score:</span>
+              <span class="font-bold text-cyan-300">${zone.score}/100</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-400">Chlorophyll-a:</span>
+              <span class="${zone.chlorophyllMgM3 !== undefined ? 'text-emerald-400 font-bold' : 'text-slate-400 font-semibold'}">
+                ${zone.chlorophyllMgM3 !== undefined ? `${zone.chlorophyllMgM3.toFixed(2)} mg/m³` : 'Cloud Masked (NOAA)'}
+              </span>
+            </div>
+            ${zone.sstC !== undefined ? `
+              <div class="flex justify-between">
+                <span class="text-slate-400">Sea Surface Temp:</span>
+                <span class="text-amber-400 font-bold">${zone.sstC.toFixed(1)}°C</span>
+              </div>
+            ` : ''}
+            ${zone.sstAnomalyC !== undefined ? `
+              <div class="flex justify-between">
+                <span class="text-slate-400">SST Anomaly:</span>
+                <span class="text-cyan-400 font-bold">${zone.sstAnomalyC >= 0 ? '+' : ''}${zone.sstAnomalyC.toFixed(2)}°C</span>
+              </div>
+            ` : ''}
+            <div class="flex justify-between border-t border-slate-800 pt-1">
+              <span class="text-slate-400">Geofence Clearance:</span>
+              <span class="font-bold ${
+                zone.geofenceStatus === 'CLEAR' ? 'text-emerald-400' :
+                zone.geofenceStatus === 'CAUTION' ? 'text-amber-400' : 'text-red-400'
+              }">${zone.geofenceStatus}</span>
+            </div>
+          </div>
+
+          ${zone.explanations?.[0] ? `
+            <p class="text-[10px] text-slate-300 leading-tight italic bg-emerald-950/30 p-1.5 rounded border border-emerald-800/40">
+              💡 ${zone.explanations[0]}
+            </p>
+          ` : ''}
+
+          ${zone.sources?.length ? `
+            <div class="text-[9px] text-slate-400 font-mono flex flex-wrap gap-1">
+              <span class="text-slate-500">Feeds:</span>
+              ${zone.sources.map((s: string) => `<span class="bg-slate-800 px-1 rounded text-cyan-300">${s.split(' ')[0]}</span>`).join('')}
+            </div>
+          ` : ''}
+
+          <div class="grid grid-cols-2 gap-1 pt-1">
+            <button
+              onclick="window.__orcaSetBoatLocation && window.__orcaSetBoatLocation(${zone.latitude}, ${zone.longitude})"
+              class="py-1 px-1.5 bg-cyan-700 hover:bg-cyan-600 text-white font-bold text-[10px] rounded transition-all text-center flex items-center justify-center gap-1 shadow cursor-pointer"
+            >
+              ⚓ Move Boat Here
+            </button>
+            <button
+              onclick="window.__orcaPlotRouteTo && window.__orcaPlotRouteTo(${zone.latitude}, ${zone.longitude}, 'PFZ Zone #${zone.rank}')"
+              class="py-1 px-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] rounded transition-all text-center flex items-center justify-center gap-1 shadow cursor-pointer"
+            >
+              🧭 Safe Route
+            </button>
+          </div>
+        </div>
+      `;
+
+      circle.bindPopup(popupContent);
+      marker.bindPopup(popupContent);
+
+      circle.addTo(layerGroup);
+      marker.addTo(layerGroup);
+    });
+
+    layerGroup.addTo(map);
+    pfzLayerGroupRef.current = layerGroup;
+  }, [showPfz, pfzZones]);
+
+  // Render Dynamic Safe Navigation Polyline & Waypoint Markers
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+
+    if (routeLayerGroupRef.current) {
+      map.removeLayer(routeLayerGroupRef.current);
+      routeLayerGroupRef.current = null;
+    }
+
+    if (!showSafeRouteLayer || !safeRouteResult || safeRouteResult.status !== 'ROUTE_FOUND' || !safeRouteResult.waypoints || safeRouteResult.waypoints.length === 0) return;
+
+    const layerGroup = L.layerGroup();
+    const waypoints = safeRouteResult.waypoints;
+    const latLngs = waypoints.map((wp: any) => [wp.latitude, wp.longitude]);
+
+    // 1. Safe Navigation Polyline (Emerald Glowing Dashed Line)
+    const polyline = L.polyline(latLngs, {
+      color: '#10b981',
+      weight: 4.5,
+      opacity: 0.9,
+      dashArray: '8, 8'
+    });
+
+    // 2. Waypoint Markers along the route
+    waypoints.forEach((wp: any, idx: number) => {
+      const isStart = idx === 0;
+      const isEnd = idx === waypoints.length - 1;
+      if (!isStart && !isEnd && idx % 2 !== 0 && waypoints.length > 8) return;
+
+      const wpIcon = L.divIcon({
+        className: 'custom-wp-marker-icon',
+        html: `
+          <div class="relative flex items-center justify-center cursor-pointer">
+            <div class="w-6 h-6 rounded-full ${isStart ? 'bg-cyan-600 border-2 border-white' : isEnd ? 'bg-emerald-600 border-2 border-white animate-pulse' : 'bg-slate-800 border border-emerald-400'} shadow-lg flex items-center justify-center text-[10px] text-white font-bold font-mono">
+              ${isStart ? '⚓' : isEnd ? '🏁' : idx}
+            </div>
+          </div>
+        `,
+        iconSize: [24, 24],
+        iconAnchor: [12, 12]
+      });
+
+      const marker = L.marker([wp.latitude, wp.longitude], { icon: wpIcon });
+
+      const popupContent = `
+        <div class="p-2 space-y-1 bg-slate-900 text-slate-100 rounded-lg text-xs font-mono">
+          <div class="font-bold text-emerald-400 border-b border-slate-700 pb-1 flex items-center gap-1">
+            <span>${isStart ? '⚓ Route Origin (Boat)' : isEnd ? '🏁 Safe Destination' : `Waypoint #${idx}`}</span>
+          </div>
+          <div class="flex justify-between text-[11px]">
+            <span class="text-slate-400">Cumulative:</span>
+            <span class="font-bold text-cyan-300">${((wp.cumulativeDistanceKm || 0) / 1.852).toFixed(1)} NM (${(wp.cumulativeDistanceKm || 0).toFixed(1)} KM)</span>
+          </div>
+          ${wp.bearingDeg !== undefined ? `
+            <div class="flex justify-between text-[11px]">
+              <span class="text-slate-400">Compass Bearing:</span>
+              <span class="font-bold text-amber-300">${wp.bearingDeg}°</span>
+            </div>
+          ` : ''}
+          <div class="flex justify-between text-[11px]">
+            <span class="text-slate-400">Geofence Status:</span>
+            <span class="font-bold ${wp.geofenceStatus === 'CLEAR' ? 'text-emerald-400' : 'text-amber-400'}">${wp.geofenceStatus}</span>
+          </div>
+        </div>
+      `;
+
+      marker.bindPopup(popupContent);
+      marker.addTo(layerGroup);
+    });
+
+    polyline.addTo(layerGroup);
+    layerGroup.addTo(map);
+    routeLayerGroupRef.current = layerGroup;
+  }, [showSafeRouteLayer, safeRouteResult]);
+
+  // Render Real-Time AIS & Sentinel-1 SAR Dark Vessel Layer
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+
+    if (vesselLayerGroupRef.current) {
+      map.removeLayer(vesselLayerGroupRef.current);
+      vesselLayerGroupRef.current = null;
+    }
+
+    if (!showVessels || !vesselsData?.targetVessels || vesselsData.targetVessels.length === 0) return;
+
+    const layerGroup = L.layerGroup();
+
+    vesselsData.targetVessels.forEach((vessel: VesselTarget) => {
+      const isDark = vessel.isDarkVessel;
+
+      const icon = L.divIcon({
+        className: 'custom-vessel-marker-icon',
+        html: `
+          <div class="relative flex items-center justify-center cursor-pointer">
+            <div class="absolute w-9 h-9 rounded-full ${isDark ? 'bg-red-600/40 animate-ping' : 'bg-cyan-500/20'}"></div>
+            <div class="px-2 py-0.5 rounded-full ${isDark ? 'bg-red-700 border-red-300 shadow-[0_0_15px_rgba(239,68,68,0.8)]' : 'bg-slate-900 border-cyan-400'} border flex items-center gap-1 shadow-xl text-white font-bold text-[10px] whitespace-nowrap">
+              <span>${isDark ? '🚨' : '🚢'}</span>
+              <span class="font-mono text-[9px] ${isDark ? 'text-red-100 font-black tracking-wider' : 'text-cyan-200'}">${vessel.name.split(' ')[0]}</span>
+              <span class="font-mono text-[8px] opacity-75">(${vessel.speedKts}kts)</span>
+            </div>
+          </div>
+        `,
+        iconSize: [95, 26],
+        iconAnchor: [47, 13]
+      });
+
+      const marker = L.marker([vessel.latitude, vessel.longitude], { icon });
+
+      const popupContent = `
+        <div class="p-2.5 space-y-2 max-w-[280px] bg-slate-900 text-slate-100 rounded-lg">
+          <div class="flex items-center justify-between border-b border-slate-700/80 pb-1.5">
+            <div class="flex items-center gap-1.5 font-bold text-xs ${isDark ? 'text-red-400' : 'text-cyan-300'}">
+              <span>${isDark ? '🚨 DARK VESSEL DETECTED' : '🚢 AIS BROADCASTING VESSEL'}</span>
+            </div>
+            <span class="px-1.5 py-0.5 rounded text-[8.5px] font-black uppercase font-mono ${isDark ? 'bg-red-600 text-white animate-pulse' : 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'}">
+              ${vessel.aisStatus.replace('_', ' ')}
+            </span>
+          </div>
+
+          <div class="text-[11px] font-mono space-y-1 bg-slate-950/90 p-2 rounded border ${isDark ? 'border-red-800/80' : 'border-slate-800'}">
+            <div class="flex justify-between">
+              <span class="text-slate-400">Vessel Name:</span>
+              <span class="font-bold ${isDark ? 'text-red-300' : 'text-slate-100'}">${vessel.name}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-400">MMSI:</span>
+              <span class="text-cyan-300 font-bold">${vessel.mmsi}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-400">Flag State:</span>
+              <span class="text-slate-200">${vessel.flagState}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-400">Speed / Heading:</span>
+              <span class="text-amber-300 font-bold">${vessel.speedKts} kts • ${vessel.headingDeg}°</span>
+            </div>
+            <div class="flex justify-between border-t border-slate-800 pt-1">
+              <span class="text-slate-400">SAR Radar Match:</span>
+              <span class="text-emerald-400 font-bold">${vessel.sarDetectionConfidencePct}% Confidence</span>
+            </div>
+          </div>
+
+          ${isDark ? `
+            <div class="p-2 bg-red-950/60 border border-red-800 rounded text-[10px] text-red-200 leading-tight space-y-1">
+              <div class="font-bold text-red-400 flex items-center gap-1">
+                <span>⚠️ ANOMALY REASON:</span>
+              </div>
+              <p>${vessel.suspiciousReason}</p>
+            </div>
+          ` : ''}
+
+          <div class="pt-1">
+            <button
+              onclick="${isDark ? `window.__orcaDispatchCoastGuardAlert && window.__orcaDispatchCoastGuardAlert('${vessel.mmsi}', '${vessel.name.replace(/'/g, "\\'")}', ${vessel.latitude}, ${vessel.longitude}, '${(vessel.suspiciousReason || 'Unregistered target').replace(/'/g, "\\'")}')` : `window.__orcaSetBoatLocation && window.__orcaSetBoatLocation(${vessel.latitude}, ${vessel.longitude})`}"
+              class="w-full py-1.5 px-2 ${isDark ? 'bg-red-700 hover:bg-red-600' : 'bg-cyan-700 hover:bg-cyan-600'} text-white font-bold text-[10px] rounded transition-all text-center flex items-center justify-center gap-1 shadow cursor-pointer"
+            >
+              ${isDark ? '🚨 Dispatch Coast Guard Warning' : '⚓ Track Vessel Coordinates'}
+            </button>
+          </div>
+        </div>
+      `;
+
+      marker.bindPopup(popupContent);
+      marker.addTo(layerGroup);
+    });
+
+    layerGroup.addTo(map);
+    vesselLayerGroupRef.current = layerGroup;
+  }, [showVessels, vesselsData]);
+
   return (
     <div 
       ref={outerWrapperRef} 
@@ -550,6 +1024,59 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
             <ShieldCheck className="h-3 w-3 text-emerald-400" />
             <span className="hidden sm:inline">MPA Reserves</span>
           </button>
+
+          <button
+            onClick={() => setShowPfz(!showPfz)}
+            title="Toggle Potential Fishing Zones (PFZ) Satellite Layer"
+            className={`px-2 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1 transition-all whitespace-nowrap ${
+              showPfz ? 'bg-emerald-950/90 text-emerald-200 border border-emerald-500/80 shadow-[0_0_12px_rgba(16,185,129,0.4)] font-bold' : 'text-slate-400 hover:bg-slate-800/60'
+            }`}
+          >
+            <span>🐟</span>
+            <span className="hidden sm:inline">PFZ Hotspots</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setShowSafeRouteLayer(true);
+              if (!routeDestination) {
+                if (pfzZones && pfzZones.length > 0 && pfzZones[0].geofenceStatus !== 'RESTRICTED') {
+                  setRouteDestination({ latitude: pfzZones[0].latitude, longitude: pfzZones[0].longitude, name: `PFZ Zone #${pfzZones[0].rank}` });
+                } else {
+                  setRouteDestination({ latitude: Number((location.latitude + 0.12).toFixed(4)), longitude: Number((location.longitude + 0.15).toFixed(4)), name: 'Offshore Channel Point' });
+                }
+              } else {
+                setShowSafeRouteLayer(!showSafeRouteLayer);
+              }
+            }}
+            title="Toggle Dynamic Safe Navigation Route Polyline"
+            className={`px-2 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1 transition-all whitespace-nowrap ${
+              showSafeRouteLayer && (safeRouteResult || routeDestination)
+                ? 'bg-emerald-950/90 text-emerald-200 border border-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.5)] font-bold'
+                : 'text-slate-400 hover:bg-slate-800/60'
+            }`}
+          >
+            <Navigation className="h-3 w-3 text-emerald-400" />
+            <span className="hidden sm:inline">Safe Route</span>
+          </button>
+
+          <button
+            onClick={() => setShowVessels(!showVessels)}
+            title="Toggle Live AIS Telemetry & Sentinel-1 SAR Dark Vessel Detection"
+            className={`px-2 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1 transition-all whitespace-nowrap ${
+              showVessels
+                ? 'bg-red-950/90 text-red-200 border border-red-500/80 shadow-[0_0_12px_rgba(239,68,68,0.5)] font-bold'
+                : 'text-slate-400 hover:bg-slate-800/60'
+            }`}
+          >
+            <span>🚢</span>
+            <span className="hidden sm:inline">Dark Vessels & AIS</span>
+            {vesselsData?.darkVesselCount ? (
+              <span className="ml-0.5 px-1.5 py-0.2 rounded-full bg-red-600 text-white text-[9px] font-black font-mono animate-pulse">
+                {vesselsData.darkVesselCount}
+              </span>
+            ) : null}
+          </button>
         </div>
 
       </div>
@@ -629,15 +1156,16 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
                         {geo.nearestImbl.boundaryName.split('(')[0].replace('International Maritime Boundary Line', 'IMBL')}
                       </span>
                       <span className={`font-mono font-bold ${
+                        geo.nearestImbl.hasCrossedBorder ? 'text-red-400 font-black animate-pulse' :
                         geo.nearestImbl.distanceNm <= 3.0 ? 'text-red-400 font-black animate-pulse' :
                         geo.nearestImbl.distanceNm <= 8.0 ? 'text-amber-400' : 'text-slate-300'
                       }`}>
-                        {geo.nearestImbl.distanceNm} NM
+                        {geo.nearestImbl.hasCrossedBorder ? `CROSSED (${geo.nearestImbl.distanceNm} NM)` : `${geo.nearestImbl.distanceNm} NM`}
                       </span>
                     </div>
                     {geo.nearestImbl.bearingDeg !== undefined && (
                       <div className="text-[10px] text-slate-400 font-mono">
-                        Bearing: {geo.nearestImbl.bearingDeg}° • ({geo.nearestImbl.severity.replace('_', ' ')})
+                        {geo.nearestImbl.hasCrossedBorder ? 'Return Heading' : 'Bearing'}: {geo.nearestImbl.bearingDeg}° • ({geo.nearestImbl.hasCrossedBorder ? 'BORDER BREACH' : geo.nearestImbl.severity.replace('_', ' ')})
                       </div>
                     )}
                   </div>
@@ -650,12 +1178,19 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
                         {geo.nearestMpa.boundaryName.split(' ')[0]} Sanctuary
                       </span>
                       <span className={`font-mono font-bold ${
-                        geo.nearestMpa.distanceNm === 0 ? 'text-red-400 font-black animate-pulse' :
+                        (geo.nearestMpa.isInside || geo.nearestMpa.distanceNm === 0) ? 'text-red-400 font-black animate-pulse' :
                         geo.nearestMpa.distanceNm <= 3.0 ? 'text-amber-400' : 'text-emerald-400'
                       }`}>
-                        {geo.nearestMpa.distanceNm === 0 ? 'INSIDE' : `${geo.nearestMpa.distanceNm} NM`}
+                        {(geo.nearestMpa.isInside || geo.nearestMpa.distanceNm === 0)
+                          ? `INSIDE (${geo.nearestMpa.insideDepthNm ?? geo.nearestMpa.distanceNm} NM)`
+                          : `${geo.nearestMpa.distanceNm} NM`}
                       </span>
                     </div>
+                    {(geo.nearestMpa.isInside || geo.nearestMpa.distanceNm === 0) && (
+                      <div className="text-[10px] text-red-300 font-mono">
+                        Escape Heading: {geo.nearestMpa.escapeBearingDeg ?? geo.nearestMpa.bearingDeg ?? 0}° • SANCTUARY INVASION
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -665,9 +1200,123 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
                     <span>{geo.activeAlerts[0].warningMessage}</span>
                   </div>
                 )}
+
+                {/* Maritime Audio Broadcast Button */}
+                <button
+                  id="btn-geofence-audio-broadcast"
+                  onClick={async () => {
+                    await maritimeSiren.unlock();
+                    // Pick the most critical alert first (CRITICAL_BREACH > PROXIMITY_WARNING > ADVISORY)
+                    const criticalActiveAlert =
+                      geo.activeAlerts?.find((a) => a.severity === 'CRITICAL_BREACH') ||
+                      geo.activeAlerts?.find((a) => a.severity === 'PROXIMITY_WARNING') ||
+                      geo.activeAlerts?.[0];
+                    if (criticalActiveAlert) {
+                      const phrase = voiceWarning.generateGeofencePhrase(criticalActiveAlert, language);
+                      voiceWarning.speak(phrase, language, {
+                        playSirenFirst: true,
+                        isCritical: criticalActiveAlert.severity === 'CRITICAL_BREACH',
+                        force: true,
+                      });
+                    } else if (geo.nearestImbl || geo.nearestMpa) {
+                      // Nearest boundary: use status to determine severity
+                      const nearestAlert = geo.nearestImbl || geo.nearestMpa!;
+                      const isBreach = geo.status === 'RESTRICTED_BREACH';
+                      const isCaution = geo.status === 'CAUTION';
+                      const alertWithSeverity = {
+                        ...nearestAlert,
+                        severity: isBreach
+                          ? ('CRITICAL_BREACH' as const)
+                          : isCaution
+                          ? ('PROXIMITY_WARNING' as const)
+                          : ('ADVISORY' as const),
+                      };
+                      const phrase = voiceWarning.generateGeofencePhrase(alertWithSeverity, language);
+                      voiceWarning.speak(phrase, language, {
+                        playSirenFirst: isBreach || isCaution,
+                        isCritical: isBreach,
+                        force: true,
+                      });
+                    } else {
+                      const phrase = voiceWarning.generateTestPhrase(language);
+                      voiceWarning.speak(phrase, language, { playSirenFirst: false, isCritical: false, force: true });
+                    }
+                  }}
+                  className="w-full mt-2 py-1.5 px-2 rounded-lg bg-cyan-950/70 hover:bg-cyan-900/80 border border-cyan-700/60 text-cyan-300 font-mono text-[10px] font-bold flex items-center justify-center gap-1.5 transition-all active:scale-95 shadow-sm"
+                  title="Broadcast audible voice warning & siren for current boat position"
+                >
+                  <Radio className="h-3 w-3 text-cyan-400 animate-pulse" />
+                  <span>🔊 Broadcast Alert ({language.toUpperCase()})</span>
+                </button>
               </>
             );
           })()}
+        </div>
+      )}
+
+      {/* Dynamic Safe Navigation Route HUD (Top Left under controls) */}
+      {(routeDestination || isCalculatingRoute || safeRouteResult) && (
+        <div className="orca-glass-panel absolute top-20 left-3 z-[400] p-3 max-w-[280px] sm:max-w-[300px] text-xs space-y-2 shadow-2xl border border-emerald-500/60 bg-slate-950/90 rounded-xl">
+          <div className="flex items-center justify-between border-b border-slate-700/80 pb-1.5">
+            <span className="font-mono text-[11px] uppercase font-bold text-emerald-400 flex items-center gap-1.5">
+              <Navigation className={`h-3.5 w-3.5 ${isCalculatingRoute ? 'animate-spin text-cyan-400' : 'text-emerald-400'}`} />
+              <span>Safe Route Navigation</span>
+            </span>
+            <button
+              onClick={() => {
+                setRouteDestination(null);
+                setSafeRouteResult(null);
+              }}
+              className="text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 px-1.5 py-0.5 rounded text-[10px] font-bold"
+              title="Clear Active Navigation Route"
+            >
+              ✕ Clear
+            </button>
+          </div>
+
+          {isCalculatingRoute ? (
+            <div className="py-2 text-center text-cyan-300 text-[11px] font-mono animate-pulse flex items-center justify-center gap-1.5">
+              <Compass className="h-3.5 w-3.5 animate-spin" />
+              <span>Calculating safe waypoints around IMBL & sanctuaries...</span>
+            </div>
+          ) : safeRouteResult?.status === 'ROUTE_FOUND' ? (
+            <div className="space-y-1.5 font-mono text-[11px]">
+              <div className="flex justify-between items-center bg-slate-900 p-1.5 rounded border border-slate-800">
+                <span className="text-slate-400">Total Route:</span>
+                <span className="font-bold text-emerald-400 text-xs">
+                  {((safeRouteResult.distanceKm || 0) / 1.852).toFixed(1)} NM ({safeRouteResult.distanceKm} KM)
+                </span>
+              </div>
+              <div className="flex justify-between items-center text-[10px]">
+                <span className="text-slate-400">Direct vs Safe:</span>
+                <span className="text-cyan-300">{((safeRouteResult.directDistanceKm || 0) / 1.852).toFixed(1)} NM direct</span>
+              </div>
+              {safeRouteResult.avoidedConstraints?.length > 0 && (
+                <div className="text-[10px] text-amber-300 bg-amber-950/40 p-1.5 rounded border border-amber-800/50 space-y-0.5">
+                  <div className="font-bold text-amber-400 flex items-center gap-1">
+                    <ShieldCheck className="h-3 w-3 text-amber-400" />
+                    <span>Avoided Constraints:</span>
+                  </div>
+                  <div className="truncate text-slate-200">{safeRouteResult.avoidedConstraints.join(', ')}</div>
+                </div>
+              )}
+              {safeRouteResult.rationale && (
+                <p className="text-[10px] text-slate-300 italic leading-tight pt-0.5">
+                  💡 {safeRouteResult.rationale}
+                </p>
+              )}
+            </div>
+          ) : safeRouteResult?.status === 'ROUTE_UNAVAILABLE' ? (
+            <div className="p-2 bg-rose-950/50 border border-rose-800/80 rounded text-[11px] text-rose-300 space-y-1">
+              <div className="font-bold text-rose-400 flex items-center gap-1">
+                <AlertTriangle className="h-3.5 w-3.5 text-rose-400" />
+                <span>ROUTE BLOCKED / RESTRICTED</span>
+              </div>
+              <p className="text-[10px] text-slate-300 leading-tight">
+                {safeRouteResult.warnings?.[0] || 'Destination is inside or too close to a restricted zone.'}
+              </p>
+            </div>
+          ) : null}
         </div>
       )}
 
@@ -708,14 +1357,30 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
             <span className="w-2.5 h-2.5 rounded-full bg-purple-500 border border-white"></span>
             <span className="text-slate-300">{dict.buoyStation}</span>
           </div>
+          <div className="flex items-center space-x-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 border border-emerald-200 shadow-[0_0_8px_rgba(16,185,129,0.8)]"></span>
+            <span className="text-emerald-300 font-semibold">PFZ Hotspot (NOAA/ISRO)</span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <span className="w-3.5 h-0.5 bg-emerald-400 border border-emerald-300 border-dashed"></span>
+            <span className="text-cyan-300 font-semibold">Safe Route Polyline</span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-red-600 border border-red-300 shadow-[0_0_8px_rgba(239,68,68,0.9)] animate-pulse"></span>
+            <span className="text-red-400 font-bold">🚨 Dark Vessel (SAR Match)</span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 border border-white"></span>
+            <span className="text-cyan-200">🚢 AIS Broadcast Vessel</span>
+          </div>
         </div>
         <div className="text-[10px] text-cyan-300/90 pt-0.5 font-mono">
           💡 Tap map or &apos;My Boat GPS&apos; to measure border distance
         </div>
       </div>
 
-      {/* Actual Leaflet Container — untouched */}
-      <div ref={mapContainerRef} className="w-full h-full" />
+      {/* Actual Leaflet Container */}
+      <div ref={mapContainerRef} className="w-full h-full min-h-[440px] sm:min-h-[480px] lg:min-h-[540px]" />
 
     </div>
   );

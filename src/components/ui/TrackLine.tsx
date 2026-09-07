@@ -90,39 +90,39 @@ export const TrackLine: React.FC<TrackLineProps> = ({ steps, className }) => {
           <div className="relative z-10 shrink-0 pt-1">
             <span
               data-fix=""
-              className="block h-[9px] w-[9px] border border-shoal bg-abyssal motion-safe:opacity-0 sm:h-[11px] sm:w-[11px]"
+              className="block h-[11px] w-[11px] rotate-45 border-2 border-cyan-400 bg-cyan-950 shadow-[0_0_8px_rgba(6,182,212,0.8)]"
             />
           </div>
 
           <div className="min-w-0 flex-1 pt-px">
             <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-              <span className="font-mono text-[10px] tabular-nums text-buoy">
+              <span className="font-mono text-[11px] font-black tracking-wider text-amber-300 drop-shadow">
                 FIX {String(index + 1).padStart(2, "0")}
               </span>
-              <h3 className="font-display text-lg font-semibold leading-tight text-chartpaper sm:text-xl">
+              <h3 className="font-display text-xl font-bold leading-tight text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.95)] sm:text-2xl">
                 {step.title}
               </h3>
             </div>
 
-            <p className="mt-1 font-mono text-[10px] tracking-[0.16em] text-shoal/60">
+            <p className="mt-1 font-mono text-[11px] font-bold tracking-[0.16em] text-cyan-300 drop-shadow">
               {step.agent}
             </p>
 
-            <p className="mt-3 max-w-xl text-[13.5px] leading-relaxed text-slate-300">
+            <p className="mt-2.5 max-w-2xl text-[14.5px] font-medium leading-relaxed text-slate-100 drop-shadow-[0_1px_4px_rgba(0,0,0,0.95)]">
               {step.role}
             </p>
 
-            <div className="mt-3.5 flex flex-col gap-1.5 border-l border-shoal/15 pl-3.5 text-[12px] sm:flex-row sm:items-center sm:gap-5">
-              <span className="text-fathom">
-                <span className="plate-label mr-2">Hands on</span>
-                <span className="hydrographic text-slate-300">{step.emits}</span>
+            <div className="mt-3.5 flex flex-col gap-2 border-l-2 border-cyan-400/40 pl-3.5 text-[12.5px] sm:flex-row sm:items-center sm:gap-6">
+              <span className="text-slate-300">
+                <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-cyan-300 mr-2 drop-shadow">Hands on</span>
+                <span className="font-semibold text-white drop-shadow">{step.emits}</span>
               </span>
               {step.fallback && (
-                <span className="text-fathom">
-                  <span className="plate-label mr-2 text-amber-400/80">
+                <span className="text-slate-300">
+                  <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-amber-300 mr-2 drop-shadow">
                     If unavailable
                   </span>
-                  <span className="hydrographic text-amber-200/80">
+                  <span className="font-semibold text-amber-200 drop-shadow">
                     {step.fallback}
                   </span>
                 </span>

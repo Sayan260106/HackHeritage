@@ -33,14 +33,37 @@ const gahirmatha = analyzeMaritimeGeofencing(20.6000, 86.9500);
 console.log(`Gahirmatha Analysis:`, {
   status: gahirmatha.status,
   nearestMpa: gahirmatha.nearestMpa?.boundaryName,
-  distanceNm: gahirmatha.nearestMpa?.distanceNm,
+  isInside: gahirmatha.nearestMpa?.isInside,
+  insideDepthNm: gahirmatha.nearestMpa?.insideDepthNm,
+  escapeBearingDeg: gahirmatha.nearestMpa?.escapeBearingDeg,
   severity: gahirmatha.nearestMpa?.severity
 });
 assert.ok(gahirmatha.nearestMpa, 'Should find Gahirmatha MPA');
 assert.equal(gahirmatha.nearestMpa.boundaryId, 'mpa-gahirmatha');
-assert.equal(gahirmatha.nearestMpa.distanceNm, 0, 'Should detect inside Gahirmatha Marine Sanctuary');
+assert.equal(gahirmatha.nearestMpa.isInside, true, 'Should detect inside Gahirmatha Marine Sanctuary');
+assert.ok(gahirmatha.nearestMpa.insideDepthNm! > 0, 'Incursion depth must be > 0 (not 0.0)');
+assert.ok(gahirmatha.nearestMpa.escapeBearingDeg !== undefined, 'Must provide escape bearing');
 assert.equal(gahirmatha.nearestMpa.severity, 'CRITICAL_BREACH');
-console.log(`✓ Gahirmatha Marine Sanctuary incursion detection verified (inside restricted waters)`);
+console.log(`✓ Gahirmatha Marine Sanctuary incursion detection verified: ${gahirmatha.nearestMpa.insideDepthNm} NM deep, escape heading ${gahirmatha.nearestMpa.escapeBearingDeg}°`);
+
+// 3B. Test Sundarbans Biosphere Reserve Incursion
+// Coordinates: 21.4500°N, 88.6000°E (deep inside Sundarbans aquatic buffer)
+const sundarbans = analyzeMaritimeGeofencing(21.4500, 88.6000);
+console.log(`Sundarbans Incursion Analysis:`, {
+  status: sundarbans.status,
+  nearestMpa: sundarbans.nearestMpa?.boundaryName,
+  isInside: sundarbans.nearestMpa?.isInside,
+  insideDepthNm: sundarbans.nearestMpa?.insideDepthNm,
+  escapeBearingDeg: sundarbans.nearestMpa?.escapeBearingDeg,
+  severity: sundarbans.nearestMpa?.severity
+});
+assert.ok(sundarbans.nearestMpa, 'Should find Sundarbans MPA');
+assert.equal(sundarbans.nearestMpa.boundaryId, 'mpa-sundarbans-aquatic');
+assert.equal(sundarbans.nearestMpa.isInside, true, 'Should detect inside Sundarbans');
+assert.ok(sundarbans.nearestMpa.insideDepthNm! > 0, 'Sundarbans incursion depth must be > 0 NM (never 0.0)');
+assert.ok(sundarbans.nearestMpa.escapeBearingDeg !== undefined, 'Sundarbans must provide escape bearing');
+assert.equal(sundarbans.nearestMpa.severity, 'CRITICAL_BREACH');
+console.log(`✓ Sundarbans Marine Reserve incursion detection verified: ${sundarbans.nearestMpa.insideDepthNm} NM deep, escape heading ${sundarbans.nearestMpa.escapeBearingDeg}°`);
 
 // 4. Test Digha Coast (Safe from Sri Lanka IMBL, computes distance to Bangladesh IMBL)
 const digha = analyzeMaritimeGeofencing(21.6266, 87.5074);
@@ -62,10 +85,32 @@ const jakhau = analyzeMaritimeGeofencing(23.2000, 68.3000);
 console.log(`Jakhau Analysis:`, {
   nearestImbl: jakhau.nearestImbl?.boundaryName,
   distanceNm: jakhau.nearestImbl?.distanceNm,
+  hasCrossedBorder: jakhau.nearestImbl?.hasCrossedBorder,
   severity: jakhau.nearestImbl?.severity
 });
 assert.ok(jakhau.nearestImbl, 'Should compute India-Pakistan IMBL for Jakhau');
 assert.equal(jakhau.nearestImbl.boundaryId, 'imbl-india-pakistan');
+assert.equal(jakhau.nearestImbl.hasCrossedBorder, false, 'Jakhau is on Indian side of line');
 console.log(`✓ India-Pakistan Arabian Sea border distance verified: ${jakhau.nearestImbl.distanceNm} NM`);
+
+// 6. Test International Border Crossing (Vessel crossing into foreign waters)
+// 6A. Bangladesh foreign waters: 21.3000°N, 89.6000°E (East of PCA delimitation line)
+const bangladeshCrossed = analyzeMaritimeGeofencing(21.3000, 89.6000);
+assert.equal(bangladeshCrossed.nearestImbl?.hasCrossedBorder, true, 'Should detect crossed Bangladesh border');
+assert.equal(bangladeshCrossed.nearestImbl?.severity, 'CRITICAL_BREACH');
+assert.ok(bangladeshCrossed.inRestrictedWaters, 'Crossing border must set inRestrictedWaters true');
+console.log(`✓ Crossed into Bangladesh waters verified: ${bangladeshCrossed.nearestImbl?.distanceNm} NM inside, return heading ${bangladeshCrossed.nearestImbl?.bearingDeg}°`);
+
+// 6B. Sri Lanka foreign waters: 9.5000°N, 79.8000°E (East of Palk Bay line)
+const srilankaCrossed = analyzeMaritimeGeofencing(9.5000, 79.8000);
+assert.equal(srilankaCrossed.nearestImbl?.hasCrossedBorder, true, 'Should detect crossed Sri Lanka border');
+assert.equal(srilankaCrossed.nearestImbl?.severity, 'CRITICAL_BREACH');
+console.log(`✓ Crossed into Sri Lanka waters verified: ${srilankaCrossed.nearestImbl?.distanceNm} NM inside, return heading ${srilankaCrossed.nearestImbl?.bearingDeg}°`);
+
+// 6C. Pakistan foreign waters: 23.8000°N, 67.5000°E (North/West of Sir Creek line)
+const pakistanCrossed = analyzeMaritimeGeofencing(23.8000, 67.5000);
+assert.equal(pakistanCrossed.nearestImbl?.hasCrossedBorder, true, 'Should detect crossed Pakistan border');
+assert.equal(pakistanCrossed.nearestImbl?.severity, 'CRITICAL_BREACH');
+console.log(`✓ Crossed into Pakistan waters verified: ${pakistanCrossed.nearestImbl?.distanceNm} NM inside, return heading ${pakistanCrossed.nearestImbl?.bearingDeg}°`);
 
 console.log('--- ALL AUTHENTIC MARITIME GEOFENCE TESTS PASSED ---');

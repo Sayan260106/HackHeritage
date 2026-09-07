@@ -63,7 +63,7 @@ assert.ok(layers.zones.some(zone => zone.category === 'hazard_zone'));
 assert.ok(layers.zones.some(zone => zone.category === 'precaution_zone'));
 assert.equal(layers.spatialAnalysis.nearestPort?.distanceAvailable, false);
 assert.equal(layers.spatialAnalysis.nearestPort?.distanceKm, undefined);
-assert.ok(layers.features.every(feature => feature.properties?.details.statutoryBoundary === false));
+assert.ok(layers.features.every(feature => feature.properties?.details?.statutoryBoundary === false));
 
 const highRisk: RiskPrediction = {
   ...risk,

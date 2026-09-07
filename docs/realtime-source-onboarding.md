@@ -38,6 +38,38 @@ The repository includes `scripts/mosdac-normalize.py` for converting an official
 
 For INSAT-3DS SST, use the MOSDAC dataset/product identifier shown in the official catalogue (for example `3SIMG_L3B_SST` in the published product documentation). Only variables actually present in the downloaded product are exported.
 
+## Automated MOSDAC refresh
+
+The repository now includes `scripts/mosdac-sync.py`, exposed as:
+
+```powershell
+npm run sync:mosdac
+```
+
+The worker delegates authentication and downloading to the official MOSDAC Data Download API client. It then runs the existing credential-free HDF normalizer and atomically publishes `data/realtime/mosdac_latest.json`.
+
+Set the credentials only in the process environment:
+
+```powershell
+$env:MOSDAC_USERNAME="<your MOSDAC username>"
+$env:MOSDAC_PASSWORD="<your MOSDAC password>"
+```
+
+The worker defaults to the INSAT-3DS daily SST dataset `3SIMG_L3B_SST`, a Digha-area target (`21.6266, 87.5074`) and a two-day search window. Override the target/window through environment variables when deploying for other coastal locations. The official MOSDAC documentation states that dataset search accepts a bounding box and date range, while download requires authenticated credentials.
+
+For the official client, either point `MOSDAC_MDAPI_DIR` at the directory containing `mdapi.py`, or allow a temporary download of the official client:
+
+```powershell
+$env:MOSDAC_AUTO_DOWNLOAD_CLIENT="true"
+npm run sync:mosdac
+```
+
+The downloaded client, generated `config.json`, credentials and temporary products are removed when the worker exits. No credentials are written to Git or the repository's persistent telemetry.
+
+The normalized MOSDAC source is accepted only when the observation is fresh and spatially valid. The default freshness gate is 36 hours (`MOSDAC_MAX_CACHE_STALENESS_HOURS=36`), which is intentionally compatible with the documented daily INSAT-3DS SST product cadence. Stale MOSDAC data is rejected rather than presented as live.
+
+When a fresh MOSDAC SST snapshot exists, the satellite/ocean intelligence layer prefers it over the Open-Meteo SST fallback. Chlorophyll, SST anomaly, turbidity and other indicators continue to come from their existing independent scientific sources; ORCA-X does not fabricate missing satellite variables.
+
 ## Variable-level fusion
 
 The fusion layer first validates every provider independently. It then chooses the best fresh provider **per variable**, using freshness, availability and provider priority. This is important because an Indian satellite/in-situ source may provide excellent SST without providing the wind/wave variables needed for the full model vector.
@@ -62,16 +94,24 @@ The selected per-variable provenance is returned as `featureSources` and is pers
 python -m pip install -r scripts/requirements-mosdac.txt
 ```
 
-4. Normalize the product:
+4. Normalize the product manually when needed:
 
 ```powershell
 python scripts/mosdac-normalize.py --input C:\path\to\product.h5 --latitude 21.63 --longitude 87.51 --output data\realtime\mosdac_latest.json
 ```
 
-5. Point the server at that file with `MOSDAC_REALTIME_CACHE_FILE`.
+5. Or use the automated worker:
+
+```powershell
+$env:MOSDAC_USERNAME="<your MOSDAC username>"
+$env:MOSDAC_PASSWORD="<your MOSDAC password>"
+$env:MOSDAC_AUTO_DOWNLOAD_CLIENT="true"
+npm run sync:mosdac
+```
+
 6. Run the realtime collector so the normalized MOSDAC observation is recorded alongside INCOIS and Open-Meteo.
 
-For production, replace the local cache step with an approved gateway/worker that refreshes the normalized snapshot automatically. Do not put MOSDAC credentials in `.env.example`, Git, logs or telemetry.
+For production, schedule `npm run sync:mosdac` with the deployment platform's secret manager and scheduler. Do not put MOSDAC credentials in `.env.example`, Git, logs or telemetry.
 
 ## Verification
 
@@ -82,6 +122,8 @@ npm run verify:realtime
 ```
 
 This verifies Open-Meteo, the public INCOIS ERDDAP path and the MOSDAC catalogue. It also checks any configured normalized adapters. A successful catalogue probe is **not** equivalent to live MOSDAC data availability; actual satellite data still has to be downloaded through the official MOSDAC access workflow.
+
+After a successful refresh, verify that the normalized snapshot is fresh and that the API reports MOSDAC as a selected source for `seaSurfaceTemperatureC` when appropriate.
 
 ## Telemetry and retraining gate
 

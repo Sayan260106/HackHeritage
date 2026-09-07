@@ -12,6 +12,7 @@
     "analyze:realtime": "python ml/src/analyze_realtime_source_bias.py",
     "import:realtime-ml": "python ml/src/import_realtime_telemetry.py",
     "sync:realtime-ml": "python ml/src/realtime_data_daemon.py",
+    "sync:mosdac": "python scripts/mosdac-sync.py",
     "evaluate:realtime-ml": "python ml/src/evaluate_live_candidate.py",
     "verify:realtime": "node scripts/verify-marine-sources.mjs",
     "build": "vite build && esbuild server/app.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
@@ -23,9 +24,20 @@
     "lint": "tsc --noEmit",
     "test:agentic": "tsx scripts/test-agentic-executor.ts",
     "test:agentic-workflow": "node scripts/test-agentic-workflow.mjs",
+    "test:agentic-pfz": "tsx scripts/test-agentic-pfz.ts",
+    "test:agentic-safe-routing": "tsx scripts/test-agentic-safe-routing.ts",
     "test:geofence": "tsx scripts/test-geofence.ts",
     "test:gis": "tsx scripts/test-gis-intelligence.ts",
     "test:gis-agentic": "tsx scripts/test-gis-agentic-integration.ts",
+    "test:pfz": "tsx scripts/test-pfz.ts",
+    "test:decision-fusion": "tsx scripts/test-decision-fusion.ts",
+    "test:safe-routing": "tsx scripts/test-safe-routing.ts",
+    "test:alerts": "tsx scripts/test-alert-engine.ts",
+    "test:agentic-alerts": "tsx scripts/test-agentic-alerts.ts",
+    "test:maritime-audio": "tsx scripts/test-maritime-audio.ts",
+    "test:all-languages": "tsx scripts/test-all-10-languages-all-warnings.ts",
+    "test:hybrid-types": "tsx scripts/test-all-hybrid-types.ts",
+    "test:mosdac-cache": "tsx scripts/test-mosdac-cache.ts",
     "smoke": "node scripts/smoke-test.mjs"
   },
   "dependencies": {
@@ -47,11 +59,12 @@
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
     "autoprefixer": "^10.4.21",
     "esbuild": "^0.25.0",
     "tailwindcss": "^4.1.0",
-    "tsx": "^4.21.0",
-    "typescript": "~5.8.2",
+    "tsx": "^4.23.13",
     "vite": "^6.2.3"
   }
 }

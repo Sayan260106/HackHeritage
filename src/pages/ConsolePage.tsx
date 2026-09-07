@@ -10,6 +10,7 @@ import { AgentExecutionTimeline } from "../components/AgentExecutionTimeline";
 import { GroundedEvidenceDrawer } from "../components/GroundedEvidenceDrawer";
 import { SatelliteAnalysisView } from "../components/SatelliteAnalysisView";
 import { WhatIfSimulator } from "../components/WhatIfSimulator";
+import { AudioAlertController } from "../components/AudioAlertController";
 import { OrcaAnalysisResponse, LanguageCode } from "../types";
 import { COASTAL_LOCATIONS, MULTILINGUAL_DICTIONARY } from "../data/coastalData";
 
@@ -32,9 +33,13 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
     locOverride?: string,
     timeOverride?: string,
     responseLanguage: LanguageCode = language,
+    retryCount: number = 0,
   ) => {
     setIsLoading(true);
-    setErrorMessage(null);
+    // Only clear errorMessage on first attempt; keep previous analysisData for smooth UX
+    if (retryCount === 0) {
+      setErrorMessage(null);
+    }
 
     try {
       const response = await fetch("/api/orca/query", {
@@ -62,13 +67,24 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
       }
 
       setAnalysisData(payload as OrcaAnalysisResponse);
+      setErrorMessage(null);
+      setIsLoading(false);
     } catch (err) {
+      // Auto-retry once after 1 second for transient network or agent initialization blips
+      if (retryCount < 1) {
+        console.warn(`ORCA live-data transient hiccup, auto-retrying in 1s...`);
+        setTimeout(() => {
+          fetchAnalysis(queryText, locOverride, timeOverride, responseLanguage, retryCount + 1);
+        }, 1000);
+        return;
+      }
+
       const message =
         err instanceof Error ? err.message : "Unable to retrieve live ORCA data.";
       console.error("ORCA live-data request failed:", message);
-      setAnalysisData(null);
+      // Only nullify analysisData if there was none previously to prevent layout flashing
+      setAnalysisData((prev) => prev);
       setErrorMessage(message);
-    } finally {
       setIsLoading(false);
     }
   };
@@ -155,6 +171,13 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
             })}
           </div>
 
+          {/* Maritime Audio Siren & Multi-lingual Warning Voice Controller */}
+          <AudioAlertController
+            language={language}
+            geofenceAnalysis={analysisData?.geofenceAnalysis || analysisData?.gisLayers?.geofenceAnalysis}
+            risk={analysisData?.risk}
+          />
+
           {isLoading && (
             <div className="flex items-center gap-3 rounded-xl border border-cyan-500/30 orca-glass-panel p-3.5 shadow-md">
               <RefreshCw className="h-4 w-4 shrink-0 animate-spin text-cyan-400" />
@@ -218,6 +241,7 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
                         geofenceAnalysis={analysisData.geofenceAnalysis || analysisData.gisLayers?.geofenceAnalysis}
                         ocean={analysisData.ocean}
                         riskLevel={analysisData.risk.riskLevel}
+                        risk={analysisData.risk}
                         onSelectLocation={handleLocationSelect}
                         onCoordinateClick={handleMapCoordinateClick}
                         language={language}
@@ -279,6 +303,7 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
                     geofenceAnalysis={analysisData.geofenceAnalysis || analysisData.gisLayers?.geofenceAnalysis}
                     ocean={analysisData.ocean}
                     riskLevel={analysisData.risk.riskLevel}
+                    risk={analysisData.risk}
                     onSelectLocation={handleLocationSelect}
                     onCoordinateClick={handleMapCoordinateClick}
                     language={language}
@@ -316,6 +341,7 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
                     geofenceAnalysis={analysisData.geofenceAnalysis || analysisData.gisLayers?.geofenceAnalysis}
                     ocean={analysisData.ocean}
                     riskLevel={analysisData.risk.riskLevel}
+                    risk={analysisData.risk}
                     onSelectLocation={handleLocationSelect}
                     onCoordinateClick={handleMapCoordinateClick}
                     language={language}

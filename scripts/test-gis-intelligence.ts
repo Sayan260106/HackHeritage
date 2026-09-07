@@ -67,6 +67,6 @@ assert.equal(layers.features.length, 2);
 assert.equal(layers.spatialAnalysis.insideRestrictedZone, false);
 assert.equal(layers.zones.length, 2);
 assert.deepEqual(layers.features.map(feature => feature.properties?.category), ['hazard_zone', 'precaution_zone']);
-assert.equal(layers.features[0].properties?.details.statutoryBoundary, false);
+assert.equal(layers.features[0]?.properties?.details?.statutoryBoundary, false);
 
 console.log('ORCA-X GIS intelligence tests passed.');

@@ -92,6 +92,35 @@ export function isPointInPolygon(lat: number, lon: number, polygon: [number, num
 }
 
 /**
+ * Determines whether a vessel has crossed over the authentic IMBL into foreign sovereign waters.
+ */
+function isVesselCrossedImbl(
+  lat: number, lon: number,
+  imblId: string,
+  segmentIdx: number,
+  imbl: MaritimeBoundaryDataset
+): boolean {
+  if (segmentIdx < 0 || segmentIdx >= imbl.coordinates.length - 1) return false;
+  const [lon1, lat1] = imbl.coordinates[segmentIdx];
+  const [lon2, lat2] = imbl.coordinates[segmentIdx + 1];
+  const dx = lon2 - lon1;
+  const dy = lat2 - lat1;
+  const px = lon - lon1;
+  const py = lat - lat1;
+  const cross = dx * py - dy * px;
+
+  if (imblId === 'imbl-india-srilanka' || imblId === 'imbl-india-bangladesh') {
+    // Directed line North to South: East / Left of line (cross > 0) is Sri Lanka / Bangladesh foreign waters
+    return cross > 0;
+  }
+  if (imblId === 'imbl-india-pakistan') {
+    // Directed line East to West: North / Right of line (cross < 0) is Pakistan foreign waters
+    return cross < 0;
+  }
+  return false;
+}
+
+/**
  * Evaluates shortest distance from a coordinate to an IMBL polyline.
  */
 function evaluateImblProximity(
@@ -101,6 +130,7 @@ function evaluateImblProximity(
   let minDistanceKm = Infinity;
   let nearestLat = 0;
   let nearestLon = 0;
+  let nearestSegmentIdx = 0;
 
   for (let i = 0; i < imbl.coordinates.length - 1; i++) {
     const [lon1, lat1] = imbl.coordinates[i];
@@ -112,16 +142,21 @@ function evaluateImblProximity(
       minDistanceKm = distanceKm;
       nearestLat = nLat;
       nearestLon = nLon;
+      nearestSegmentIdx = i;
     }
   }
 
   const distanceNm = Number((minDistanceKm / KM_PER_NAUTICAL_MILE).toFixed(2));
   const bearingDeg = Math.round(calculateBearingDeg(lat, lon, nearestLat, nearestLon));
+  const hasCrossedBorder = isVesselCrossedImbl(lat, lon, imbl.id, nearestSegmentIdx, imbl);
 
   let severity: GeofenceBreachSeverity = 'SAFE';
   let warningMessage = `Vessel is ${distanceNm} NM from the ${imbl.name} (Clear of border).`;
 
-  if (distanceNm <= 3.0) {
+  if (hasCrossedBorder) {
+    severity = 'CRITICAL_BREACH';
+    warningMessage = `CRITICAL BORDER INVASION ALERT: Vessel has CROSSED the ${imbl.countryPair} International Border! Operating ${distanceNm} NM (${minDistanceKm.toFixed(1)} km) INSIDE foreign waters. Immediate course reversal to heading ${bearingDeg}° required to return to Indian territorial waters and avoid foreign naval apprehension.`;
+  } else if (distanceNm <= 3.0) {
     severity = 'CRITICAL_BREACH';
     warningMessage = `CRITICAL ALERT: Vessel is ${distanceNm} NM from ${imbl.countryPair} IMBL (bearing ${bearingDeg}°). Immediate course reversal required to avoid international apprehension by foreign navy/coast guard.`;
   } else if (distanceNm <= 7.0) {
@@ -142,7 +177,12 @@ function evaluateImblProximity(
     severity,
     warningMessage,
     treatyOrAuthority: imbl.legalAuthority,
-    enforcementNotice: imbl.enforcementNotice
+    enforcementNotice: imbl.enforcementNotice,
+    isInside: hasCrossedBorder,
+    insideDepthNm: hasCrossedBorder ? distanceNm : undefined,
+    insideDepthKm: hasCrossedBorder ? Number(minDistanceKm.toFixed(2)) : undefined,
+    escapeBearingDeg: hasCrossedBorder ? bearingDeg : undefined,
+    hasCrossedBorder,
   };
 }
 
@@ -172,34 +212,38 @@ function evaluateMpaProximity(
     }
   }
 
-  const distanceNm = isInside ? 0 : Number((minDistanceKm / KM_PER_NAUTICAL_MILE).toFixed(2));
-  const bearingDeg = isInside ? undefined : Math.round(calculateBearingDeg(lat, lon, nearestLat, nearestLon));
+  const computedDistanceNm = Number((minDistanceKm / KM_PER_NAUTICAL_MILE).toFixed(2));
+  const escapeBearingDeg = Math.round(calculateBearingDeg(lat, lon, nearestLat, nearestLon));
 
   let severity: GeofenceBreachSeverity = 'SAFE';
-  let warningMessage = `Vessel is ${distanceNm} NM from ${mpa.name}.`;
+  let warningMessage = `Vessel is ${computedDistanceNm} NM from ${mpa.name}.`;
 
   if (isInside) {
     severity = 'CRITICAL_BREACH';
-    warningMessage = `REGULATORY BREACH: Operating INSIDE ${mpa.name} (${mpa.state}). Commercial fishing/trawling prohibited under ${mpa.legalAuthority}. Prohibited: ${mpa.prohibitedActivities[0]}.`;
-  } else if (distanceNm <= 2.5) {
+    warningMessage = `CRITICAL REGULATORY BREACH: Operating INSIDE ${mpa.name} (${mpa.state}), ${computedDistanceNm} NM (${minDistanceKm.toFixed(1)} km) inside perimeter. Exit immediately on heading ${escapeBearingDeg}° to clear protected zone. Commercial fishing/trawling strictly prohibited under ${mpa.legalAuthority}. Prohibited: ${mpa.prohibitedActivities[0]}.`;
+  } else if (computedDistanceNm <= 2.5) {
     severity = 'PROXIMITY_WARNING';
-    warningMessage = `WARNING: Within ${distanceNm} NM of ${mpa.name} perimeter (bearing ${bearingDeg}°). Trawling gear must be secured and Turtle Excluder Devices active.`;
-  } else if (distanceNm <= 7.0) {
+    warningMessage = `WARNING: Within ${computedDistanceNm} NM of ${mpa.name} perimeter (bearing ${escapeBearingDeg}°). Trawling gear must be secured and Turtle Excluder Devices active.`;
+  } else if (computedDistanceNm <= 7.0) {
     severity = 'ADVISORY';
-    warningMessage = `Advisory: Approaching ${mpa.name} (${distanceNm} NM, bearing ${bearingDeg}°). Protected zone for ${mpa.conservationTarget}.`;
+    warningMessage = `Advisory: Approaching ${mpa.name} (${computedDistanceNm} NM, bearing ${escapeBearingDeg}°). Protected zone for ${mpa.conservationTarget}.`;
   }
 
   return {
     boundaryId: mpa.id,
     boundaryName: mpa.name,
     type: 'MPA',
-    distanceNm,
-    distanceKm: isInside ? 0 : Number(minDistanceKm.toFixed(2)),
-    bearingDeg,
+    distanceNm: computedDistanceNm,
+    distanceKm: Number(minDistanceKm.toFixed(2)),
+    bearingDeg: escapeBearingDeg,
     severity,
     warningMessage,
     treatyOrAuthority: mpa.legalAuthority,
-    regulations: mpa.prohibitedActivities.join('; ')
+    regulations: mpa.prohibitedActivities.join('; '),
+    isInside,
+    insideDepthNm: isInside ? computedDistanceNm : undefined,
+    insideDepthKm: isInside ? Number(minDistanceKm.toFixed(2)) : undefined,
+    escapeBearingDeg: isInside ? escapeBearingDeg : undefined,
   };
 }
 
@@ -220,7 +264,7 @@ export function analyzeMaritimeGeofencing(lat: number, lon: number): GeofenceSpa
   const allAlerts = [...imblAlerts, ...mpaAlerts];
   const activeAlerts = allAlerts.filter(a => a.severity !== 'SAFE');
 
-  const inRestrictedWaters = allAlerts.some(a => a.severity === 'CRITICAL_BREACH' && a.distanceNm === 0);
+  const inRestrictedWaters = allAlerts.some(a => a.isInside || a.hasCrossedBorder || (a.severity === 'CRITICAL_BREACH' && a.distanceNm <= 1.0));
   const hasCritical = allAlerts.some(a => a.severity === 'CRITICAL_BREACH');
   const hasWarning = allAlerts.some(a => a.severity === 'PROXIMITY_WARNING');
 

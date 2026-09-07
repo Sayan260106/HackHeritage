@@ -10,6 +10,20 @@ async function request(url, options = {}) {
   if (!response.ok) throw new Error(`${url} returned ${response.status}: ${text}`);
   return body;
 }
+
+async function requestWithRetry(url, options = {}, attempts = 3, delayMs = 2000) {
+  let lastError;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      return await request(url, options);
+    } catch (error) {
+      lastError = error;
+      if (attempt < attempts) await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+  throw lastError;
+}
+
 function assert(condition, message) { if (!condition) throw new Error(message); }
 
 const mlHealth = await request(`${mlUrl}/health`);
@@ -35,7 +49,10 @@ assert(appHealth.status === 'healthy', 'ORCA API health check failed');
 assert(appHealth.services.mlRiskApi, 'ML service metadata is missing');
 assert(appHealth.capabilities?.tomorrowMarineForecast === true, 'Tomorrow forecast capability is not enabled');
 
-const live = await request(`${baseUrl}/api/marine/conditions?lat=21.6266&lon=87.5074`);
+// External realtime providers can transiently time out or return 5xx responses from a
+// hosted CI runner. Retry the complete fusion endpoint before declaring the smoke test
+// unhealthy. Persistent failure still fails the test; no synthetic or stale data is used.
+const live = await requestWithRetry(`${baseUrl}/api/marine/conditions?lat=21.6266&lon=87.5074`);
 // Overall realtime fusion is DEGRADED when CI has only Open-Meteo configured. This is
 // expected. The fused weather/ocean payload must remain LIVE and its base source must be
 // Open-Meteo; additional Indian sources may override individual variables when configured.

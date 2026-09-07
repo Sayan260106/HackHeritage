@@ -1178,3 +1178,12 @@ export function buildLocalizedGroundedSummary(
     risk.riskLevel,
   ].join('\n');
 }
+
+export function getLocalizedPrimaryRecommendation(
+  riskLevel: import('../types').RiskLevel,
+  language: LanguageCode
+): string {
+  const languageCopy = copy[language] ?? copy.en!;
+  const selected = languageCopy[riskLevel] ?? copy.en![riskLevel];
+  return selected ? selected.primary : '';
+}
