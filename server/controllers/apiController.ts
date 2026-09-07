@@ -16,6 +16,8 @@ import { generateMaritimeGeoJsonFeatures } from '../../src/data/maritimeBoundari
 import { analyzeVesselTrafficAsync } from '../services/aisVesselService.ts';
 import { detectQueryLanguage } from '../../src/utils/languageDetector.ts';
 
+import { getSession, listSessions, deleteSession, getOrCreateSession } from '../services/conversationService.ts';
+
 function resolveLocationFromRequest(req: Request) {
   const locationKey = typeof req.query.locationKey === 'string' ? req.query.locationKey : undefined;
   if (locationKey && COASTAL_LOCATIONS[locationKey]) return COASTAL_LOCATIONS[locationKey];
@@ -37,7 +39,7 @@ const SUPPORTED_LANGUAGES: LanguageCode[] = ['en', 'bn', 'hi', 'ta', 'or', 'te',
 
 export async function orcaQuery(req: Request, res: Response) {
   try {
-    const { query, locationOverride, timeOverride, language = 'en' } = req.body;
+    const { query, locationOverride, timeOverride, language = 'en', sessionId } = req.body;
     if (!query || typeof query !== 'string') return res.status(400).json({ error: 'Query string is required.' });
 
     // Autonomously detect Indian regional language from query script
@@ -45,11 +47,31 @@ export async function orcaQuery(req: Request, res: Response) {
     const effectiveLang = (language && language !== 'en') ? (language as LanguageCode) : detected.language;
 
     if (!SUPPORTED_LANGUAGES.includes(effectiveLang)) return res.status(400).json({ error: 'Unsupported language code.' });
-    res.json(await runOrcaAgentWorkflow(query, locationOverride, timeOverride, effectiveLang));
+    res.json(await runOrcaAgentWorkflow(query, locationOverride, timeOverride, effectiveLang, sessionId));
   } catch (error) {
     console.error('ORCA query error:', error);
     res.status(502).json({ error: error instanceof Error ? error.message : 'Live ORCA data pipeline failed.' });
   }
+}
+
+export async function getConversation(req: Request, res: Response) {
+  const session = getSession(req.params.sessionId);
+  if (!session) return res.status(404).json({ error: 'Conversation session not found.' });
+  res.json(session);
+}
+
+export async function listConversations(_req: Request, res: Response) {
+  res.json(listSessions());
+}
+
+export async function deleteConversation(req: Request, res: Response) {
+  const deleted = deleteSession(req.params.sessionId);
+  res.json({ success: deleted });
+}
+
+export async function createConversation(req: Request, res: Response) {
+  const session = getOrCreateSession(req.body.sessionId, req.body.initialLocation);
+  res.json(session);
 }
 
 export async function marineConditions(req: Request, res: Response) {
@@ -165,10 +187,34 @@ export function gisSpatialAnalysis(req: Request, res: Response) {
   }
 }
 
-export function health(_req: Request, res: Response) {
+export async function health(_req: Request, res: Response) {
+  const mlUrl = process.env.ORCA_ML_API_URL || 'http://127.0.0.1:8000';
+  const ragUrl = process.env.ORCA_RAG_API_URL || 'http://127.0.0.1:8001';
+  const qdrantUrl = process.env.QDRANT_URL || 'http://127.0.0.1:6333';
+
+  const [mlCheck, ragCheck, qdrantCheck] = await Promise.all([
+    fetch(`${mlUrl}/health`, { signal: AbortSignal.timeout(600) })
+      .then(r => r.ok)
+      .catch(() => false),
+    fetch(`${ragUrl}/health`, { signal: AbortSignal.timeout(600) })
+      .then(r => r.ok)
+      .catch(() => false),
+    fetch(`${qdrantUrl}/healthz`, { signal: AbortSignal.timeout(600) })
+      .then(r => r.ok)
+      .catch(() => false),
+  ]);
+
   res.json({
     status: 'healthy',
     timestamp: new Date().toISOString(),
+    liveStatus: {
+      mlService: mlCheck ? 'ONLINE' : 'PHYSICS_FALLBACK',
+      ragService: ragCheck ? 'ONLINE' : 'LEXICAL_FALLBACK',
+      qdrantVectorDb: qdrantCheck ? 'ONLINE' : 'OFFLINE',
+      geminiLlm: process.env.GEMINI_API_KEY ? 'ACTIVE' : 'DETERMINISTIC_FALLBACK',
+      openMeteo: 'ONLINE',
+      incoisPfz: 'AVAILABLE',
+    },
     services: {
       liveWeather: 'open_meteo_current_conditions',
       liveMarine: 'open_meteo_marine_current_conditions',
@@ -178,10 +224,10 @@ export function health(_req: Request, res: Response) {
       pfzSatelliteEngine: 'incois_geoserver_wfs_daily_statutory_fronts',
       satelliteCatalog: 'copernicus_dataspace_stac',
       satelliteProcessing: 'incois_statutory_ocean_fronts_and_copernicus_stac',
-      riskEngine: 'xgboost_with_rule_based_fallback',
-      mlRiskApi: process.env.ORCA_ML_API_URL || 'http://127.0.0.1:8000',
-      evidenceRetrieval: 'bge-m3-qdrant_with_lexical_fallback',
-      ragApi: process.env.ORCA_RAG_API_URL || 'http://127.0.0.1:8001',
+      riskEngine: mlCheck ? 'xgboost_microservice' : 'xgboost_with_rule_based_fallback',
+      mlRiskApi: mlUrl,
+      evidenceRetrieval: ragCheck ? 'bge-m3-qdrant_vector' : 'bge-m3-qdrant_with_lexical_fallback',
+      ragApi: ragUrl,
       agentOrchestrator: 'server_workflow',
       geminiGroundingAgent: process.env.GEMINI_API_KEY ? 'configured' : 'standby_deterministic',
       geofenceSurveillance: 'authentic_unclos_pca_treaty_engine',

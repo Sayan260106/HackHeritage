@@ -44,9 +44,40 @@ export interface OrcaExecutionPlan { planId: string; intent: string; rationale: 
 export interface OperationalDecision { decision: 'PROCEED' | 'CAUTION' | 'AVOID' | 'UNAVAILABLE'; confidence: 'HIGH' | 'MEDIUM' | 'LOW' | 'UNAVAILABLE'; score: number; rationale: string; factors: string[]; warnings: string[]; selectedZone?: string; }
 export interface SafeRouteSummary { status: 'ROUTE_FOUND' | 'ROUTE_UNAVAILABLE' | 'ROUTE_BLOCKED' | 'ROUTE_NOT_REQUESTED'; destinationLabel?: string; distanceKm?: number; directDistanceKm?: number; routeEfficiencyPct?: number; waypointCount: number; warnings: string[]; rationale: string; source: string; }
 export interface AlertSummary { decision: 'CLEAR' | 'MONITOR' | 'ACT'; highestSeverity: 'INFO' | 'ADVISORY' | 'WARNING' | 'CRITICAL' | 'NONE'; activeAlertCount: number; rationale: string; nextActions: string[]; alerts: Array<{ id: string; type: string; severity: string; title: string; message: string; source: string; confidence: string; actionable: string; }>; }
-export interface OrcaAnalysisResponse { queryId: string; originalQuery: string; language: LanguageCode; detectedIntent: string; location: LocationInfo; timeWindow: TimeWindow; weather: WeatherData; ocean: OceanData; satellite: SatelliteData; risk: RiskPrediction; gisLayers: GisLayerData; geofenceAnalysis?: GeofenceSpatialAnalysis; pfz?: unknown; operationalDecision?: OperationalDecision; safeRoute?: SafeRouteSummary; alertSummary?: AlertSummary; evidence: EvidenceItem[]; agentTraces: AgentStepTrace[]; groundedSummary: string; translatedSummary?: Record<string, string>; isDataDegraded?: boolean; warnings?: string[]; freshnessTimestamp: string; officialDisclaimer: string; executionPlan?: OrcaExecutionPlan; }
+export interface OrcaAnalysisResponse { queryId: string; originalQuery: string; language: LanguageCode; detectedIntent: string; location: LocationInfo; timeWindow: TimeWindow; weather: WeatherData; ocean: OceanData; satellite: SatelliteData; risk: RiskPrediction; gisLayers: GisLayerData; geofenceAnalysis?: GeofenceSpatialAnalysis; pfz?: unknown; operationalDecision?: OperationalDecision; safeRoute?: SafeRouteSummary; alertSummary?: AlertSummary; evidence: EvidenceItem[]; agentTraces: AgentStepTrace[]; groundedSummary: string; translatedSummary?: Record<string, string>; isDataDegraded?: boolean; warnings?: string[]; freshnessTimestamp: string; officialDisclaimer: string; executionPlan?: OrcaExecutionPlan; sessionId?: string; turnIndex?: number; }
 
-export interface QueryRequest { query: string; locationOverride?: string; timeOverride?: string; language?: LanguageCode; includeSatellite?: boolean; }
+export interface ConversationTurn {
+  turnId: string;
+  query: string;
+  timestamp: string;
+  language: LanguageCode;
+  detectedIntent: string;
+  locationName?: string;
+  responseSummary: string;
+  responseAnalysis?: OrcaAnalysisResponse;
+}
+
+export interface ConversationSession {
+  sessionId: string;
+  createdAt: string;
+  updatedAt: string;
+  title: string;
+  turns: ConversationTurn[];
+  activeLocation?: LocationInfo;
+  activeTimeWindow?: TimeWindow;
+  activePfzZoneId?: string;
+  activeRiskLevel?: RiskLevel;
+}
+
+export interface ConversationalChatRequest {
+  sessionId?: string;
+  query: string;
+  locationOverride?: string;
+  timeOverride?: string;
+  language?: LanguageCode;
+}
+
+export interface QueryRequest { query: string; locationOverride?: string; timeOverride?: string; language?: LanguageCode; includeSatellite?: boolean; sessionId?: string; }
 
 export type VesselType = 'FISHING_TRAWLER' | 'CARGO_CONTAINER' | 'TANKER' | 'COAST_GUARD_PATROL' | 'NAVY_FRIGATE' | 'UNKNOWN_DARK_VESSEL' | 'PASSENGER' | 'OCEANOGRAPHIC_BUOY';
 export type VesselAisStatus = 'ACTIVE_BROADCAST' | 'TRANSPONDER_SILENT' | 'SPOOFED_LOCATION' | 'UNREGISTERED_SAR_TARGET' | 'SIMULATION';

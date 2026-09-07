@@ -10,6 +10,10 @@ import {
   orcaQuery,
   satelliteAnalysis,
   gisSpatialAnalysis,
+  getConversation,
+  listConversations,
+  deleteConversation,
+  createConversation,
 } from '../controllers/apiController.ts';
 
 import { analyzeVesselTrafficAsync } from '../services/aisVesselService.ts';
@@ -18,6 +22,11 @@ import { COASTAL_LOCATIONS } from '../../src/data/coastalData.ts';
 const router = Router();
 
 router.post('/orca/query', orcaQuery);
+router.post('/orca/chat', orcaQuery);
+router.get('/orca/conversations', listConversations);
+router.post('/orca/conversations', createConversation);
+router.get('/orca/conversations/:sessionId', getConversation);
+router.delete('/orca/conversations/:sessionId', deleteConversation);
 router.get('/marine/conditions', marineConditions);
 router.get('/marine/forecast', marineForecast);
 router.get('/marine/telemetry', marineTelemetry);
