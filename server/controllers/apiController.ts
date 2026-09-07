@@ -13,7 +13,7 @@ import { getEvidenceCorpusSize, getSupportedLocationCount, runOrcaAgentWorkflow 
 import { localizeRiskPrediction } from '../../src/utils/marineRiskLocalization.ts';
 import { analyzeMaritimeGeofencing } from '../services/geofenceService.ts';
 import { generateMaritimeGeoJsonFeatures } from '../../src/data/maritimeBoundaries.ts';
-import { analyzeVesselTraffic } from '../services/aisVesselService.ts';
+import { analyzeVesselTrafficAsync } from '../services/aisVesselService.ts';
 import { detectQueryLanguage } from '../../src/utils/languageDetector.ts';
 
 function resolveLocationFromRequest(req: Request) {
@@ -205,7 +205,7 @@ export function health(_req: Request, res: Response) {
   });
 }
 
-export function vesselsLive(req: Request, res: Response) {
+export async function vesselsLive(req: Request, res: Response) {
   try {
     const latStr = req.query.lat as string;
     const lonStr = req.query.lon as string;
@@ -225,7 +225,7 @@ export function vesselsLive(req: Request, res: Response) {
       name = 'Operating Point';
     }
 
-    const vesselData = analyzeVesselTraffic(latitude, longitude, name);
+    const vesselData = await analyzeVesselTrafficAsync(latitude, longitude, name);
     res.json(vesselData);
   } catch (error) {
     res.status(500).json({ error: 'Failed to retrieve AIS vessel traffic' });

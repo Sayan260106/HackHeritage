@@ -48,8 +48,9 @@ export interface OrcaAnalysisResponse { queryId: string; originalQuery: string; 
 
 export interface QueryRequest { query: string; locationOverride?: string; timeOverride?: string; language?: LanguageCode; includeSatellite?: boolean; }
 
-export type VesselType = 'FISHING_TRAWLER' | 'CARGO_CONTAINER' | 'TANKER' | 'COAST_GUARD_PATROL' | 'NAVY_FRIGATE' | 'UNKNOWN_DARK_VESSEL';
-export type VesselAisStatus = 'ACTIVE_BROADCAST' | 'TRANSPONDER_SILENT' | 'SPOOFED_LOCATION' | 'UNREGISTERED_SAR_TARGET';
+export type VesselType = 'FISHING_TRAWLER' | 'CARGO_CONTAINER' | 'TANKER' | 'COAST_GUARD_PATROL' | 'NAVY_FRIGATE' | 'UNKNOWN_DARK_VESSEL' | 'PASSENGER' | 'OCEANOGRAPHIC_BUOY';
+export type VesselAisStatus = 'ACTIVE_BROADCAST' | 'TRANSPONDER_SILENT' | 'SPOOFED_LOCATION' | 'UNREGISTERED_SAR_TARGET' | 'SIMULATION';
+
 
 export interface VesselTarget {
   id: string;
@@ -69,7 +70,13 @@ export interface VesselTarget {
   suspiciousReason?: string;
   distanceFromBoatKm?: number;
   distanceFromBoatNm?: number;
+  waveHeightM?: number;
+  seaSurfaceTempC?: number;
+  pressureHpa?: number;
+  windSpeedKts?: number;
+  buoyStationId?: string;
 }
+
 
 export interface DarkVesselAlert {
   vesselId: string;
@@ -91,5 +98,8 @@ export interface DarkVesselAnalysis {
   sentinel1PassTime: string;
   targetVessels: VesselTarget[];
   alerts: DarkVesselAlert[];
+  warnings?: string[];
+  dataSource?: string;
 }
+
 
