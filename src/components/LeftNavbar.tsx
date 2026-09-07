@@ -84,12 +84,36 @@ const navItems: {
 /** ORCA-X wordmark: a sounding mark struck over a contour. */
 const Wordmark: React.FC<{ compact?: boolean }> = ({ compact = false }) => (
   <div className="flex items-center gap-3">
-    <span className="flex h-9 w-9 shrink-0 items-center justify-center border border-shoal/35 bg-shoal/10">
-      <Waves className="h-4 w-4 text-shoal" />
+    {/* Logo icon — hover: scale + glow ring + icon brightens */}
+    <span
+      className="group/wm-logo flex h-9 w-9 shrink-0 items-center justify-center
+                 border border-shoal/35 bg-shoal/10 cursor-pointer
+                 transition-all duration-500 ease-out
+                 hover:border-shoal/80
+                 hover:bg-shoal/25
+                 hover:shadow-[0_0_14px_2px_rgba(34,211,238,0.45)]
+                 hover:scale-[1.18]
+                 hover:rotate-[15deg]"
+    >
+      <Waves
+        className="h-4 w-4 text-shoal
+                   transition-all duration-500
+                   group-hover/wm-logo:text-white
+                   group-hover/wm-logo:scale-110
+                   group-hover/wm-logo:drop-shadow-[0_0_5px_rgba(255,255,255,0.9)]"
+      />
     </span>
+
     <div className="min-w-0">
       <div className="flex items-baseline gap-2">
-        <span className="font-display text-lg font-bold tracking-tight text-chartpaper">
+        {/* ORCA‑X wordmark — hover: letter-spacing expands + glows cyan */}
+        <span
+          className="font-display text-lg font-bold tracking-tight text-chartpaper cursor-pointer
+                     transition-all duration-300 ease-out
+                     hover:tracking-wider
+                     hover:text-cyan-200
+                     hover:drop-shadow-[0_0_8px_rgba(34,211,238,0.75)]"
+        >
           ORCA&#8209;X
         </span>
         <span className="font-mono text-[9px] tracking-[0.16em] text-buoy/85">
