@@ -47,3 +47,49 @@ export interface AlertSummary { decision: 'CLEAR' | 'MONITOR' | 'ACT'; highestSe
 export interface OrcaAnalysisResponse { queryId: string; originalQuery: string; language: LanguageCode; detectedIntent: string; location: LocationInfo; timeWindow: TimeWindow; weather: WeatherData; ocean: OceanData; satellite: SatelliteData; risk: RiskPrediction; gisLayers: GisLayerData; geofenceAnalysis?: GeofenceSpatialAnalysis; pfz?: unknown; operationalDecision?: OperationalDecision; safeRoute?: SafeRouteSummary; alertSummary?: AlertSummary; evidence: EvidenceItem[]; agentTraces: AgentStepTrace[]; groundedSummary: string; translatedSummary?: Record<string, string>; isDataDegraded?: boolean; warnings?: string[]; freshnessTimestamp: string; officialDisclaimer: string; executionPlan?: OrcaExecutionPlan; }
 
 export interface QueryRequest { query: string; locationOverride?: string; timeOverride?: string; language?: LanguageCode; includeSatellite?: boolean; }
+
+export type VesselType = 'FISHING_TRAWLER' | 'CARGO_CONTAINER' | 'TANKER' | 'COAST_GUARD_PATROL' | 'NAVY_FRIGATE' | 'UNKNOWN_DARK_VESSEL';
+export type VesselAisStatus = 'ACTIVE_BROADCAST' | 'TRANSPONDER_SILENT' | 'SPOOFED_LOCATION' | 'UNREGISTERED_SAR_TARGET';
+
+export interface VesselTarget {
+  id: string;
+  mmsi: string;
+  name: string;
+  type: VesselType;
+  flagState: string;
+  latitude: number;
+  longitude: number;
+  speedKts: number;
+  headingDeg: number;
+  destination?: string;
+  aisStatus: VesselAisStatus;
+  isDarkVessel: boolean;
+  sarDetectionConfidencePct: number;
+  lastAisTimestamp: string;
+  suspiciousReason?: string;
+  distanceFromBoatKm?: number;
+  distanceFromBoatNm?: number;
+}
+
+export interface DarkVesselAlert {
+  vesselId: string;
+  mmsi: string;
+  name: string;
+  severity: 'HIGH' | 'CRITICAL';
+  title: string;
+  description: string;
+  latitude: number;
+  longitude: number;
+  recommendedAction: string;
+}
+
+export interface DarkVesselAnalysis {
+  timestamp: string;
+  totalTrackedVessels: number;
+  activeAisVessels: number;
+  darkVesselCount: number;
+  sentinel1PassTime: string;
+  targetVessels: VesselTarget[];
+  alerts: DarkVesselAlert[];
+}
+

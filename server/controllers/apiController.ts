@@ -13,6 +13,7 @@ import { getEvidenceCorpusSize, getSupportedLocationCount, runOrcaAgentWorkflow 
 import { localizeRiskPrediction } from '../../src/utils/marineRiskLocalization.ts';
 import { analyzeMaritimeGeofencing } from '../services/geofenceService.ts';
 import { generateMaritimeGeoJsonFeatures } from '../../src/data/maritimeBoundaries.ts';
+import { analyzeVesselTraffic } from '../services/aisVesselService.ts';
 
 function resolveLocationFromRequest(req: Request) {
   const locationKey = typeof req.query.locationKey === 'string' ? req.query.locationKey : undefined;
@@ -197,3 +198,31 @@ export function health(_req: Request, res: Response) {
     supportedLocations: getSupportedLocationCount(),
   });
 }
+
+export function vesselsLive(req: Request, res: Response) {
+  try {
+    const latStr = req.query.lat as string;
+    const lonStr = req.query.lon as string;
+    const locationKey = req.query.locationKey as string;
+
+    let latitude = 21.6266;
+    let longitude = 87.5074;
+    let name = 'Digha Coast';
+
+    if (locationKey && COASTAL_LOCATIONS[locationKey]) {
+      latitude = COASTAL_LOCATIONS[locationKey].latitude;
+      longitude = COASTAL_LOCATIONS[locationKey].longitude;
+      name = COASTAL_LOCATIONS[locationKey].name;
+    } else if (latStr && lonStr && !isNaN(Number(latStr)) && !isNaN(Number(lonStr))) {
+      latitude = Number(latStr);
+      longitude = Number(lonStr);
+      name = 'Operating Point';
+    }
+
+    const vesselData = analyzeVesselTraffic(latitude, longitude, name);
+    res.json(vesselData);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to retrieve AIS vessel traffic' });
+  }
+}
+
