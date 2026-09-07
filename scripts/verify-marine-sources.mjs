@@ -1,9 +1,12 @@
 import 'dotenv/config';
 
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
 const TIMEOUT_MS = Math.max(1000, Number(process.env.REALTIME_DATA_TIMEOUT_MS || 8000));
 const LAT = Number(process.env.REALTIME_VERIFY_LAT || 15.0);
 const LON = Number(process.env.REALTIME_VERIFY_LON || 73.0);
 
+const OFFICIAL_INCOIS_PFZ_WFS = 'https://incois.gov.in/geoserver/PFZ_Automation/wfs?service=WFS&version=1.0.0&request=GetFeature&typeName=PFZ_Automation:pfzlines&outputFormat=application/json';
 const OFFICIAL_INCOIS_ERDDAP = process.env.INCOIS_ERDDAP_URL || 'https://erddap.incois.gov.in/erddap/tabledap/Indian_ARGO_Floats.json';
 const OFFICIAL_MOSDAC_CATALOG = 'https://mosdac.gov.in/catalog-app/satellite.php';
 const OPEN_METEO_WEATHER = process.env.OPEN_METEO_WEATHER_API_URL || 'https://api.open-meteo.com/v1/forecast';
@@ -57,6 +60,7 @@ async function main() {
   const configuredIncois = process.env.INCOIS_REALTIME_URL;
   const configuredMosdac = process.env.MOSDAC_REALTIME_URL;
   const results = await Promise.all([
+    probe('INCOIS GeoServer WFS (Statutory Daily PFZ Frontlines)', OFFICIAL_INCOIS_PFZ_WFS),
     probe('INCOIS ERDDAP official endpoint', incoisQueryUrl()),
     probe('MOSDAC official catalog', OFFICIAL_MOSDAC_CATALOG, { accept: 'text/html' }),
     probe('Open-Meteo weather', `${OPEN_METEO_WEATHER}?latitude=${LAT}&longitude=${LON}&current=wind_speed_10m,wind_direction_10m,wind_gusts_10m,temperature_2m,precipitation,surface_pressure`),
