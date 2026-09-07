@@ -41,6 +41,7 @@
     "test:hybrid-types": "tsx scripts/test-all-hybrid-types.ts",
     "test:mosdac-cache": "tsx scripts/test-mosdac-cache.ts",
     "test:conversation": "tsx scripts/test-conversation-session.ts",
+    "test:isro-benchmarks": "tsx scripts/test-all-8-isro-queries.ts",
     "smoke": "node scripts/smoke-test.mjs"
   },
   "dependencies": {
