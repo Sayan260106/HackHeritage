@@ -25,6 +25,8 @@ import {
 } from "lucide-react";
 import { ContourField } from "../components/ui/ContourField";
 import { ScrollyCanvasBackground } from "../components/ui/ScrollyCanvasBackground";
+import { OrcaWaveLogo } from "../components/ui/OrcaWaveLogo";
+import { OrcaWordmark } from "../components/ui/OrcaWordmark";
 import { useLenis } from "../hooks/useLenis";
 import { DepthMarker } from "../components/ui/DepthMarker";
 import { Reveal } from "../components/ui/Reveal";
@@ -323,15 +325,12 @@ export const SynopsisPage: React.FC<SynopsisPageProps> = ({ onEnterConsole }) =>
       <header className="sticky top-0 z-40 border-b border-shoal/20 bg-abyssal/75 backdrop-blur-xl shadow-lg shadow-abyssal/50">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-3.5 sm:px-8">
           <div className="flex items-center gap-3">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-shoal/40 bg-shoal/10 shadow-sm shadow-shoal/20">
-              <Waves className="h-4 w-4 text-shoal" />
-            </span>
-            <span className="font-display text-base font-bold tracking-tight text-chartpaper">
-              ORCA&#8209;X
-            </span>
-            <span className="hidden font-mono text-[10px] tracking-[0.2em] text-fathom sm:inline">
-              OCEAN REASONING &amp; COLLABORATIVE AI
-            </span>
+            <OrcaWaveLogo size="sm" variant="home" className="shrink-0" />
+            <OrcaWordmark
+              size="sm"
+              badge="SIH v2.4"
+              subtitle="OCEAN REASONING & COLLABORATIVE AI"
+            />
           </div>
 
           <div className="flex items-center gap-4">
