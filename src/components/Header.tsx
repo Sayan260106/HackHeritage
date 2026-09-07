@@ -80,7 +80,11 @@ export const Header: React.FC<HeaderProps> = ({
     { code: 'hi', label: 'Hindi', native: 'हिन्दी' },
     { code: 'ta', label: 'Tamil', native: 'தமிழ்' },
     { code: 'or', label: 'Odia', native: 'ଓଡ଼ିଆ' },
-    { code: 'te', label: 'Telugu', native: 'తెలుగు' }
+    { code: 'te', label: 'Telugu', native: 'తెలుగు' },
+    { code: 'ml', label: 'Malayalam', native: 'മലയാളം' },
+    { code: 'gu', label: 'Gujarati', native: 'ગુજરાતી' },
+    { code: 'mr', label: 'Marathi', native: 'मराठी' },
+    { code: 'kn', label: 'Kannada', native: 'ಕನ್ನಡ' }
   ];
 
   return (

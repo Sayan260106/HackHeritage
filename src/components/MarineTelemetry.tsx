@@ -157,14 +157,14 @@ export const MarineTelemetry: React.FC<MarineTelemetryProps> = ({
               </span>
               <span className="text-[10px] font-mono text-sky-400/80 font-bold tabular-nums">{weather.windDirectionCompass} ({weather.windDirectionDeg}°)</span>
             </div>
-            <div className="flex items-baseline justify-between pt-1">
-              <div className="flex items-baseline space-x-1.5">
-                <span className="text-3xl font-bold text-white font-mono tracking-tight tabular-nums leading-none">
+            <div className="flex flex-wrap items-center justify-between gap-1.5 pt-1">
+              <div className="flex items-baseline space-x-1">
+                <span className="text-2xl sm:text-3xl font-bold text-white font-mono tracking-tight tabular-nums leading-none">
                   {weather.windSpeedKts}
                 </span>
                 <span className="text-xs font-medium text-slate-500">{dict.knots || 'knots'}</span>
               </div>
-              <span className="text-[10px] font-mono text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded font-bold tabular-nums">
+              <span className="text-[10px] font-mono text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded font-bold tabular-nums shrink-0">
                 {dict.gusts || 'Gust'} {weather.windGustKts} kts
               </span>
             </div>
@@ -186,20 +186,20 @@ export const MarineTelemetry: React.FC<MarineTelemetryProps> = ({
           {/* 4. Ocean Currents */}
           <div className="bg-[#0b121f]/50 border border-slate-800/40 rounded-xl p-4 space-y-3 relative overflow-hidden group hover:bg-[#0b121f]/80 transition-all">
             <div className="flex items-center justify-between text-slate-400 text-xs">
-              <span className="flex items-center gap-1.5 font-medium">
-                <Navigation2 className="h-4 w-4 text-teal-400/80" />
-                <span className="font-semibold text-slate-300 tracking-wide">{dict.currentVelocity || 'Current Speed'}</span>
+              <span className="flex items-center gap-1.5 font-medium min-w-0">
+                <Navigation2 className="h-4 w-4 text-teal-400/80 shrink-0" />
+                <span className="font-semibold text-slate-300 tracking-wide truncate">{dict.currentVelocity || 'Current Speed'}</span>
               </span>
-              <span className="text-[10px] font-mono text-teal-400/80 font-bold tabular-nums">{ocean.currentDirectionDeg}° {dict.set || 'Set'}</span>
+              <span className="text-[10px] font-mono text-teal-400/80 font-bold tabular-nums shrink-0">{ocean.currentDirectionDeg}° {dict.set || 'Set'}</span>
             </div>
-            <div className="flex items-baseline justify-between pt-1">
-              <div className="flex items-baseline space-x-1.5">
-                <span className="text-3xl font-bold text-white font-mono tracking-tight tabular-nums leading-none">
+            <div className="flex flex-wrap items-center justify-between gap-1.5 pt-1">
+              <div className="flex items-baseline space-x-1">
+                <span className="text-2xl sm:text-3xl font-bold text-white font-mono tracking-tight tabular-nums leading-none">
                   {ocean.currentSpeedKts}
                 </span>
                 <span className="text-xs font-medium text-slate-500">{dict.knots || 'knots'}</span>
               </div>
-              <span className="text-[10px] font-mono text-slate-300 bg-slate-800/50 border border-slate-700/50 px-1.5 py-0.5 rounded tabular-nums">
+              <span className="text-[10px] font-mono text-slate-300 bg-slate-800/50 border border-slate-700/50 px-1.5 py-0.5 rounded tabular-nums shrink-0">
                 {dict.tide || 'Tide'} {ocean.tideHeightMeters}m
               </span>
             </div>
@@ -304,7 +304,7 @@ export const MarineTelemetry: React.FC<MarineTelemetryProps> = ({
       </div>
 
       {/* Secondary Environmental Indicators */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         
         {/* 1. Sea Surface Temp */}
         <div className="bg-[#0b121f]/50 border border-slate-800/40 rounded-xl p-4 flex flex-col justify-between space-y-3 hover:bg-[#0b121f]/80 transition-all min-w-0">
@@ -312,19 +312,19 @@ export const MarineTelemetry: React.FC<MarineTelemetryProps> = ({
             <div className="text-rose-500/80 shrink-0">
               <Thermometer className="h-4 w-4" />
             </div>
-            <span className="text-[10px] font-bold text-slate-400 font-mono uppercase tracking-widest truncate">
+            <span className="text-xs font-bold text-slate-300 font-mono uppercase tracking-wider">
               {dict.seaSurfaceTemp || 'Sea Surface Temp'}
             </span>
           </div>
-          <div className="flex items-baseline justify-between">
-            <div className="flex items-baseline space-x-1">
-              <span className="text-2xl font-bold text-white font-mono tracking-tight leading-none">
+          <div className="flex flex-wrap items-end justify-between gap-2 pt-1">
+            <div className="flex items-baseline space-x-1 shrink-0">
+              <span className="text-2xl sm:text-3xl font-bold text-white font-mono tracking-tight leading-none">
                 {ocean.seaSurfaceTemperatureC.toFixed(1)}
               </span>
-              <span className="text-[10px] font-bold text-slate-500">°C</span>
+              <span className="text-xs font-bold text-slate-500">°C</span>
             </div>
-            <span className="text-[9px] font-mono text-cyan-400 font-bold bg-cyan-500/10 px-1.5 py-0.5 rounded border border-cyan-500/20 shrink-0">
-              {typeof satellite.sstAnomalyC === 'number' ? `${satellite.sstAnomalyC > 0 ? '+' : ''}${satellite.sstAnomalyC.toFixed(1)}°C` : (dict.sstAnomaly || 'SST Live')}
+            <span className="text-xs font-mono text-cyan-400 font-bold bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20 shrink-0">
+              {typeof satellite.sstAnomalyC === 'number' ? `${satellite.sstAnomalyC > 0 ? '+' : ''}${satellite.sstAnomalyC.toFixed(1)}°C` : 'SST Normal'}
             </span>
           </div>
         </div>
@@ -335,18 +335,18 @@ export const MarineTelemetry: React.FC<MarineTelemetryProps> = ({
             <div className="text-cyan-500/80 shrink-0">
               <Compass className="h-4 w-4" />
             </div>
-            <span className="text-[10px] font-bold text-slate-400 font-mono uppercase tracking-widest truncate">
+            <span className="text-xs font-bold text-slate-300 font-mono uppercase tracking-wider">
               {dict.douglasSeaState || 'Douglas Sea State'}
             </span>
           </div>
-          <div className="flex items-baseline justify-between">
-            <div className="flex items-baseline space-x-1">
-              <span className="text-[10px] text-slate-500 font-mono font-bold uppercase">{dict.scale || 'Scale'}</span>
-              <span className="text-2xl font-bold text-white font-mono tracking-tight leading-none ml-1">
+          <div className="flex flex-wrap items-end justify-between gap-2 pt-1">
+            <div className="flex items-baseline space-x-1 shrink-0">
+              <span className="text-xs text-slate-500 font-mono font-bold uppercase">{dict.scale || 'Scale'}</span>
+              <span className="text-2xl sm:text-3xl font-bold text-white font-mono tracking-tight leading-none ml-1">
                 {ocean.seaStateIndex}
               </span>
             </div>
-            <span className="text-[9px] font-mono text-slate-300 font-bold bg-slate-800/50 px-1.5 py-0.5 rounded border border-slate-700/50 shrink-0 uppercase">
+            <span className="text-xs font-mono text-slate-300 font-bold bg-slate-800/50 px-2 py-0.5 rounded border border-slate-700/50 shrink-0 uppercase">
               {localizeSeaState(ocean.seaStateDescription.split(' ')[0], language)}
             </span>
           </div>
@@ -358,18 +358,18 @@ export const MarineTelemetry: React.FC<MarineTelemetryProps> = ({
             <div className="text-blue-500/80 shrink-0">
               <Eye className="h-4 w-4" />
             </div>
-            <span className="text-[10px] font-bold text-slate-400 font-mono uppercase tracking-widest truncate">
+            <span className="text-xs font-bold text-slate-300 font-mono uppercase tracking-wider">
               {dict.visibility || 'Visibility'}
             </span>
           </div>
-          <div className="flex items-baseline justify-between">
-            <div className="flex items-baseline space-x-1">
-              <span className="text-2xl font-bold text-white font-mono tracking-tight leading-none">
+          <div className="flex flex-wrap items-end justify-between gap-2 pt-1">
+            <div className="flex items-baseline space-x-1 shrink-0">
+              <span className="text-2xl sm:text-3xl font-bold text-white font-mono tracking-tight leading-none">
                 {weather.visibilityKm.toFixed(1)}
               </span>
-              <span className="text-[10px] font-bold text-slate-500">km</span>
+              <span className="text-xs font-bold text-slate-500">km</span>
             </div>
-            <span className="text-[9px] font-mono text-slate-400 font-bold bg-slate-800/50 px-1.5 py-0.5 rounded border border-slate-700/50 shrink-0">
+            <span className="text-xs font-mono text-slate-400 font-bold bg-slate-800/50 px-2 py-0.5 rounded border border-slate-700/50 shrink-0">
               {weather.precipitationMm}mm {dict.rain || 'rain'}
             </span>
           </div>
@@ -381,18 +381,18 @@ export const MarineTelemetry: React.FC<MarineTelemetryProps> = ({
             <div className="text-purple-500/80 shrink-0">
               <Gauge className="h-4 w-4" />
             </div>
-            <span className="text-[10px] font-bold text-slate-400 font-mono uppercase tracking-widest truncate">
+            <span className="text-xs font-bold text-slate-300 font-mono uppercase tracking-wider">
               {dict.surfacePressure || 'Surface Pressure'}
             </span>
           </div>
-          <div className="flex items-baseline justify-between">
-            <div className="flex items-baseline space-x-1">
-              <span className="text-2xl font-bold text-white font-mono tracking-tight leading-none">
+          <div className="flex flex-wrap items-end justify-between gap-2 pt-1">
+            <div className="flex items-baseline space-x-1 shrink-0">
+              <span className="text-2xl sm:text-3xl font-bold text-white font-mono tracking-tight leading-none">
                 {weather.pressureHpa}
               </span>
-              <span className="text-[10px] font-bold text-slate-500">hPa</span>
+              <span className="text-xs font-bold text-slate-500">hPa</span>
             </div>
-            <span className="text-[9px] font-mono text-emerald-400/80 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 shrink-0 uppercase">
+            <span className="text-xs font-mono text-emerald-400/80 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 shrink-0 uppercase">
               {dict.stable || 'Stable'}
             </span>
           </div>
