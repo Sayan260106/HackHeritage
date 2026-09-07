@@ -14,6 +14,7 @@ import { localizeRiskPrediction } from '../../src/utils/marineRiskLocalization.t
 import { analyzeMaritimeGeofencing } from '../services/geofenceService.ts';
 import { generateMaritimeGeoJsonFeatures } from '../../src/data/maritimeBoundaries.ts';
 import { analyzeVesselTraffic } from '../services/aisVesselService.ts';
+import { detectQueryLanguage } from '../../src/utils/languageDetector.ts';
 
 function resolveLocationFromRequest(req: Request) {
   const locationKey = typeof req.query.locationKey === 'string' ? req.query.locationKey : undefined;
@@ -38,8 +39,13 @@ export async function orcaQuery(req: Request, res: Response) {
   try {
     const { query, locationOverride, timeOverride, language = 'en' } = req.body;
     if (!query || typeof query !== 'string') return res.status(400).json({ error: 'Query string is required.' });
-    if (!SUPPORTED_LANGUAGES.includes(language as LanguageCode)) return res.status(400).json({ error: 'Unsupported language code.' });
-    res.json(await runOrcaAgentWorkflow(query, locationOverride, timeOverride, language as LanguageCode));
+
+    // Autonomously detect Indian regional language from query script
+    const detected = detectQueryLanguage(query, (language as LanguageCode) || 'en');
+    const effectiveLang = (language && language !== 'en') ? (language as LanguageCode) : detected.language;
+
+    if (!SUPPORTED_LANGUAGES.includes(effectiveLang)) return res.status(400).json({ error: 'Unsupported language code.' });
+    res.json(await runOrcaAgentWorkflow(query, locationOverride, timeOverride, effectiveLang));
   } catch (error) {
     console.error('ORCA query error:', error);
     res.status(502).json({ error: error instanceof Error ? error.message : 'Live ORCA data pipeline failed.' });
