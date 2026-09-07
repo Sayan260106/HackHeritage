@@ -17,7 +17,7 @@ import {
   ShieldCheck,
   AlertTriangle
 } from 'lucide-react';
-import { LocationInfo, GisLayerData, RiskLevel, RiskPrediction, OceanData, LanguageCode, GeofenceSpatialAnalysis } from '../types';
+import { LocationInfo, GisLayerData, RiskLevel, RiskPrediction, OceanData, LanguageCode, GeofenceSpatialAnalysis, DarkVesselAnalysis, VesselTarget } from '../types';
 import { COASTAL_LOCATIONS, MULTILINGUAL_DICTIONARY } from '../data/coastalData';
 import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion';
 import { maritimeSiren } from '../services/audio/maritimeSirenService';
@@ -54,6 +54,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   const geojsonLayerRef = useRef<L.GeoJSON | null>(null);
   const pfzLayerGroupRef = useRef<L.LayerGroup | null>(null);
   const routeLayerGroupRef = useRef<L.LayerGroup | null>(null);
+  const vesselLayerGroupRef = useRef<L.LayerGroup | null>(null);
   const targetMarkerRef = useRef<L.Marker | null>(null);
   const clickMarkerRef = useRef<L.Marker | null>(null);
   const onCoordinateClickRef = useRef(onCoordinateClick);
@@ -70,7 +71,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   const [isCalculatingRoute, setIsCalculatingRoute] = useState<boolean>(false);
   const [showSafeRouteLayer, setShowSafeRouteLayer] = useState<boolean>(true);
 
-  // Global callbacks for leaflet popups (relocate boat & plot safe route)
+  // Global callbacks for leaflet popups (relocate boat, plot safe route & dispatch Coast Guard warning)
   useEffect(() => {
     (window as any).__orcaSetBoatLocation = (lat: number, lon: number) => {
       if (onCoordinateClickRef.current) {
@@ -80,11 +81,41 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
     (window as any).__orcaPlotRouteTo = (lat: number, lon: number, name?: string) => {
       setRouteDestination({ latitude: lat, longitude: lon, name });
     };
+    (window as any).__orcaDispatchCoastGuardAlert = async (mmsi: string, name: string, lat: number, lon: number, reason: string) => {
+      await maritimeSiren.unlock();
+      const alertText = `Alert Coast Guard Command: Unregistered Dark Vessel target detected at ${lat.toFixed(4)} degrees North, ${lon.toFixed(4)} degrees East. ${reason}`;
+      voiceWarning.speak(alertText, language, {
+        playSirenFirst: true,
+        isCritical: true,
+        force: true,
+      });
+
+      fetch('/api/alerts/dispatch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          targetType: 'DARK_VESSEL',
+          mmsi,
+          name,
+          latitude: lat,
+          longitude: lon,
+          reason,
+          recipient: 'INDIAN_COAST_GUARD_ICGS_PATROL'
+        })
+      }).catch(() => {});
+
+      if (onCoordinateClickRef.current) {
+        onCoordinateClickRef.current(lat, lon);
+      }
+
+      alert(`🚨 COAST GUARD INTERCEPT WARNING DISPATCHED!\n\nTarget: ${name} (${mmsi})\nPosition: ${lat}°N, ${lon}°E\nRecipient: Indian Coast Guard ICGS Patrol Unit\nStatus: Transmitted to Maritime Security Command.\nAudio Siren Activated.`);
+    };
     return () => {
       delete (window as any).__orcaSetBoatLocation;
       delete (window as any).__orcaPlotRouteTo;
+      delete (window as any).__orcaDispatchCoastGuardAlert;
     };
-  }, []);
+  }, [language]);
 
   const handleLocateBoat = () => {
     if (!navigator.geolocation) {
@@ -118,8 +149,25 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   const [showImbl, setShowImbl] = useState<boolean>(true);
   const [showMpas, setShowMpas] = useState<boolean>(true);
   const [showPfz, setShowPfz] = useState<boolean>(true);
+  const [showVessels, setShowVessels] = useState<boolean>(true);
+  const [vesselsData, setVesselsData] = useState<DarkVesselAnalysis | null>(null);
   const [showSstOverlay, setShowSstOverlay] = useState<boolean>(true);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+
+  // Fetch live AIS vessel traffic & Sentinel-1 SAR dark vessel analysis
+  useEffect(() => {
+    let isMounted = true;
+    fetch(`/api/vessels/live?lat=${location.latitude}&lon=${location.longitude}`)
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (isMounted && data && Array.isArray(data.targetVessels)) {
+          setVesselsData(data);
+        }
+      })
+      .catch(err => console.error('Failed to fetch live AIS vessel traffic:', err));
+
+    return () => { isMounted = false; };
+  }, [location.latitude, location.longitude]);
 
   // Fetch live PFZ satellite analysis for current location
   useEffect(() => {
@@ -231,10 +279,15 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       });
 
       // OpenStreetMap Detailed Map Engine (Google Maps-level details: cities, towns, villages, beaches, ports, roads)
-      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        subdomains: ['a', 'b', 'c'],
         maxZoom: 19,
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
       }).addTo(map);
+
+      // Force Leaflet to recalculate container size immediately
+      requestAnimationFrame(() => map.invalidateSize());
+      setTimeout(() => map.invalidateSize(), 200);
 
       // Custom Zoom control in bottom right
       L.control.zoom({ position: 'bottomright' }).addTo(map);
@@ -328,23 +381,40 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
     });
   }, [location.latitude, location.longitude, reducedMotion]);
 
-  // Handle container resize & visibility changes (e.g., tab switches or fullscreen)
+  // Handle container resize & visibility changes with ResizeObserver & window resize events
   useEffect(() => {
-    const map = mapInstanceRef.current;
-    if (!map) return;
+    const container = mapContainerRef.current;
+    if (!container) return;
 
-    // Immediately invalidate size to prevent tile vanishing
-    map.invalidateSize();
+    const handleResize = () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.invalidateSize({ animate: false });
+      }
+    };
 
-    // Staggered invalidations to account for CSS transition animations
-    const t1 = setTimeout(() => map.invalidateSize(), 50);
-    const t2 = setTimeout(() => map.invalidateSize(), 150);
-    const t3 = setTimeout(() => map.invalidateSize(), 350);
+    // Immediately trigger invalidateSize
+    handleResize();
+
+    // Observe element dimensions for layout changes (e.g. flex expansion or tab switch)
+    const observer = new ResizeObserver(handleResize);
+    observer.observe(container);
+
+    // Also listen to window resize events
+    window.addEventListener('resize', handleResize);
+
+    // Staggered invalidations for CSS & Framer Motion transitions
+    const t1 = setTimeout(handleResize, 100);
+    const t2 = setTimeout(handleResize, 300);
+    const t3 = setTimeout(handleResize, 600);
+    const t4 = setTimeout(handleResize, 1000);
 
     return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', handleResize);
       clearTimeout(t1);
       clearTimeout(t2);
       clearTimeout(t3);
+      clearTimeout(t4);
     };
   }, [isFullscreen, location]);
 
@@ -745,6 +815,103 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
     routeLayerGroupRef.current = layerGroup;
   }, [showSafeRouteLayer, safeRouteResult]);
 
+  // Render Real-Time AIS & Sentinel-1 SAR Dark Vessel Layer
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+
+    if (vesselLayerGroupRef.current) {
+      map.removeLayer(vesselLayerGroupRef.current);
+      vesselLayerGroupRef.current = null;
+    }
+
+    if (!showVessels || !vesselsData?.targetVessels || vesselsData.targetVessels.length === 0) return;
+
+    const layerGroup = L.layerGroup();
+
+    vesselsData.targetVessels.forEach((vessel: VesselTarget) => {
+      const isDark = vessel.isDarkVessel;
+
+      const icon = L.divIcon({
+        className: 'custom-vessel-marker-icon',
+        html: `
+          <div class="relative flex items-center justify-center cursor-pointer">
+            <div class="absolute w-9 h-9 rounded-full ${isDark ? 'bg-red-600/40 animate-ping' : 'bg-cyan-500/20'}"></div>
+            <div class="px-2 py-0.5 rounded-full ${isDark ? 'bg-red-700 border-red-300 shadow-[0_0_15px_rgba(239,68,68,0.8)]' : 'bg-slate-900 border-cyan-400'} border flex items-center gap-1 shadow-xl text-white font-bold text-[10px] whitespace-nowrap">
+              <span>${isDark ? '🚨' : '🚢'}</span>
+              <span class="font-mono text-[9px] ${isDark ? 'text-red-100 font-black tracking-wider' : 'text-cyan-200'}">${vessel.name.split(' ')[0]}</span>
+              <span class="font-mono text-[8px] opacity-75">(${vessel.speedKts}kts)</span>
+            </div>
+          </div>
+        `,
+        iconSize: [95, 26],
+        iconAnchor: [47, 13]
+      });
+
+      const marker = L.marker([vessel.latitude, vessel.longitude], { icon });
+
+      const popupContent = `
+        <div class="p-2.5 space-y-2 max-w-[280px] bg-slate-900 text-slate-100 rounded-lg">
+          <div class="flex items-center justify-between border-b border-slate-700/80 pb-1.5">
+            <div class="flex items-center gap-1.5 font-bold text-xs ${isDark ? 'text-red-400' : 'text-cyan-300'}">
+              <span>${isDark ? '🚨 DARK VESSEL DETECTED' : '🚢 AIS BROADCASTING VESSEL'}</span>
+            </div>
+            <span class="px-1.5 py-0.5 rounded text-[8.5px] font-black uppercase font-mono ${isDark ? 'bg-red-600 text-white animate-pulse' : 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'}">
+              ${vessel.aisStatus.replace('_', ' ')}
+            </span>
+          </div>
+
+          <div class="text-[11px] font-mono space-y-1 bg-slate-950/90 p-2 rounded border ${isDark ? 'border-red-800/80' : 'border-slate-800'}">
+            <div class="flex justify-between">
+              <span class="text-slate-400">Vessel Name:</span>
+              <span class="font-bold ${isDark ? 'text-red-300' : 'text-slate-100'}">${vessel.name}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-400">MMSI:</span>
+              <span class="text-cyan-300 font-bold">${vessel.mmsi}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-400">Flag State:</span>
+              <span class="text-slate-200">${vessel.flagState}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-400">Speed / Heading:</span>
+              <span class="text-amber-300 font-bold">${vessel.speedKts} kts • ${vessel.headingDeg}°</span>
+            </div>
+            <div class="flex justify-between border-t border-slate-800 pt-1">
+              <span class="text-slate-400">SAR Radar Match:</span>
+              <span class="text-emerald-400 font-bold">${vessel.sarDetectionConfidencePct}% Confidence</span>
+            </div>
+          </div>
+
+          ${isDark ? `
+            <div class="p-2 bg-red-950/60 border border-red-800 rounded text-[10px] text-red-200 leading-tight space-y-1">
+              <div class="font-bold text-red-400 flex items-center gap-1">
+                <span>⚠️ ANOMALY REASON:</span>
+              </div>
+              <p>${vessel.suspiciousReason}</p>
+            </div>
+          ` : ''}
+
+          <div class="pt-1">
+            <button
+              onclick="${isDark ? `window.__orcaDispatchCoastGuardAlert && window.__orcaDispatchCoastGuardAlert('${vessel.mmsi}', '${vessel.name.replace(/'/g, "\\'")}', ${vessel.latitude}, ${vessel.longitude}, '${(vessel.suspiciousReason || 'Unregistered target').replace(/'/g, "\\'")}')` : `window.__orcaSetBoatLocation && window.__orcaSetBoatLocation(${vessel.latitude}, ${vessel.longitude})`}"
+              class="w-full py-1.5 px-2 ${isDark ? 'bg-red-700 hover:bg-red-600' : 'bg-cyan-700 hover:bg-cyan-600'} text-white font-bold text-[10px] rounded transition-all text-center flex items-center justify-center gap-1 shadow cursor-pointer"
+            >
+              ${isDark ? '🚨 Dispatch Coast Guard Warning' : '⚓ Track Vessel Coordinates'}
+            </button>
+          </div>
+        </div>
+      `;
+
+      marker.bindPopup(popupContent);
+      marker.addTo(layerGroup);
+    });
+
+    layerGroup.addTo(map);
+    vesselLayerGroupRef.current = layerGroup;
+  }, [showVessels, vesselsData]);
+
   return (
     <div 
       ref={outerWrapperRef} 
@@ -891,6 +1058,24 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           >
             <Navigation className="h-3 w-3 text-emerald-400" />
             <span className="hidden sm:inline">Safe Route</span>
+          </button>
+
+          <button
+            onClick={() => setShowVessels(!showVessels)}
+            title="Toggle Live AIS Telemetry & Sentinel-1 SAR Dark Vessel Detection"
+            className={`px-2 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1 transition-all whitespace-nowrap ${
+              showVessels
+                ? 'bg-red-950/90 text-red-200 border border-red-500/80 shadow-[0_0_12px_rgba(239,68,68,0.5)] font-bold'
+                : 'text-slate-400 hover:bg-slate-800/60'
+            }`}
+          >
+            <span>🚢</span>
+            <span className="hidden sm:inline">Dark Vessels & AIS</span>
+            {vesselsData?.darkVesselCount ? (
+              <span className="ml-0.5 px-1.5 py-0.2 rounded-full bg-red-600 text-white text-[9px] font-black font-mono animate-pulse">
+                {vesselsData.darkVesselCount}
+              </span>
+            ) : null}
           </button>
         </div>
 
@@ -1180,14 +1365,22 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
             <span className="w-3.5 h-0.5 bg-emerald-400 border border-emerald-300 border-dashed"></span>
             <span className="text-cyan-300 font-semibold">Safe Route Polyline</span>
           </div>
+          <div className="flex items-center space-x-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-red-600 border border-red-300 shadow-[0_0_8px_rgba(239,68,68,0.9)] animate-pulse"></span>
+            <span className="text-red-400 font-bold">🚨 Dark Vessel (SAR Match)</span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 border border-white"></span>
+            <span className="text-cyan-200">🚢 AIS Broadcast Vessel</span>
+          </div>
         </div>
         <div className="text-[10px] text-cyan-300/90 pt-0.5 font-mono">
           💡 Tap map or &apos;My Boat GPS&apos; to measure border distance
         </div>
       </div>
 
-      {/* Actual Leaflet Container — untouched */}
-      <div ref={mapContainerRef} className="w-full h-full" />
+      {/* Actual Leaflet Container */}
+      <div ref={mapContainerRef} className="w-full h-full min-h-[440px] sm:min-h-[480px] lg:min-h-[540px]" />
 
     </div>
   );

@@ -1,33 +1,11 @@
 import { Router } from 'express';
-import {
-  evidenceSearch,
-  health,
-  marineConditions,
-  marineForecast,
-  marineRisk,
-  marineTelemetry,
-  marineTelemetryAnalysis,
-  orcaQuery,
-  satelliteAnalysis,
-  gisSpatialAnalysis,
-} from '../controllers/apiController.ts';
-
 import { analyzeVesselTraffic } from '../services/aisVesselService.ts';
 import { COASTAL_LOCATIONS } from '../../src/data/coastalData.ts';
+import { resolveLocation } from '../services/marineService.ts';
 
 const router = Router();
 
-router.post('/orca/query', orcaQuery);
-router.get('/marine/conditions', marineConditions);
-router.get('/marine/forecast', marineForecast);
-router.get('/marine/telemetry', marineTelemetry);
-router.get('/marine/telemetry/analysis', marineTelemetryAnalysis);
-router.post('/marine/risk', marineRisk);
-router.post('/satellite/analysis', satelliteAnalysis);
-router.post('/evidence/search', evidenceSearch);
-router.get('/gis/spatial-analysis', gisSpatialAnalysis);
-router.post('/gis/spatial-analysis', gisSpatialAnalysis);
-router.get('/vessels/live', (req, res, next) => {
+router.get('/live', (req, res, next) => {
   try {
     const latStr = req.query.lat as string;
     const lonStr = req.query.lon as string;
@@ -53,6 +31,5 @@ router.get('/vessels/live', (req, res, next) => {
     next(error);
   }
 });
-router.get('/health', health);
 
 export default router;
