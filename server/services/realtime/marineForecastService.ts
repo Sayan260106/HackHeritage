@@ -1,5 +1,6 @@
 import { LocationInfo, RiskLevel, SatelliteData } from '../../../src/types.ts';
-import { predictMarineRiskWithMl } from '../../../src/services/ml/riskService.ts';
+import { predictMarineRiskBatchWithMl } from '../../../src/services/ml/riskService.ts';
+import { calculateMarineRisk } from '../../../src/utils/marineRiskEngine.ts';
 import { fetchOpenMeteoTomorrowForecast } from './openMeteoForecastProvider.ts';
 
 const RISK_ORDER: RiskLevel[] = ['LOW', 'MODERATE', 'HIGH', 'EXTREME'];
@@ -26,16 +27,21 @@ function forecastSatellite(location: LocationInfo): SatelliteData {
 export async function buildTomorrowMarineRiskForecast(location: LocationInfo) {
   const forecast = await fetchOpenMeteoTomorrowForecast(location.latitude, location.longitude);
   const satellite = forecastSatellite(location);
-  const points = [] as Array<{
-    forecastAt: string;
-    risk: Awaited<ReturnType<typeof predictMarineRiskWithMl>>;
-  }>;
 
-  for (const point of forecast.points) {
-    const risk = await predictMarineRiskWithMl(point.weather, point.ocean, satellite, location);
-    if (!risk) {
-      throw new Error(`ML forecast inference failed for ${point.forecastAt}; refusing to return a partial risk forecast.`);
-    }
+  const batchInputs = forecast.points.map((point) => ({
+    weather: point.weather,
+    ocean: point.ocean,
+    satellite,
+    location,
+  }));
+
+  const mlPredictions = await predictMarineRiskBatchWithMl(batchInputs);
+  let usedMlCount = 0;
+
+  const points = forecast.points.map((point, idx) => {
+    const mlRisk = mlPredictions[idx];
+    if (mlRisk) usedMlCount += 1;
+    const risk = mlRisk || calculateMarineRisk(point.weather, point.ocean, satellite, location);
 
     const forecastRisk = {
       ...risk,
@@ -51,8 +57,9 @@ export async function buildTomorrowMarineRiskForecast(location: LocationInfo) {
       validUntil: point.forecastAt,
     };
 
-    points.push({ forecastAt: point.forecastAt, risk: forecastRisk });
-  }
+    return { forecastAt: point.forecastAt, risk: forecastRisk };
+  });
+
 
   const ranked = [...points].sort((a, b) => riskRank(b.risk!.riskLevel) - riskRank(a.risk!.riskLevel));
   const worst = ranked[0];
@@ -84,9 +91,12 @@ export async function buildTomorrowMarineRiskForecast(location: LocationInfo) {
     hourly: points.map(({ forecastAt, risk }) => ({ forecastAt, risk })),
     warnings: [
       'This is a model-based forecast using Open-Meteo forecast inputs; it is not an observed measurement.',
-      'The committed production XGBoost artifact may still be the legacy 14-feature model until the validated v2.6 artifact is promoted.',
+      usedMlCount > 0
+        ? `Hourly risk evaluated using XGBoost ML model (${usedMlCount}/${points.length} slots evaluated via live ML).`
+        : 'Hourly risk evaluated via physics fallback engine (Douglas sea state index) because ML inference daemon was offline.',
       'IMD, INCOIS and Coast Guard safety warnings take precedence over this ML decision-support output.',
       'Forecast conditions can change; re-check close to departure and monitor official advisories continuously.',
     ],
+
   };
 }

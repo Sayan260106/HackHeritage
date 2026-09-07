@@ -11,7 +11,11 @@ ML_SRC = ML_ROOT / "src"
 if str(ML_SRC) not in sys.path:
     sys.path.insert(0, str(ML_SRC))
 
-from predict import LEGACY_FEATURE_COLUMNS, MODEL_VERSION, OrcaXRiskPredictor, build_inference_features  # noqa: E402
+try:
+    from ml.src.predict import LEGACY_FEATURE_COLUMNS, MODEL_VERSION, OrcaXRiskPredictor, build_inference_features  # noqa: E402
+except ImportError:
+    from predict import LEGACY_FEATURE_COLUMNS, MODEL_VERSION, OrcaXRiskPredictor, build_inference_features  # noqa: E402
+
 
 
 class InferenceContractTests(unittest.TestCase):
@@ -44,6 +48,8 @@ class InferenceContractTests(unittest.TestCase):
         self.assertEqual(self.predictor.feature_columns, self.predictor.metadata["features"])
         self.assertEqual(len(self.predictor.feature_columns), self.predictor.metadata["feature_count"])
         self.assertEqual(set(self.predictor.metadata["classes"].values()), {"LOW", "MODERATE", "HIGH", "EXTREME"})
+        self.assertIn(self.predictor.model_version, {MODEL_VERSION, "orca-xgb-risk-v1"})
+
 
     def test_legacy_model_can_consume_current_live_payload(self) -> None:
         model_features = build_inference_features(self.sample, LEGACY_FEATURE_COLUMNS)
@@ -74,6 +80,28 @@ class InferenceContractTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.predictor.predict_one(invalid)
 
+    def test_batch_prediction_matches_single_prediction(self) -> None:
+        batch_results = self.predictor.predict_batch([self.sample, self.sample])
+        single_result = self.predictor.predict_one(self.sample)
+        self.assertEqual(len(batch_results), 2)
+        self.assertEqual(batch_results[0]["risk_label"], single_result["risk_label"])
+        self.assertEqual(batch_results[0]["confidence"], single_result["confidence"])
+        self.assertEqual(batch_results[1]["risk_label"], single_result["risk_label"])
+
+    def test_hourly_forecast_contract(self) -> None:
+        # Test naive ISO timestamp common in Open-Meteo hourly forecast
+        forecast_point = dict(self.sample)
+        forecast_point["observed_at"] = "2026-09-08T15:00"
+        features = build_inference_features(forecast_point, LEGACY_FEATURE_COLUMNS)
+        self.assertEqual(features["hour"], 15.0)
+
+        # Test explicit hour parameter
+        forecast_point_explicit = dict(self.sample)
+        forecast_point_explicit["hour"] = 21
+        features_explicit = build_inference_features(forecast_point_explicit, LEGACY_FEATURE_COLUMNS)
+        self.assertEqual(features_explicit["hour"], 21.0)
+
 
 if __name__ == "__main__":
     unittest.main()
+
