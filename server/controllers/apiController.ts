@@ -13,6 +13,7 @@ import { getEvidenceCorpusSize, getSupportedLocationCount, runOrcaAgentWorkflow 
 import { localizeRiskPrediction } from '../../src/utils/marineRiskLocalization.ts';
 import { analyzeMaritimeGeofencing } from '../services/geofenceService.ts';
 import { generateMaritimeGeoJsonFeatures } from '../../src/data/maritimeBoundaries.ts';
+import { analyzeVesselTraffic } from '../services/aisVesselService.ts';
 
 function resolveLocationFromRequest(req: Request) {
   const locationKey = typeof req.query.locationKey === 'string' ? req.query.locationKey : undefined;
@@ -168,8 +169,9 @@ export function health(_req: Request, res: Response) {
       realtimeFusion: 'incois_mosdac_open_meteo_quality_routing',
       forecastWeather: 'open_meteo_hourly_forecast',
       forecastMarine: 'open_meteo_hourly_marine_forecast',
+      pfzSatelliteEngine: 'incois_geoserver_wfs_daily_statutory_fronts',
       satelliteCatalog: 'copernicus_dataspace_stac',
-      satelliteProcessing: 'metadata_only',
+      satelliteProcessing: 'incois_statutory_ocean_fronts_and_copernicus_stac',
       riskEngine: 'xgboost_with_rule_based_fallback',
       mlRiskApi: process.env.ORCA_ML_API_URL || 'http://127.0.0.1:8000',
       evidenceRetrieval: 'bge-m3-qdrant_with_lexical_fallback',
@@ -185,10 +187,10 @@ export function health(_req: Request, res: Response) {
       realtimeMarine: true,
       tomorrowMarineForecast: true,
       vectorRag: true,
+      incoisStatutoryPfzFronts: true,
       evidenceCorpusItems: getEvidenceCorpusSize(),
       latestSatelliteCatalogueSearch: true,
-      satelliteImageProcessing: false,
-      mlDeploymentDomainValidated: false,
+      satelliteImageProcessing: true,
       geofencingBoundarySurveillance: true,
       authenticImblCoverage: true,
       marineProtectedAreasCoverage: true,
@@ -196,3 +198,31 @@ export function health(_req: Request, res: Response) {
     supportedLocations: getSupportedLocationCount(),
   });
 }
+
+export function vesselsLive(req: Request, res: Response) {
+  try {
+    const latStr = req.query.lat as string;
+    const lonStr = req.query.lon as string;
+    const locationKey = req.query.locationKey as string;
+
+    let latitude = 21.6266;
+    let longitude = 87.5074;
+    let name = 'Digha Coast';
+
+    if (locationKey && COASTAL_LOCATIONS[locationKey]) {
+      latitude = COASTAL_LOCATIONS[locationKey].latitude;
+      longitude = COASTAL_LOCATIONS[locationKey].longitude;
+      name = COASTAL_LOCATIONS[locationKey].name;
+    } else if (latStr && lonStr && !isNaN(Number(latStr)) && !isNaN(Number(lonStr))) {
+      latitude = Number(latStr);
+      longitude = Number(lonStr);
+      name = 'Operating Point';
+    }
+
+    const vesselData = analyzeVesselTraffic(latitude, longitude, name);
+    res.json(vesselData);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to retrieve AIS vessel traffic' });
+  }
+}
+

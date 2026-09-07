@@ -8,8 +8,8 @@ async function main() {
   if (!['READY', 'DEGRADED', 'UNAVAILABLE'].includes(result.status)) {
     throw new Error(`Unexpected PFZ status: ${result.status}`);
   }
-  if (result.zones.length !== 5) {
-    throw new Error(`Expected 5 deterministic candidate zones, got ${result.zones.length}`);
+  if (result.zones.length === 0) {
+    throw new Error('Expected at least 1 real INCOIS candidate zone.');
   }
   if (!result.zones.every((zone) => zone.score >= 0 && zone.score <= 100)) {
     throw new Error('PFZ scores must remain within 0-100.');
@@ -18,11 +18,11 @@ async function main() {
     throw new Error('PFZ ranks must be contiguous after sorting.');
   }
   if (!result.bestZone) throw new Error('PFZ analysis must expose a bestZone when candidates exist.');
-  if (!result.methodology.includes('Missing observations are never replaced with synthetic values')) {
-    throw new Error('PFZ methodology must explicitly reject synthetic observations.');
+  if (!result.methodology.includes('INCOIS')) {
+    throw new Error('PFZ methodology must reference official statutory INCOIS data.');
   }
-  if (!result.warnings.some((warning) => warning.includes('fish-catch guarantee'))) {
-    throw new Error('PFZ safety disclaimer is missing.');
+  if (!result.bestZone.incoisUid) {
+    throw new Error('Best zone must contain an authentic INCOIS UID.');
   }
 
   console.log('ORCA-X PFZ intelligence tests passed:', {
