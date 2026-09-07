@@ -88,45 +88,27 @@ export const Header: React.FC<HeaderProps> = ({
           
           {/* Logo & Identity */}
           <div className="flex items-center space-x-3">
-            {/* Logo icon — hover: spins gently + glows brighter */}
+            {/* Logo — sonar ring fires on hover, waves icon travels on hover */}
             <div
-              className="group/logo h-10 w-10 rounded-lg bg-gradient-to-br from-cyan-500 via-blue-600 to-indigo-700
-                         flex items-center justify-center cursor-pointer
+              className="orca-logo-box h-10 w-10 rounded-lg
+                         bg-gradient-to-br from-cyan-500 via-blue-600 to-indigo-700
+                         flex items-center justify-center
                          shadow-lg shadow-cyan-500/20 border border-cyan-400/30
-                         transition-all duration-500 ease-out
-                         hover:shadow-xl hover:shadow-cyan-400/50
-                         hover:border-cyan-300/70
-                         hover:scale-110
-                         hover:rotate-[12deg]
-                         hover:bg-gradient-to-tl hover:from-teal-400 hover:via-cyan-500 hover:to-blue-500"
+                         cursor-pointer"
             >
-              <Waves
-                className="h-6 w-6 text-white
-                           transition-all duration-500
-                           group-hover/logo:animate-none
-                           group-hover/logo:scale-110
-                           group-hover/logo:drop-shadow-[0_0_6px_rgba(255,255,255,0.9)]"
-              />
+              <Waves className="orca-logo-icon h-6 w-6 text-white" />
             </div>
 
             <div>
               <div className="flex items-center space-x-2">
-                {/* ORCA-X wordmark — hover: animated gradient sweep */}
-                <span
-                  className="group/wordmark font-extrabold text-xl tracking-tight cursor-pointer
-                             bg-gradient-to-r from-cyan-400 via-sky-300 to-blue-200 bg-clip-text text-transparent
-                             transition-all duration-300
-                             hover:from-teal-300 hover:via-cyan-200 hover:to-white
-                             hover:tracking-widest
-                             hover:drop-shadow-[0_0_12px_rgba(34,211,238,0.8)]
-                             [text-shadow:none]
-                             hover:[filter:drop-shadow(0_0_10px_#22d3ee)]"
-                  style={{
-                    backgroundSize: '200% auto',
-                    animation: undefined
-                  }}
-                >
-                  ORCA-X
+                {/* ORCA-X — each letter pings like a sonar echo on hover */}
+                <span className="orca-wordmark font-extrabold text-xl bg-gradient-to-r from-cyan-400 via-sky-300 to-blue-200 bg-clip-text text-transparent">
+                  <span className="orca-wordmark-letter">O</span>
+                  <span className="orca-wordmark-letter">R</span>
+                  <span className="orca-wordmark-letter">C</span>
+                  <span className="orca-wordmark-letter">A</span>
+                  <span className="orca-wordmark-letter">‑</span>
+                  <span className="orca-wordmark-letter">X</span>
                 </span>
                 <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-cyan-950/80 border border-cyan-700/50 text-cyan-300 font-mono">
                   v2.4 SIH

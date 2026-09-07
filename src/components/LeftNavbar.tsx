@@ -84,37 +84,21 @@ const navItems: {
 /** ORCA-X wordmark: a sounding mark struck over a contour. */
 const Wordmark: React.FC<{ compact?: boolean }> = ({ compact = false }) => (
   <div className="flex items-center gap-3">
-    {/* Logo icon — hover: scale + glow ring + icon brightens */}
-    <span
-      className="group/wm-logo flex h-9 w-9 shrink-0 items-center justify-center
-                 border border-shoal/35 bg-shoal/10 cursor-pointer
-                 transition-all duration-500 ease-out
-                 hover:border-shoal/80
-                 hover:bg-shoal/25
-                 hover:shadow-[0_0_14px_2px_rgba(34,211,238,0.45)]
-                 hover:scale-[1.18]
-                 hover:rotate-[15deg]"
-    >
-      <Waves
-        className="h-4 w-4 text-shoal
-                   transition-all duration-500
-                   group-hover/wm-logo:text-white
-                   group-hover/wm-logo:scale-110
-                   group-hover/wm-logo:drop-shadow-[0_0_5px_rgba(255,255,255,0.9)]"
-      />
+    {/* Logo — sonar ring fires on hover, Waves icon swims like ocean current */}
+    <span className="orca-logo-box flex h-9 w-9 shrink-0 items-center justify-center border border-shoal/35 bg-shoal/10 cursor-pointer">
+      <Waves className="orca-logo-icon h-4 w-4 text-shoal" />
     </span>
 
     <div className="min-w-0">
       <div className="flex items-baseline gap-2">
-        {/* ORCA‑X wordmark — hover: letter-spacing expands + glows cyan */}
-        <span
-          className="font-display text-lg font-bold tracking-tight text-chartpaper cursor-pointer
-                     transition-all duration-300 ease-out
-                     hover:tracking-wider
-                     hover:text-cyan-200
-                     hover:drop-shadow-[0_0_8px_rgba(34,211,238,0.75)]"
-        >
-          ORCA&#8209;X
+        {/* ORCA‑X — each letter pings like a sonar echo propagating across the water column */}
+        <span className="orca-wordmark font-display text-lg font-bold tracking-tight text-chartpaper">
+          <span className="orca-wordmark-letter">O</span>
+          <span className="orca-wordmark-letter">R</span>
+          <span className="orca-wordmark-letter">C</span>
+          <span className="orca-wordmark-letter">A</span>
+          <span className="orca-wordmark-letter">&#8209;</span>
+          <span className="orca-wordmark-letter">X</span>
         </span>
         <span className="font-mono text-[9px] tracking-[0.16em] text-buoy/85">
           v2.4

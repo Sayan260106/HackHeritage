@@ -646,3 +646,109 @@ html.lenis, html.lenis body {
   pointer-events: none;
 }
 
+/* ==========================================================================
+   ORCA-X Logo & Wordmark — Cinematic Ocean Hover Animations
+   ========================================================================== */
+
+/* Sonar pulse ring expands outward from the logo like an active radar sweep */
+@keyframes orca-sonar-ring {
+  0%   { transform: scale(1);   opacity: 0.85; }
+  100% { transform: scale(2.6); opacity: 0;    }
+}
+
+/* The Waves icon travels forward — simulates ocean current / live data flow */
+@keyframes orca-wave-travel {
+  0%   { transform: translateX(0px)  translateY(0px)   scaleY(1);    }
+  20%  { transform: translateX(-3px) translateY(1.5px) scaleY(1.12); }
+  50%  { transform: translateX(-6px) translateY(0px)   scaleY(0.9);  }
+  80%  { transform: translateX(-3px) translateY(-1.5px)scaleY(1.12); }
+  100% { transform: translateX(0px)  translateY(0px)   scaleY(1);    }
+}
+
+/* Bioluminescent deep-sea glow pulses — blue/teal light like an anglerfish */
+@keyframes orca-biolum {
+  0%, 100% { box-shadow: 0 0 0px  0px rgba(127, 212, 193, 0);    }
+  35%       { box-shadow: 0 0 22px 5px rgba(127, 212, 193, 0.6); }
+  65%       { box-shadow: 0 0 12px 3px rgba(79,  185, 162, 0.4); }
+}
+
+/* SST thermal gradient sweeping through the logo background */
+@keyframes orca-thermal-sweep {
+  0%   { background-position: 0%   50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0%   50%; }
+}
+
+/* Per-letter sonar ping — the way an echo propagates across the water column */
+@keyframes orca-letter-sonar {
+  0%   { transform: translateY(0px)  scaleY(1);    color: inherit; filter: none;                                                                      }
+  30%  { transform: translateY(-5px) scaleY(1.1);  color: #a6e8da; filter: drop-shadow(0 0 10px #7fd4c1) drop-shadow(0 0 4px #4fb9a2);                }
+  60%  { transform: translateY(2px)  scaleY(0.94); color: #4fb9a2; filter: drop-shadow(0 0 5px #2e9483);                                              }
+  100% { transform: translateY(0px)  scaleY(1);    color: inherit; filter: none;                                                                      }
+}
+
+/* ── Logo Box ─────────────────────────────────────────────────────────── */
+
+.orca-logo-box {
+  position: relative;
+  overflow: visible;
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.4s ease;
+}
+
+/* Sonar ping pseudo ring */
+.orca-logo-box::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border: 1.5px solid rgba(127, 212, 193, 0.7);
+  border-radius: inherit;
+  opacity: 0;
+  pointer-events: none;
+}
+.orca-logo-box:hover::after {
+  animation: orca-sonar-ring 1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.orca-logo-box:hover {
+  transform: scale(1.13);
+  border-color: rgba(127, 212, 193, 0.8) !important;
+  background: linear-gradient(135deg, #0d4a40, #1a6b5e, #0d2e40, #09263a);
+  background-size: 300% 300% !important;
+  animation: orca-biolum 2s ease-in-out infinite,
+             orca-thermal-sweep 3.5s ease infinite;
+}
+
+/* Waves icon travels like current on hover */
+.orca-logo-icon {
+  transition: color 0.45s ease, filter 0.45s ease;
+}
+.orca-logo-box:hover .orca-logo-icon {
+  animation: orca-wave-travel 0.65s ease-in-out infinite;
+  color: #e8ede9 !important;
+  filter: drop-shadow(0 0 8px rgba(127, 212, 193, 1))
+          drop-shadow(0 0 18px rgba(79, 185, 162, 0.55));
+}
+
+/* ── ORCA-X Wordmark ─────────────────────────────────────────────────── */
+
+.orca-wordmark {
+  display: inline-flex;
+  gap: 0;
+  cursor: default;
+}
+.orca-wordmark-letter {
+  display: inline-block;
+}
+
+/* Each letter fires with the stagger delay of a sonar echo chain */
+.orca-wordmark:hover .orca-wordmark-letter:nth-child(1) { animation: orca-letter-sonar 0.75s ease 0s     both; }
+.orca-wordmark:hover .orca-wordmark-letter:nth-child(2) { animation: orca-letter-sonar 0.75s ease 0.08s  both; }
+.orca-wordmark:hover .orca-wordmark-letter:nth-child(3) { animation: orca-letter-sonar 0.75s ease 0.16s  both; }
+.orca-wordmark:hover .orca-wordmark-letter:nth-child(4) { animation: orca-letter-sonar 0.75s ease 0.24s  both; }
+.orca-wordmark:hover .orca-wordmark-letter:nth-child(5) { animation: orca-letter-sonar 0.75s ease 0.32s  both; }
+.orca-wordmark:hover .orca-wordmark-letter:nth-child(6) { animation: orca-letter-sonar 0.75s ease 0.40s  both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .orca-logo-box:hover,
+  .orca-logo-box:hover .orca-logo-icon,
+  .orca-wordmark:hover .orca-wordmark-letter { animation: none !important; }
+}
