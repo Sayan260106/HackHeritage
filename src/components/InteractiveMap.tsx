@@ -932,10 +932,20 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
 
     vesselsData.targetVessels.forEach((vessel: VesselTarget) => {
       const isDark = vessel.isDarkVessel;
+      const isBuoy = vessel.type === 'OCEANOGRAPHIC_BUOY';
 
-      const icon = L.divIcon({
-        className: 'custom-vessel-marker-icon',
-        html: `
+      const iconHtml = isBuoy
+        ? `
+          <div class="relative flex items-center justify-center cursor-pointer">
+            <div class="absolute w-8 h-8 rounded-full bg-amber-400/25 animate-ping"></div>
+            <div class="px-2 py-0.5 rounded-full bg-slate-950 border border-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.6)] flex items-center gap-1 shadow-xl text-white font-bold text-[10px] whitespace-nowrap">
+              <span>📡</span>
+              <span class="font-mono text-[9px] text-amber-300 font-black">${vessel.buoyStationId || vessel.name.split(' ')[0]}</span>
+              <span class="font-mono text-[8px] text-cyan-300">${vessel.waveHeightM !== undefined ? `${vessel.waveHeightM}m` : ''}</span>
+            </div>
+          </div>
+        `
+        : `
           <div class="relative flex items-center justify-center cursor-pointer">
             <div class="absolute w-9 h-9 rounded-full ${isDark ? 'bg-red-600/40 animate-ping' : 'bg-cyan-500/20'}"></div>
             <div class="px-2 py-0.5 rounded-full ${isDark ? 'bg-red-700 border-red-300 shadow-[0_0_15px_rgba(239,68,68,0.8)]' : 'bg-slate-900 border-cyan-400'} border flex items-center gap-1 shadow-xl text-white font-bold text-[10px] whitespace-nowrap">
@@ -944,14 +954,73 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
               <span class="font-mono text-[8px] opacity-75">(${vessel.speedKts}kts)</span>
             </div>
           </div>
-        `,
-        iconSize: [95, 26],
-        iconAnchor: [47, 13]
+        `;
+
+      const icon = L.divIcon({
+        className: 'custom-vessel-marker-icon',
+        html: iconHtml,
+        iconSize: [100, 26],
+        iconAnchor: [50, 13]
       });
 
       const marker = L.marker([vessel.latitude, vessel.longitude], { icon });
 
-      const popupContent = `
+      const popupContent = isBuoy ? `
+        <div class="p-2.5 space-y-2 max-w-[290px] bg-slate-900 text-slate-100 rounded-lg">
+          <div class="flex items-center justify-between border-b border-slate-700/80 pb-1.5">
+            <div class="flex items-center gap-1.5 font-bold text-xs text-amber-300">
+              <span>📡 INCOIS MOORED BUOY STATION</span>
+            </div>
+            <span class="px-1.5 py-0.5 rounded text-[8.5px] font-black font-mono bg-amber-500/20 text-amber-300 border border-amber-500/40">
+              ${vessel.buoyStationId || 'MOES'}
+            </span>
+          </div>
+
+          <div class="text-[11px] font-mono space-y-1 bg-slate-950/90 p-2 rounded border border-slate-800">
+            <div class="flex justify-between">
+              <span class="text-slate-400">Station Name:</span>
+              <span class="font-bold text-slate-100">${vessel.name.replace('📡 ', '')}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-400">Authority:</span>
+              <span class="text-slate-300">${vessel.flagState}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-400">Coordinates:</span>
+              <span class="text-slate-200 font-bold">${vessel.latitude.toFixed(4)}°N, ${vessel.longitude.toFixed(4)}°E</span>
+            </div>
+            <div class="flex justify-between border-t border-slate-800/80 pt-1">
+              <span class="text-slate-400">Wave Height (Hs):</span>
+              <span class="text-cyan-300 font-bold">${vessel.waveHeightM ?? 'N/A'} m</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-400">Sea Surface Temp:</span>
+              <span class="text-amber-300 font-bold">${vessel.seaSurfaceTempC ?? 'N/A'} °C</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-400">Surface Pressure:</span>
+              <span class="text-emerald-300 font-bold">${vessel.pressureHpa ?? 'N/A'} hPa</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-400">Wind Speed:</span>
+              <span class="text-slate-100 font-bold">${vessel.windSpeedKts ?? 'N/A'} kts</span>
+            </div>
+            <div class="flex justify-between border-t border-slate-800/80 pt-1 text-[10px]">
+              <span class="text-slate-400">Distance from Base:</span>
+              <span class="text-cyan-400 font-bold">${vessel.distanceFromBoatNm} NM (${vessel.distanceFromBoatKm} km)</span>
+            </div>
+          </div>
+
+          <div class="pt-1">
+            <button
+              onclick="window.__orcaSetBoatLocation && window.__orcaSetBoatLocation(${vessel.latitude}, ${vessel.longitude})"
+              class="w-full py-1.5 px-2 bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold text-[10px] rounded transition-all text-center flex items-center justify-center gap-1 shadow cursor-pointer"
+            >
+              ⚓ Center Radar at Buoy Station
+            </button>
+          </div>
+        </div>
+      ` : `
         <div class="p-2.5 space-y-2 max-w-[280px] bg-slate-900 text-slate-100 rounded-lg">
           <div class="flex items-center justify-between border-b border-slate-700/80 pb-1.5">
             <div class="flex items-center gap-1.5 font-bold text-xs ${isDark ? 'text-red-400' : 'text-cyan-300'}">
@@ -964,7 +1033,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
 
           <div class="text-[11px] font-mono space-y-1 bg-slate-950/90 p-2 rounded border ${isDark ? 'border-red-800/80' : 'border-slate-800'}">
             <div class="flex justify-between">
-              <span class="text-slate-400">Vessel Name:</span>
+              <span class="text-slate-400">Target ID:</span>
               <span class="font-bold ${isDark ? 'text-red-300' : 'text-slate-100'}">${vessel.name}</span>
             </div>
             <div class="flex justify-between">
@@ -1008,6 +1077,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       marker.bindPopup(popupContent);
       marker.addTo(layerGroup);
     });
+
 
     layerGroup.addTo(map);
     vesselLayerGroupRef.current = layerGroup;
@@ -1174,21 +1244,22 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
 
           <button
             onClick={() => setShowVessels(!showVessels)}
-            title="Toggle Live AIS Telemetry & Sentinel-1 SAR Dark Vessel Detection"
+            title="Toggle Live INCOIS Moored Ocean Buoys & Sentinel-1 SAR Surveillance"
             className={`px-2 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1 transition-all whitespace-nowrap ${
               showVessels
-                ? 'bg-red-950/90 text-red-200 border border-red-500/80 shadow-[0_0_12px_rgba(239,68,68,0.5)] font-bold'
+                ? 'bg-amber-950/90 text-amber-200 border border-amber-500/80 shadow-[0_0_12px_rgba(245,158,11,0.5)] font-bold'
                 : 'text-slate-400 hover:bg-slate-800/60'
             }`}
           >
-            <span>🚢</span>
-            <span className="hidden sm:inline">Dark Vessels & AIS</span>
+            <span>📡</span>
+            <span className="hidden sm:inline">INCOIS Buoys & SAR</span>
             {vesselsData?.darkVesselCount ? (
               <span className="ml-0.5 px-1.5 py-0.2 rounded-full bg-red-600 text-white text-[9px] font-black font-mono animate-pulse">
                 {vesselsData.darkVesselCount}
               </span>
             ) : null}
           </button>
+
         </div>
 
       </div>

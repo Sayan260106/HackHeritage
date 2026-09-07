@@ -100,6 +100,129 @@ async function fetchJson<T>(url: string): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+/**
+ * Pick the index in an hourly time array closest to targetMs.
+ */
+function nearestHourIndex(times: string[], targetMs: number): number {
+  let best = 0;
+  let bestDiff = Infinity;
+  for (let i = 0; i < times.length; i++) {
+    const diff = Math.abs(new Date(times[i]).getTime() - targetMs);
+    if (diff < bestDiff) { bestDiff = diff; best = i; }
+  }
+  return best;
+}
+
+/**
+ * Fetches hourly 7-day Open-Meteo forecast and extracts the hour slot
+ * closest to targetTimeIso. Used for "tomorrow", "this evening", "next week" etc.
+ */
+export async function fetchOpenMeteoForecast(
+  lat: number,
+  lon: number,
+  targetTimeIso: string,
+): Promise<{ weather: WeatherData; ocean: OceanData; retrievedAt: string }> {
+  if (process.env.ORCA_REALTIME_TEST_MODE === 'fixture') {
+    const fixture = buildTestRealtimeObservation(lat, lon);
+    return { weather: fixture.weather!, ocean: fixture.ocean!, retrievedAt: fixture.retrievedAt };
+  }
+
+  const targetMs = new Date(targetTimeIso).getTime();
+  const maxForecastDays = 7; // Open-Meteo free tier
+
+  const weatherHourlyVars = 'temperature_2m,relative_humidity_2m,precipitation,weather_code,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m,visibility,cloud_cover';
+  const marineHourlyVars = 'wave_height,wave_direction,wave_period,swell_wave_height,swell_wave_direction,swell_wave_period,sea_surface_temperature,ocean_current_velocity,ocean_current_direction';
+
+  const weatherParams = new URLSearchParams({
+    latitude: String(lat), longitude: String(lon),
+    hourly: weatherHourlyVars,
+    wind_speed_unit: 'kn',
+    timezone: 'auto',
+    forecast_days: String(maxForecastDays),
+  });
+  const marineParams = new URLSearchParams({
+    latitude: String(lat), longitude: String(lon),
+    hourly: marineHourlyVars,
+    timezone: 'auto',
+    forecast_days: String(maxForecastDays),
+  });
+
+  const retrievedAt = new Date().toISOString();
+  const [weatherResp, marineResp] = await Promise.all([
+    fetchJson<{ hourly?: Record<string, (number | null)[]>; hourly_units?: Record<string, string> }>(`${WEATHER_API_URL}?${weatherParams.toString()}`),
+    fetchJson<{ hourly?: Record<string, (number | null)[]> }>(`${MARINE_API_URL}?${marineParams.toString()}`),
+  ]);
+
+  const wh = weatherResp.hourly;
+  const mh = marineResp.hourly;
+  if (!wh || !mh) throw new Error('Open-Meteo forecast response missing hourly data.');
+
+  const wTimes = (wh['time'] as unknown as string[] | undefined) ?? [];
+  const mTimes = (mh['time'] as unknown as string[] | undefined) ?? [];
+  if (!wTimes.length || !mTimes.length) throw new Error('Open-Meteo forecast returned no hourly time slots.');
+
+  const wi = nearestHourIndex(wTimes, targetMs);
+  const mi = nearestHourIndex(mTimes, targetMs);
+
+  function wNum(field: string): number {
+    const v = wh![field]?.[wi];
+    const n = typeof v === 'number' ? v : Number(v);
+    if (!Number.isFinite(n)) throw new Error(`Open-Meteo forecast missing ${field}.`);
+    return n;
+  }
+  function mNum(field: string): number {
+    const v = mh![field]?.[mi];
+    const n = typeof v === 'number' ? v : Number(v);
+    if (!Number.isFinite(n)) throw new Error(`Open-Meteo forecast missing ${field}.`);
+    return n;
+  }
+
+  const windSpeedKts = wNum('wind_speed_10m');
+  const windGustKts = wNum('wind_gusts_10m');
+  const windDirectionDeg = wNum('wind_direction_10m');
+  const waveHeight = mNum('wave_height');
+  const wavePeriod = mNum('wave_period');
+  const swellHeight = mNum('swell_wave_height');
+  const swellPeriod = mNum('swell_wave_period');
+  const sst = mNum('sea_surface_temperature');
+  const waveDirection = mNum('wave_direction');
+  const swellDirection = mNum('swell_wave_direction');
+  const currentVelocityKmh = mNum('ocean_current_velocity');
+  const currentDirectionDeg = mNum('ocean_current_direction');
+
+  let seaStateIndex = 1;
+  let seaStateDescription = 'Calm to Smooth (<0.5m)';
+  if (waveHeight >= 4) { seaStateIndex = 6; seaStateDescription = 'Very Rough to High (>4.0m)'; }
+  else if (waveHeight >= 2.5) { seaStateIndex = 5; seaStateDescription = 'Rough (Wave 2.5 - 4.0m)'; }
+  else if (waveHeight >= 1.25) { seaStateIndex = 4; seaStateDescription = 'Moderate (Wave 1.25 - 2.5m)'; }
+  else if (waveHeight >= 0.5) { seaStateIndex = 3; seaStateDescription = 'Slight (Wave 0.5 - 1.25m)'; }
+
+  const forecastSlotTime = wTimes[wi];
+  const weather: WeatherData = {
+    airTemperatureC: wNum('temperature_2m'), windSpeedKts: Number(windSpeedKts.toFixed(1)),
+    windGustKts: Number(windGustKts.toFixed(1)), windDirectionDeg, windDirectionCompass: compass(windDirectionDeg),
+    precipitationMm: wNum('precipitation'), cloudCoverPct: wNum('cloud_cover'),
+    visibilityKm: Number((wNum('visibility') / 1000).toFixed(1)),
+    pressureHpa: wNum('surface_pressure'), weatherCode: wNum('weather_code'),
+    weatherDescription: `Open-Meteo Forecast WMO code ${wNum('weather_code')} for ${forecastSlotTime}`,
+    source: 'Open-Meteo 7-Day Hourly Forecast API',
+    sourceUrl: WEATHER_API_URL, observedAt: forecastSlotTime, retrievedAt, dataQuality: 'LIVE',
+  };
+  const ocean: OceanData = {
+    waveHeightMeters: Number(waveHeight.toFixed(2)), maxWaveHeightMeters: Number(waveHeight.toFixed(2)),
+    wavePeriodSec: Number(wavePeriod.toFixed(1)), waveDirectionDeg: Number(waveDirection.toFixed(1)),
+    swellHeightMeters: Number(swellHeight.toFixed(2)), swellPeriodSec: Number(swellPeriod.toFixed(1)),
+    swellDirectionDeg: Number(swellDirection.toFixed(1)), seaSurfaceTemperatureC: Number(sst.toFixed(1)),
+    currentSpeedKts: Number((currentVelocityKmh * 0.539957).toFixed(2)),
+    currentDirectionDeg: Number(currentDirectionDeg.toFixed(1)),
+    seaStateIndex, seaStateDescription,
+    tidePhase: 'Unknown', tideHeightMeters: 0,
+    source: 'Open-Meteo 7-Day Hourly Marine Forecast API',
+    sourceUrl: MARINE_API_URL, observedAt: mTimes[mi], retrievedAt, dataQuality: 'LIVE',
+  };
+  return { weather, ocean, retrievedAt };
+}
+
 export async function fetchOpenMeteoCurrent(lat: number, lon: number): Promise<{ weather: WeatherData; ocean: OceanData; retrievedAt: string }> {
   if (process.env.ORCA_REALTIME_TEST_MODE === 'fixture') {
     const fixture = buildTestRealtimeObservation(lat, lon);

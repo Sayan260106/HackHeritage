@@ -1,11 +1,11 @@
 import { Router } from 'express';
-import { analyzeVesselTraffic } from '../services/aisVesselService.ts';
+import { analyzeVesselTrafficAsync } from '../services/aisVesselService.ts';
 import { COASTAL_LOCATIONS } from '../../src/data/coastalData.ts';
 import { resolveLocation } from '../services/marineService.ts';
 
 const router = Router();
 
-router.get('/live', (req, res, next) => {
+router.get('/live', async (req, res, next) => {
   try {
     const latStr = req.query.lat as string;
     const lonStr = req.query.lon as string;
@@ -25,7 +25,7 @@ router.get('/live', (req, res, next) => {
       name = 'Operating Point';
     }
 
-    const vesselData = analyzeVesselTraffic(latitude, longitude, name);
+    const vesselData = await analyzeVesselTrafficAsync(latitude, longitude, name);
     res.json(vesselData);
   } catch (error) {
     next(error);
