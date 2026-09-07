@@ -228,6 +228,50 @@ export const MARINE_EVIDENCE_CORPUS: EvidenceItem[] = [
     relevanceScore: 0.81,
     officialUrl: 'https://www.imo.org/en/Knowledge/Pages/SOLAS.aspx',
     complianceRule: 'Voyage Planning Rule: Verify tidal clearance, wind direction against tidal current (wind-against-tide steepening).'
+  },
+  {
+    id: 'CMFRI-MFB-2026-108',
+    title: 'CMFRI Marine Fisheries Bulletin: Oceanographic Drivers of Pelagic Fish Depletion and Coastal Upwelling Shifts',
+    sourceAuthority: 'CMFRI (Central Marine Fisheries Research Institute)',
+    documentType: 'Scientific Protocol',
+    publicationDate: '2026-01-15',
+    excerpt: 'Declines in coastal pelagic fish productivity (oil sardine, mackerel) correlate strongly with breakdown of seasonal wind-driven upwelling. Sea surface temperature warming (>30.0°C) strengthens thermal stratification, preventing nutrient-rich sub-surface water (nitrates, phosphates) from reaching the euphotic zone. This suppresses diatom blooms, collapsing phytoplankton biomass (Chlorophyll-a < 0.3 mg/m³) and forcing fish schools to migrate offshore into deeper waters.',
+    relevanceScore: 0.95,
+    officialUrl: 'https://www.cmfri.org.in/publications',
+    complianceRule: 'Ecological Diagnostic: High SST anomalies accompanied by low chlorophyll indicate upwelling failure and depressed coastal fish aggregation.'
+  },
+  {
+    id: 'INCOIS-NIO-2025-44',
+    title: 'INCOIS-NIO Oceanographic Assessment: Coastal Deoxygenation, Benthic Hypoxia and Demersal Fishery Displacement',
+    sourceAuthority: 'INCOIS & CSIR-NIO',
+    documentType: 'Ocean State Forecast',
+    publicationDate: '2025-11-28',
+    excerpt: 'Post-monsoon river runoff combined with strong halocline stratification triggers widespread bottom-water hypoxia (dissolved oxygen < 2.0 mg/L) across the inner continental shelf. Demersal species including prawns, croakers, and silverbellies experience habitat compression, deserting traditional trawling corridors or suffering localized mortality, causing sharp declines in coastal trawl catch-per-unit-effort (CPUE).',
+    relevanceScore: 0.93,
+    officialUrl: 'https://incois.gov.in/portal/ocean_productivity.jsp',
+    complianceRule: 'Fisheries Advisory: Avoid benthic trawling in oxygen-depleted inner shelf zones during stratified post-monsoon regimes.'
+  },
+  {
+    id: 'MOES-MHW-2025-19',
+    title: 'Ministry of Earth Sciences Technical Report: Marine Heatwaves, Harmful Algal Blooms and Finfish Mortality',
+    sourceAuthority: 'MoES (Ministry of Earth Sciences)',
+    documentType: 'Scientific Protocol',
+    publicationDate: '2025-08-14',
+    excerpt: 'Category II and III Marine Heatwaves (MHWs) characterized by SST thermal anomalies exceeding +1.5°C for 5 or more consecutive days induce acute thermal shock in fish larvae and trigger noxious dinoflagellate blooms (Noctiluca scintillans / red tides). These algal blooms deplete dissolved oxygen rapidly upon senescence, leading to finfish asphyxiation and temporary collapse of local artisanal landings.',
+    relevanceScore: 0.91,
+    officialUrl: 'https://moes.gov.in/reports/marine-heatwaves',
+    complianceRule: 'Environmental Warning: High SST anomalies coupled with surface slick anomalies signal imminent red tide risk and finfish dispersal.'
+  },
+  {
+    id: 'CMFRI-CLIM-2025-09',
+    title: 'CMFRI Climate Teleconnections Report: Impact of El Niño and Positive Indian Ocean Dipole (IOD) on Catch Fluctuations',
+    sourceAuthority: 'CMFRI & INCOIS',
+    documentType: 'Fisheries Advisory',
+    publicationDate: '2025-09-05',
+    excerpt: 'Coupled ocean-atmosphere anomalies during positive Indian Ocean Dipole (pIOD) and El Niño events alter monsoonal wind vectors and deepen the regional thermocline by 15-30 meters. This deepening arrests nutrient replenishment along the eastern Bay of Bengal and southwest Arabian Sea, leading to prolonged 20-35% seasonal contractions in harvestable pelagic biomass.',
+    relevanceScore: 0.89,
+    officialUrl: 'https://www.cmfri.org.in/climate-change',
+    complianceRule: 'Harvest Advisory: Factor seasonal ENSO/IOD thermocline deepening into long-range fleet dispatch and fuel planning.'
   }
 ];
 

@@ -79,6 +79,16 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
       text: 'Paradeep port swell surge and craft restrictions',
       tag: '🛑 Is port advisory active?',
       loc: 'paradeep'
+    },
+    {
+      text: 'Why has fish productivity declined in this coastal region?',
+      tag: '🐟 Why did fish productivity decline?',
+      loc: 'digha'
+    },
+    {
+      text: 'এই উপকূলীয় অঞ্চলে মাছের উৎপাদন কেন কমে গেছে?',
+      tag: '🇧🇩 উৎপাদন হ্রাসের বৈজ্ঞানিক কারণ',
+      loc: 'digha'
     }
   ];
 
