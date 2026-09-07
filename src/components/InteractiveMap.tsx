@@ -51,6 +51,8 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const tileLayerRef = useRef<L.TileLayer | null>(null);
+  const satelliteLayerRef = useRef<L.TileLayer | null>(null);
+  const seamarksLayerRef = useRef<L.TileLayer | null>(null);
   const geojsonLayerRef = useRef<L.GeoJSON | null>(null);
   const pfzLayerGroupRef = useRef<L.LayerGroup | null>(null);
   const routeLayerGroupRef = useRef<L.LayerGroup | null>(null);
@@ -62,7 +64,9 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   }, [onCoordinateClick]);
 
   const [isLocating, setIsLocating] = useState<boolean>(false);
+  const [isSatelliteView, setIsSatelliteView] = useState<boolean>(false);
   const [pfzZones, setPfzZones] = useState<any[]>([]);
+  const [pfzFrontlines, setPfzFrontlines] = useState<any | null>(null);
 
   // Safe Routing Navigation State
   const [routeDestination, setRouteDestination] = useState<{ latitude: number; longitude: number; name?: string } | null>(null);
@@ -121,7 +125,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   const [showSstOverlay, setShowSstOverlay] = useState<boolean>(true);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
 
-  // Fetch live PFZ satellite analysis for current location
+  // Fetch live statutory INCOIS PFZ satellite analysis for current location
   useEffect(() => {
     let isMounted = true;
     fetch('/api/pfz/analyze', {
@@ -135,11 +139,26 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
     })
       .then(res => res.ok ? res.json() : null)
       .then(data => {
-        if (isMounted && data && Array.isArray(data.zones)) {
-          setPfzZones(data.zones);
+        if (isMounted && data) {
+          if (Array.isArray(data.zones)) {
+            setPfzZones(data.zones);
+          }
+          if (data.frontlines) {
+            setPfzFrontlines(data.frontlines);
+          }
         }
       })
       .catch(err => console.error('Failed to fetch real-time PFZ satellite zones:', err));
+
+    // Also fetch full daily statutory frontlines GeoJSON if not yet populated
+    fetch('/api/pfz/frontlines')
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (isMounted && data?.features) {
+          setPfzFrontlines(data);
+        }
+      })
+      .catch(() => {});
 
     return () => { isMounted = false; };
   }, [location.latitude, location.longitude, location.name]);
@@ -231,10 +250,11 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       });
 
       // OpenStreetMap Detailed Map Engine (Google Maps-level details: cities, towns, villages, beaches, ports, roads)
-      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      const osmLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
       }).addTo(map);
+      tileLayerRef.current = osmLayer;
 
       // Custom Zoom control in bottom right
       L.control.zoom({ position: 'bottomright' }).addTo(map);
@@ -312,6 +332,47 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       targetMarkerRef.current = null;
     };
   }, []);
+
+  // Toggle Real High-Resolution Optical Satellite Imagery Base Layer
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+
+    if (isSatelliteView) {
+      if (tileLayerRef.current && map.hasLayer(tileLayerRef.current)) {
+        map.removeLayer(tileLayerRef.current);
+      }
+      if (!satelliteLayerRef.current) {
+        satelliteLayerRef.current = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+          maxZoom: 19,
+          attribution: 'Satellite Imagery &copy; Esri, Maxar, Earthstar Geographics, CNES/Airbus DS, USDA, USGS, AeroGRID, IGN'
+        });
+      }
+      if (!map.hasLayer(satelliteLayerRef.current)) {
+        satelliteLayerRef.current.addTo(map);
+      }
+      if (!seamarksLayerRef.current) {
+        seamarksLayerRef.current = L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png', {
+          maxZoom: 18,
+          opacity: 0.85,
+          attribution: '&copy; OpenSeaMap contributors'
+        });
+      }
+      if (!map.hasLayer(seamarksLayerRef.current)) {
+        seamarksLayerRef.current.addTo(map);
+      }
+    } else {
+      if (satelliteLayerRef.current && map.hasLayer(satelliteLayerRef.current)) {
+        map.removeLayer(satelliteLayerRef.current);
+      }
+      if (seamarksLayerRef.current && map.hasLayer(seamarksLayerRef.current)) {
+        map.removeLayer(seamarksLayerRef.current);
+      }
+      if (tileLayerRef.current && !map.hasLayer(tileLayerRef.current)) {
+        tileLayerRef.current.addTo(map);
+      }
+    }
+  }, [isSatelliteView]);
 
   // Update map view when location changes
   useEffect(() => {
@@ -528,7 +589,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
     }
   }, [gisLayers, location, riskLevel, ocean, showHazardZones, showSafeCorridors, showBuoys, showImbl, showMpas]);
 
-  // Render Real-Time Potential Fishing Zones (PFZ) Layer
+  // Render Real-Time Potential Fishing Zones (PFZ) Layer & INCOIS Satellite Frontlines
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map) return;
@@ -538,136 +599,176 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       pfzLayerGroupRef.current = null;
     }
 
-    if (!showPfz || !pfzZones || pfzZones.length === 0) return;
+    if (!showPfz) return;
 
     const layerGroup = L.layerGroup();
 
-    pfzZones.forEach((zone: any) => {
-      const isHigh = zone.suitability === 'HIGH';
-      const isMod = zone.suitability === 'MODERATE';
-      const isRestricted = zone.geofenceStatus === 'RESTRICTED';
-
-      const strokeColor = isRestricted ? '#f43f5e' : isHigh ? '#10b981' : isMod ? '#f59e0b' : '#3b82f6';
-      const fillColor = isRestricted ? '#9f1239' : isHigh ? '#059669' : isMod ? '#d97706' : '#1d4ed8';
-
-      // 1. Chlorophyll & Thermal Front Gradient Circle
-      const circle = L.circle([zone.latitude, zone.longitude], {
-        radius: isHigh ? 3000 : 2000,
-        color: strokeColor,
-        weight: isHigh ? 2.5 : 1.5,
-        opacity: 0.85,
-        fillColor: fillColor,
-        fillOpacity: isHigh ? 0.25 : 0.15,
-        dashArray: isRestricted ? '5, 5' : undefined
+    // 1. Render Official INCOIS Statutory Frontlines (Illuminated Cyan Polylines)
+    if (pfzFrontlines && pfzFrontlines.features && Array.isArray(pfzFrontlines.features) && pfzFrontlines.features.length > 0) {
+      const frontlinesLayer = L.geoJSON(pfzFrontlines, {
+        style: () => ({
+          color: '#06b6d4',
+          weight: 3.5,
+          opacity: 0.9,
+          dashArray: '8, 5',
+          lineCap: 'round',
+          lineJoin: 'round',
+        }),
+        onEachFeature: (feature: any, layer: L.Layer) => {
+          const props = feature.properties || {};
+          const uid = props.UID ?? props.uid ?? 'INCOIS-FRONT';
+          const year = props.YEAR ?? props.year ?? '2026';
+          const julianDay = props.JULIAN_DAY ?? props.julian_day ?? '';
+          layer.bindPopup(`
+            <div class="p-2.5 space-y-2 max-w-[270px] bg-slate-900 text-slate-100 rounded-lg text-xs font-mono">
+              <div class="font-bold text-cyan-300 border-b border-cyan-800/80 pb-1 flex items-center justify-between">
+                <span class="flex items-center gap-1">🛰️ INCOIS Satellite Front</span>
+                <span class="text-[9px] bg-cyan-950 text-cyan-300 px-1.5 py-0.5 rounded border border-cyan-700/60 font-black">GOVT WFS</span>
+              </div>
+              <div class="space-y-1 text-[11px] bg-slate-950/80 p-2 rounded border border-slate-800">
+                <div class="flex justify-between"><span class="text-slate-400">Front UID:</span> <span class="text-white font-bold">${uid}</span></div>
+                <div class="flex justify-between"><span class="text-slate-400">Julian Day:</span> <span class="text-cyan-300 font-semibold">${julianDay} (${year})</span></div>
+                <div class="flex justify-between"><span class="text-slate-400">Agency:</span> <span class="text-emerald-400 font-bold">INCOIS / MoES</span></div>
+                <div class="flex justify-between"><span class="text-slate-400">Sensors:</span> <span class="text-slate-200">Oceansat / Thermal Comp.</span></div>
+              </div>
+              <p class="text-[10px] text-slate-300 italic bg-cyan-950/40 p-1.5 rounded border border-cyan-900/60">
+                Official statutory thermal/chlorophyll boundary where nutrient upwelling concentrates pelagic fish shoals.
+              </p>
+            </div>
+          `);
+        }
       });
+      frontlinesLayer.addTo(layerGroup);
+    }
 
-      // 2. Custom Glowing Fish Icon Pin
-      const fishIcon = L.divIcon({
-        className: 'custom-pfz-marker-icon',
-        html: `
-          <div class="relative flex items-center justify-center cursor-pointer">
-            <div class="absolute w-8 h-8 rounded-full ${isHigh ? 'bg-emerald-500/40 animate-ping' : 'bg-amber-500/30'}"></div>
-            <div class="px-2 py-0.5 rounded-full ${isRestricted ? 'bg-rose-700 border-rose-400' : isHigh ? 'bg-emerald-600 border-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.5)]' : 'bg-amber-600 border-amber-300'} border flex items-center gap-1 shadow-xl text-white font-bold text-[10px] whitespace-nowrap">
-              <span>🐟</span>
-              <span>PFZ #${zone.rank}</span>
-              <span class="font-mono text-[9px] ${isHigh ? 'text-emerald-200' : 'text-amber-200'}">(${zone.score}%)</span>
+    // 2. Render PFZ Intercept Zones and Pins
+    if (pfzZones && pfzZones.length > 0) {
+      pfzZones.forEach((zone: any) => {
+        const isHigh = zone.suitability === 'HIGH';
+        const isMod = zone.suitability === 'MODERATE';
+        const isRestricted = zone.geofenceStatus === 'RESTRICTED';
+
+        const strokeColor = isRestricted ? '#f43f5e' : isHigh ? '#10b981' : isMod ? '#f59e0b' : '#3b82f6';
+        const fillColor = isRestricted ? '#9f1239' : isHigh ? '#059669' : isMod ? '#d97706' : '#1d4ed8';
+
+        // Front Intercept Concentric Convergence Circle
+        const circle = L.circle([zone.latitude, zone.longitude], {
+          radius: isHigh ? 3500 : 2500,
+          color: strokeColor,
+          weight: isHigh ? 2.5 : 1.5,
+          opacity: 0.85,
+          fillColor: fillColor,
+          fillOpacity: isHigh ? 0.25 : 0.15,
+          dashArray: isRestricted ? '5, 5' : undefined
+        });
+
+        // Custom Glowing Fish Icon Pin
+        const fishIcon = L.divIcon({
+          className: 'custom-pfz-marker-icon',
+          html: `
+            <div class="relative flex items-center justify-center cursor-pointer">
+              <div class="absolute w-8 h-8 rounded-full ${isHigh ? 'bg-emerald-500/40 animate-ping' : 'bg-amber-500/30'}"></div>
+              <div class="px-2 py-0.5 rounded-full ${isRestricted ? 'bg-rose-700 border-rose-400' : isHigh ? 'bg-emerald-600 border-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.5)]' : 'bg-amber-600 border-amber-300'} border flex items-center gap-1 shadow-xl text-white font-bold text-[10px] whitespace-nowrap">
+                <span>🐟</span>
+                <span>INCOIS #${zone.rank}</span>
+                <span class="font-mono text-[9px] ${isHigh ? 'text-emerald-200' : 'text-amber-200'}">(${zone.score}%)</span>
+              </div>
             </div>
-          </div>
-        `,
-        iconSize: [85, 26],
-        iconAnchor: [42, 13]
-      });
+          `,
+          iconSize: [95, 26],
+          iconAnchor: [47, 13]
+        });
 
-      const marker = L.marker([zone.latitude, zone.longitude], { icon: fishIcon });
+        const marker = L.marker([zone.latitude, zone.longitude], { icon: fishIcon });
 
-      const popupContent = `
-        <div class="p-2.5 space-y-2 max-w-[260px] bg-slate-900 text-slate-100 rounded-lg">
-          <div class="flex items-center justify-between border-b border-slate-700/80 pb-1.5">
-            <div class="flex items-center gap-1.5 font-bold text-xs text-emerald-400">
-              <span>🐟 ${zone.id}</span>
-              <span class="text-[10px] text-slate-300 font-mono">(Rank #${zone.rank})</span>
-            </div>
-            <span class="px-1.5 py-0.5 rounded text-[9px] font-black tracking-wider uppercase ${
-              isRestricted ? 'bg-rose-600 text-white' :
-              isHigh ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' :
-              'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-            }">
-              ${zone.suitability} SUITABILITY
-            </span>
-          </div>
-
-          <div class="text-[11px] font-mono space-y-1 bg-slate-950/80 p-2 rounded border border-slate-800">
-            <div class="flex justify-between">
-              <span class="text-slate-400">Fishing Score:</span>
-              <span class="font-bold text-cyan-300">${zone.score}/100</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-slate-400">Chlorophyll-a:</span>
-              <span class="${zone.chlorophyllMgM3 !== undefined ? 'text-emerald-400 font-bold' : 'text-slate-400 font-semibold'}">
-                ${zone.chlorophyllMgM3 !== undefined ? `${zone.chlorophyllMgM3.toFixed(2)} mg/m³` : 'Cloud Masked (NOAA)'}
+        const popupContent = `
+          <div class="p-2.5 space-y-2 max-w-[280px] bg-slate-900 text-slate-100 rounded-lg">
+            <div class="flex items-center justify-between border-b border-slate-700/80 pb-1.5">
+              <div class="flex items-center gap-1.5 font-bold text-xs text-emerald-400">
+                <span>🐟 ${zone.id}</span>
+                <span class="text-[10px] text-cyan-300 font-mono">UID: ${zone.incoisUid || 'INCOIS'}</span>
+              </div>
+              <span class="px-1.5 py-0.5 rounded text-[9px] font-black tracking-wider uppercase ${
+                isRestricted ? 'bg-rose-600 text-white' :
+                isHigh ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' :
+                'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+              }">
+                ${zone.suitability}
               </span>
             </div>
-            ${zone.sstC !== undefined ? `
+
+            <div class="text-[11px] font-mono space-y-1 bg-slate-950/80 p-2 rounded border border-slate-800">
               <div class="flex justify-between">
-                <span class="text-slate-400">Sea Surface Temp:</span>
-                <span class="text-amber-400 font-bold">${zone.sstC.toFixed(1)}°C</span>
+                <span class="text-slate-400">Fishing Score:</span>
+                <span class="font-bold text-cyan-300">${zone.score}/100</span>
               </div>
-            ` : ''}
-            ${zone.sstAnomalyC !== undefined ? `
               <div class="flex justify-between">
-                <span class="text-slate-400">SST Anomaly:</span>
-                <span class="text-cyan-400 font-bold">${zone.sstAnomalyC >= 0 ? '+' : ''}${zone.sstAnomalyC.toFixed(2)}°C</span>
+                <span class="text-slate-400">Distance from Port:</span>
+                <span class="text-emerald-400 font-bold">${zone.distanceNm ?? '—'} NM (${zone.distanceKm ?? '—'} km)</span>
               </div>
-            ` : ''}
-            <div class="flex justify-between border-t border-slate-800 pt-1">
-              <span class="text-slate-400">Geofence Clearance:</span>
-              <span class="font-bold ${
-                zone.geofenceStatus === 'CLEAR' ? 'text-emerald-400' :
-                zone.geofenceStatus === 'CAUTION' ? 'text-amber-400' : 'text-red-400'
-              }">${zone.geofenceStatus}</span>
+              <div class="flex justify-between">
+                <span class="text-slate-400">Compass Bearing:</span>
+                <span class="text-amber-300 font-bold">${zone.bearingDeg ?? '—'}°</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-slate-400">Front Length:</span>
+                <span class="text-cyan-300 font-bold">${zone.frontLengthKm ?? '—'} km</span>
+              </div>
+              ${zone.sstC !== undefined ? `
+                <div class="flex justify-between">
+                  <span class="text-slate-400">SST at Front:</span>
+                  <span class="text-amber-400 font-bold">${zone.sstC.toFixed(1)}°C</span>
+                </div>
+              ` : ''}
+              <div class="flex justify-between border-t border-slate-800 pt-1">
+                <span class="text-slate-400">Geofence Status:</span>
+                <span class="font-bold ${
+                  zone.geofenceStatus === 'CLEAR' ? 'text-emerald-400' :
+                  zone.geofenceStatus === 'CAUTION' ? 'text-amber-400' : 'text-red-400'
+                }">${zone.geofenceStatus}</span>
+              </div>
             </div>
-          </div>
 
-          ${zone.explanations?.[0] ? `
-            <p class="text-[10px] text-slate-300 leading-tight italic bg-emerald-950/30 p-1.5 rounded border border-emerald-800/40">
-              💡 ${zone.explanations[0]}
-            </p>
-          ` : ''}
+            ${zone.explanations?.[0] ? `
+              <p class="text-[10px] text-slate-300 leading-tight italic bg-emerald-950/30 p-1.5 rounded border border-emerald-800/40">
+                💡 ${zone.explanations[0]}
+              </p>
+            ` : ''}
 
-          ${zone.sources?.length ? `
             <div class="text-[9px] text-slate-400 font-mono flex flex-wrap gap-1">
-              <span class="text-slate-500">Feeds:</span>
-              ${zone.sources.map((s: string) => `<span class="bg-slate-800 px-1 rounded text-cyan-300">${s.split(' ')[0]}</span>`).join('')}
+              <span class="text-slate-500">Source:</span>
+              <span class="bg-slate-800 px-1 rounded text-cyan-300">INCOIS GeoServer WFS</span>
+              <span class="bg-slate-800 px-1 rounded text-emerald-300">Daily Statutory</span>
             </div>
-          ` : ''}
 
-          <div class="grid grid-cols-2 gap-1 pt-1">
-            <button
-              onclick="window.__orcaSetBoatLocation && window.__orcaSetBoatLocation(${zone.latitude}, ${zone.longitude})"
-              class="py-1 px-1.5 bg-cyan-700 hover:bg-cyan-600 text-white font-bold text-[10px] rounded transition-all text-center flex items-center justify-center gap-1 shadow cursor-pointer"
-            >
-              ⚓ Move Boat Here
-            </button>
-            <button
-              onclick="window.__orcaPlotRouteTo && window.__orcaPlotRouteTo(${zone.latitude}, ${zone.longitude}, 'PFZ Zone #${zone.rank}')"
-              class="py-1 px-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] rounded transition-all text-center flex items-center justify-center gap-1 shadow cursor-pointer"
-            >
-              🧭 Safe Route
-            </button>
+            <div class="grid grid-cols-2 gap-1 pt-1">
+              <button
+                onclick="window.__orcaSetBoatLocation && window.__orcaSetBoatLocation(${zone.latitude}, ${zone.longitude})"
+                class="py-1 px-1.5 bg-cyan-700 hover:bg-cyan-600 text-white font-bold text-[10px] rounded transition-all text-center flex items-center justify-center gap-1 shadow cursor-pointer"
+              >
+                ⚓ Move Boat Here
+              </button>
+              <button
+                onclick="window.__orcaPlotRouteTo && window.__orcaPlotRouteTo(${zone.latitude}, ${zone.longitude}, 'INCOIS Front #${zone.rank}')"
+                class="py-1 px-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] rounded transition-all text-center flex items-center justify-center gap-1 shadow cursor-pointer"
+              >
+                🧭 Safe Route to Front
+              </button>
+            </div>
           </div>
-        </div>
-      `;
+        `;
 
-      circle.bindPopup(popupContent);
-      marker.bindPopup(popupContent);
+        circle.bindPopup(popupContent);
+        marker.bindPopup(popupContent);
 
-      circle.addTo(layerGroup);
-      marker.addTo(layerGroup);
-    });
+        circle.addTo(layerGroup);
+        marker.addTo(layerGroup);
+      });
+    }
 
     layerGroup.addTo(map);
     pfzLayerGroupRef.current = layerGroup;
-  }, [showPfz, pfzZones]);
+  }, [showPfz, pfzZones, pfzFrontlines]);
 
   // Render Dynamic Safe Navigation Polyline & Waypoint Markers
   useEffect(() => {
@@ -860,13 +961,24 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
 
           <button
             onClick={() => setShowPfz(!showPfz)}
-            title="Toggle Potential Fishing Zones (PFZ) Satellite Layer"
+            title="Toggle Statutory INCOIS Daily Potential Fishing Zones (PFZ) & Satellite Frontlines"
             className={`px-2 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1 transition-all whitespace-nowrap ${
               showPfz ? 'bg-emerald-950/90 text-emerald-200 border border-emerald-500/80 shadow-[0_0_12px_rgba(16,185,129,0.4)] font-bold' : 'text-slate-400 hover:bg-slate-800/60'
             }`}
           >
             <span>🐟</span>
-            <span className="hidden sm:inline">PFZ Hotspots</span>
+            <span className="hidden sm:inline">INCOIS PFZ (Live WFS)</span>
+          </button>
+
+          <button
+            onClick={() => setIsSatelliteView(!isSatelliteView)}
+            title="Toggle Real High-Resolution Optical Satellite Imagery Base Layer (Esri World Imagery + OpenSeaMap)"
+            className={`px-2 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1 transition-all whitespace-nowrap ${
+              isSatelliteView ? 'bg-cyan-950/90 text-cyan-200 border border-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.4)] font-bold' : 'text-slate-400 hover:bg-slate-800/60'
+            }`}
+          >
+            <span>🛰️</span>
+            <span className="hidden sm:inline">{isSatelliteView ? 'Satellite Map (Live)' : 'Satellite View'}</span>
           </button>
 
           <button
