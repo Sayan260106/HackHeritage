@@ -263,6 +263,7 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
                         onSearch={(q, loc, time, detectedLang) => fetchAnalysis(q, loc, time, detectedLang || language)}
                         isLoading={isLoading}
                         language={language}
+                        onOpenChat={() => setIsChatDrawerOpen(true)}
                       />
                       <MarineTelemetry
                         weather={analysisData.weather}
