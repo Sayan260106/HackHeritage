@@ -33,10 +33,14 @@ export function runAgenticSafeRouting(request: AgenticSafeRoutingRequest): Agent
   const warnings = [...decision.warnings];
 
   const destination = request.destination ?? (request.pfz?.bestZone
-    ? { latitude: request.pfz.bestZone.latitude, longitude: request.pfz.bestZone.longitude, label: `PFZ #${request.pfz.bestZone.rank} (${request.pfz.bestZone.id})` }
+    ? { latitude: request.pfz.bestZone.latitude, longitude: request.pfz.bestZone.longitude, label: request.pfz.bestZone.id }
     : request.pfz?.zones && request.pfz.zones.length > 0
-    ? { latitude: request.pfz.zones[0].latitude, longitude: request.pfz.zones[0].longitude, label: `PFZ #${request.pfz.zones[0].rank} (${request.pfz.zones[0].id})` }
-    : { latitude: Number((request.origin.latitude - 0.20).toFixed(4)), longitude: Number((request.origin.longitude + 0.25).toFixed(4)), label: 'Designated Offshore Channel Waypoint' });
+    ? { latitude: request.pfz.zones[0].latitude, longitude: request.pfz.zones[0].longitude, label: request.pfz.zones[0].id }
+    : undefined);
+
+  if (!destination) {
+    return { decision, status: 'ROUTE_NOT_REQUESTED', warnings };
+  }
 
   if (decision.decision === 'AVOID' || decision.decision === 'UNAVAILABLE') {
     warnings.push(`Safe routing withheld because Decision Fusion returned ${decision.decision}.`);
