@@ -214,7 +214,7 @@ export const MarineTelemetry: React.FC<MarineTelemetryProps> = ({
 
             <div className="text-[10px] uppercase tracking-widest text-slate-500 font-medium flex items-center justify-between pt-2">
               <span>Phase: <strong className="text-slate-300">{localizeSeaState(ocean.tidePhase, language)}</strong></span>
-              <span>Drift Vector</span>
+              <span>Flow: <strong className="text-slate-300">{ocean.currentDirectionDeg}° Set</strong></span>
             </div>
           </div>
 
