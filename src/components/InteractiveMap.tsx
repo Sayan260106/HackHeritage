@@ -17,7 +17,7 @@ import {
   ShieldCheck,
   AlertTriangle
 } from 'lucide-react';
-import { LocationInfo, GisLayerData, RiskLevel, RiskPrediction, OceanData, LanguageCode, GeofenceSpatialAnalysis, DarkVesselAnalysis, VesselTarget } from '../types';
+import { LocationInfo, GisLayerData, RiskLevel, RiskPrediction, OceanData, LanguageCode, GeofenceSpatialAnalysis, DarkVesselAnalysis, VesselTarget, OilSpillAnalysis, OilSpillEvent } from '../types';
 import { COASTAL_LOCATIONS, MULTILINGUAL_DICTIONARY } from '../data/coastalData';
 import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion';
 import { maritimeSiren } from '../services/audio/maritimeSirenService';
@@ -59,6 +59,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   const pfzLayerGroupRef = useRef<L.LayerGroup | null>(null);
   const routeLayerGroupRef = useRef<L.LayerGroup | null>(null);
   const vesselLayerGroupRef = useRef<L.LayerGroup | null>(null);
+  const oilSpillLayerGroupRef = useRef<L.LayerGroup | null>(null);
   const targetMarkerRef = useRef<L.Marker | null>(null);
   const clickMarkerRef = useRef<L.Marker | null>(null);
   const onCoordinateClickRef = useRef(onCoordinateClick);
@@ -167,8 +168,29 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   const [showPfz, setShowPfz] = useState<boolean>(true);
   const [showVessels, setShowVessels] = useState<boolean>(true);
   const [vesselsData, setVesselsData] = useState<DarkVesselAnalysis | null>(null);
+  const [showOilSpills, setShowOilSpills] = useState<boolean>(true);
+  const [oilSpillsData, setOilSpillsData] = useState<OilSpillAnalysis | null>(null);
   const [showSstOverlay, setShowSstOverlay] = useState<boolean>(true);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+
+  // Fetch live satellite oil spill analysis (NASA EONET & Copernicus STAC)
+  useEffect(() => {
+    let isMounted = true;
+    fetch('/api/gis/oil-spills', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ latitude: location.latitude, longitude: location.longitude })
+    })
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (isMounted && data && Array.isArray(data.events)) {
+          setOilSpillsData(data);
+        }
+      })
+      .catch(err => console.error('Failed to fetch live oil spill satellite data:', err));
+
+    return () => { isMounted = false; };
+  }, [location.latitude, location.longitude]);
 
   // Fetch live AIS vessel traffic & Sentinel-1 SAR dark vessel analysis
   useEffect(() => {
@@ -1210,6 +1232,92 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
     vesselLayerGroupRef.current = layerGroup;
   }, [showVessels, vesselsData]);
 
+  // Render Real-Time Satellite Oil Spill Slicks & Hazards Layer
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+
+    if (oilSpillLayerGroupRef.current) {
+      map.removeLayer(oilSpillLayerGroupRef.current);
+      oilSpillLayerGroupRef.current = null;
+    }
+
+    if (!showOilSpills || !oilSpillsData?.events || oilSpillsData.events.length === 0) return;
+
+    const layerGroup = L.layerGroup();
+
+    oilSpillsData.events.forEach((spill: OilSpillEvent) => {
+      if (spill.polygon && Array.isArray(spill.polygon) && spill.polygon.length > 0) {
+        // Convert [lon, lat] pairs to Leaflet [lat, lon]
+        const latLngs = spill.polygon.map(pt => [pt[1], pt[0]] as [number, number]);
+
+        const poly = L.polygon(latLngs, {
+          color: '#c084fc',
+          weight: 2.5,
+          opacity: 0.9,
+          fillColor: '#581c87',
+          fillOpacity: 0.35,
+          dashArray: '6, 4'
+        });
+
+        const spillIcon = L.divIcon({
+          className: 'custom-oil-spill-icon',
+          html: `
+            <div class="relative flex items-center justify-center cursor-pointer">
+              <div class="absolute w-9 h-9 rounded-full bg-purple-600/40 animate-ping"></div>
+              <div class="px-2 py-0.5 rounded-full bg-purple-950 border border-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.8)] flex items-center gap-1 shadow-xl text-white font-bold text-[10px] whitespace-nowrap">
+                <span>🛢️</span>
+                <span class="font-mono text-[9px] text-purple-200 font-black">OIL SLICK</span>
+                <span class="font-mono text-[8px] text-amber-300">(${spill.distanceNm ?? '—'} NM)</span>
+              </div>
+            </div>
+          `,
+          iconSize: [95, 26],
+          iconAnchor: [47, 13]
+        });
+
+        const marker = L.marker([spill.latitude, spill.longitude], { icon: spillIcon });
+
+        const popupContent = `
+          <div class="p-2.5 space-y-2 max-w-[290px] bg-slate-900 text-slate-100 rounded-xl font-mono text-xs shadow-2xl border border-purple-500/60">
+            <div class="flex items-center justify-between border-b border-purple-800/80 pb-1.5 font-bold text-purple-300">
+              <span class="flex items-center gap-1.5">🛢️ ${spill.title}</span>
+              <span class="text-[9px] bg-purple-950 text-purple-200 px-1.5 py-0.5 rounded border border-purple-700 font-black">SATELLITE</span>
+            </div>
+
+            <div class="space-y-1 text-[11px] bg-slate-950/90 p-2 rounded border border-slate-800">
+              <div class="flex justify-between"><span class="text-slate-400">Authority:</span> <span class="text-purple-300 font-bold">${spill.sourceAuthority}</span></div>
+              <div class="flex justify-between"><span class="text-slate-400">Position:</span> <span class="text-slate-200">${spill.latitude.toFixed(4)}°N, ${spill.longitude.toFixed(4)}°E</span></div>
+              <div class="flex justify-between"><span class="text-slate-400">Distance:</span> <span class="text-amber-300 font-bold">${spill.distanceNm} NM (${spill.distanceKm} km)</span></div>
+              <div class="flex justify-between"><span class="text-slate-400">Est. Slick Area:</span> <span class="text-cyan-300 font-bold">${spill.areaKm2} km²</span></div>
+              <div class="flex justify-between border-t border-slate-800 pt-1"><span class="text-slate-400">Drift Vector:</span> <span class="text-emerald-400 font-bold">${spill.driftSpeedKts} kts @ ${spill.driftDirectionDeg}°</span></div>
+            </div>
+
+            <p class="text-[10px] text-purple-200 bg-purple-950/50 p-1.5 rounded border border-purple-900/60 italic leading-tight">
+              ⚠️ MARPOL Annex I Hazard Zone. Safe navigation routing will automatically steer vessels around this slick.
+            </p>
+
+            <button
+              onclick="window.__orcaPlotRouteTo && window.__orcaPlotRouteTo(${spill.latitude + 0.08}, ${spill.longitude + 0.08}, 'Bypass Point for ${spill.id}')"
+              class="w-full py-1.5 px-2 bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-600 hover:to-indigo-600 text-white font-bold text-[10px] rounded transition-all text-center flex items-center justify-center gap-1 shadow cursor-pointer"
+            >
+              🧭 Plot Safe Route Bypass Around Slick
+            </button>
+          </div>
+        `;
+
+        poly.bindPopup(popupContent);
+        marker.bindPopup(popupContent);
+
+        poly.addTo(layerGroup);
+        marker.addTo(layerGroup);
+      }
+    });
+
+    layerGroup.addTo(map);
+    oilSpillLayerGroupRef.current = layerGroup;
+  }, [showOilSpills, oilSpillsData]);
+
   return (
     <div 
       ref={outerWrapperRef} 
@@ -1380,6 +1488,19 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           >
             <span>📡</span>
             <span className="hidden sm:inline">INCOIS Buoys (Live)</span>
+          </button>
+
+          <button
+            onClick={() => setShowOilSpills(!showOilSpills)}
+            title="Toggle Live Satellite Oil Spill Slicks & Hazards (NASA EONET / Copernicus STAC)"
+            className={`px-2 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1 transition-all whitespace-nowrap ${
+              showOilSpills
+                ? 'bg-purple-950/90 text-purple-200 border border-purple-500/80 shadow-[0_0_12px_rgba(168,85,247,0.5)] font-bold'
+                : 'text-slate-400 hover:bg-slate-800/60'
+            }`}
+          >
+            <span>🛢️</span>
+            <span className="hidden sm:inline">Oil Slicks (Live NASA)</span>
           </button>
 
         </div>

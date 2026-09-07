@@ -1,6 +1,6 @@
 import { GisLayerData, LocationInfo, OceanData, RiskLevel, RiskPrediction } from '../../src/types.ts';
 
-export type GisZoneCategory = 'restricted_zone' | 'hazard_zone' | 'precaution_zone' | 'fishing_zone' | 'port_buffer';
+export type GisZoneCategory = 'restricted_zone' | 'hazard_zone' | 'precaution_zone' | 'fishing_zone' | 'port_buffer' | 'oil_spill';
 
 export interface GisZone {
   id: string;

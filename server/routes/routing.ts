@@ -3,7 +3,9 @@ import { calculateSafeRoute } from '../services/safeRouting.ts';
 
 const router = Router();
 
-router.post('/safe-route', (req, res) => {
+import { fetchLiveOilSpillAnalysis } from '../services/realtime/oilSpillService.ts';
+
+router.post('/safe-route', async (req, res) => {
   try {
     const origin = req.body?.origin;
     const destination = req.body?.destination;
@@ -14,12 +16,32 @@ router.post('/safe-route', (req, res) => {
       return res.status(400).json({ error: 'origin and destination coordinates are required.' });
     }
 
+    const originLat = Number(origin.latitude);
+    const originLon = Number(origin.longitude);
+
+    let oilSpills: any[] = [];
+    try {
+      const oilAnalysis = await fetchLiveOilSpillAnalysis(originLat, originLon);
+      if (oilAnalysis.events && oilAnalysis.events.length > 0) {
+        oilSpills = oilAnalysis.events;
+      }
+    } catch {
+      // Ignore oil spill fetch failure, fallback to base routing
+    }
+
     const result = calculateSafeRoute({
-      origin: { latitude: Number(origin.latitude), longitude: Number(origin.longitude) },
+      origin: { latitude: originLat, longitude: originLon },
       destination: { latitude: Number(destination.latitude), longitude: Number(destination.longitude) },
       riskLevel: ['LOW', 'MODERATE', 'HIGH', 'EXTREME'].includes(riskLevel) ? riskLevel : undefined,
       maxNodes: Number.isFinite(Number(maxNodes)) ? Number(maxNodes) : undefined,
+      oilSpills
     });
+
+    if (oilSpills.length > 0 && result.status === 'ROUTE_FOUND') {
+      if (!result.avoidedConstraints.includes('Active Satellite Oil Slick (NASA EONET / Copernicus SAR)')) {
+        result.avoidedConstraints.push('Active Satellite Oil Slick (NASA EONET / Copernicus SAR)');
+      }
+    }
 
     return res.json(result);
   } catch (error) {

@@ -1,4 +1,4 @@
-import type { GeofenceSpatialAnalysis, RiskLevel } from '../../src/types.ts';
+import type { GeofenceSpatialAnalysis, OilSpillEvent, RiskLevel } from '../../src/types.ts';
 import { analyzeMaritimeGeofencing, calculateBearingDeg, haversineDistanceKm } from './geofenceService.ts';
 
 export interface RouteCoordinate {
@@ -11,6 +11,7 @@ export interface SafeRouteRequest {
   destination: RouteCoordinate;
   riskLevel?: RiskLevel;
   maxNodes?: number;
+  oilSpills?: OilSpillEvent[];
 }
 
 export interface SafeRouteWaypoint extends RouteCoordinate {
@@ -189,13 +190,27 @@ export function calculateSafeRoute(request: SafeRouteRequest): SafeRouteResult {
   }
 
   const nodes = new Map<string, GridNode>();
+  let avoidedOilSpillCount = 0;
   for (let row = 0; row < rows; row += 1) {
     for (let col = 0; col < cols; col += 1) {
       const north = (row - rowOrigin) * stepKm;
       const east = (col - colOrigin) * stepKm;
       const point = move(request.origin, north, east);
       const geofence = analyzeMaritimeGeofencing(point.latitude, point.longitude);
-      const blocked = isHardBlocked(geofence);
+      
+      let isOilSpillBlocked = false;
+      if (Array.isArray(request.oilSpills) && request.oilSpills.length > 0) {
+        for (const spill of request.oilSpills) {
+          const dKm = haversineDistanceKm(point.latitude, point.longitude, spill.latitude, spill.longitude);
+          if (dKm <= 6.5) {
+            isOilSpillBlocked = true;
+            avoidedOilSpillCount++;
+            break;
+          }
+        }
+      }
+
+      const blocked = isHardBlocked(geofence) || isOilSpillBlocked;
       const cautionCost = geofence.status === 'CAUTION' ? 1 : 0;
       nodes.set(key(row, col), { row, col, point, blocked, cautionCost, geofence });
     }
