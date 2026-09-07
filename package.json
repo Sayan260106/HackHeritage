@@ -41,8 +41,10 @@
     "test:hybrid-types": "tsx scripts/test-all-hybrid-types.ts",
     "test:mosdac-cache": "tsx scripts/test-mosdac-cache.ts",
     "test:conversation": "tsx scripts/test-conversation-session.ts",
+    "test:forecast": "tsx scripts/test-marine-forecast.ts",
     "smoke": "node scripts/smoke-test.mjs"
   },
+
   "dependencies": {
     "@google/genai": "^2.4.0",
     "@tailwindcss/vite": "^4.1.14",
