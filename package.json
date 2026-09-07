@@ -44,6 +44,7 @@
     "test:forecast": "tsx scripts/test-marine-forecast.ts",
     "test:rag": "tsx scripts/test-rag-evidence.ts",
     "test:isro-benchmarks": "tsx scripts/test-all-8-isro-queries.ts",
+    "test:multilingual-e2e": "tsx scripts/test-multilingual-e2e.ts",
     "smoke": "node scripts/smoke-test.mjs"
   },
 
