@@ -31,7 +31,7 @@ export function createOrcaPlan(query: string, language: LanguageCode = 'en'): Or
     { id: 'risk', label: 'Evaluate marine risk', dependsOn: ['weather', 'ocean'], required: true, enabled: true, status: 'pending', reason: 'Risk is a mandatory ORCA-X decision-support signal.' },
     { id: 'gis', label: 'Perform spatial / GIS reasoning', dependsOn: ['resolve_location_time'], required: false, enabled: needsSpatialReasoning, status: 'pending', reason: needsSpatialReasoning ? 'Enabled because the query requires spatial safety, fishing, distance, zone, boundary, routing or map reasoning.' : 'Enabled for distance, zones, boundaries, routing and map-oriented questions.' },
     { id: 'pfz', label: 'Rank potential fishing zones', dependsOn: ['resolve_location_time'], required: false, enabled: asksPfz, status: 'pending', reason: asksPfz ? 'Enabled because the query requests fishing, PFZ, chlorophyll, SST or productivity intelligence.' : 'Enabled for PFZ and marine productivity queries.' },
-    { id: 'safe_route', label: 'Compute geofence-safe route', dependsOn: ['resolve_location_time'], required: false, enabled: asksRouting && asksPfz, status: 'pending', reason: asksRouting && asksPfz ? 'Enabled because the query requests a route to a ranked PFZ destination.' : 'Enabled only when routing is explicitly requested for a PFZ destination.' },
+    { id: 'safe_route', label: 'Compute geofence-safe route', dependsOn: ['resolve_location_time'], required: false, enabled: asksRouting, status: 'pending', reason: asksRouting ? 'Enabled because the query requests safe navigation or route optimization.' : 'Enabled for routing queries.' },
     { id: 'alerts', label: 'Evaluate proactive marine alerts', dependsOn: ['weather', 'ocean', 'risk'], required: false, enabled: enableAlerts, status: 'pending', reason: enableAlerts ? 'Enabled because the query or operating context requires hazard, warning or safety-change evaluation.' : 'Enabled for explicit alerts, warnings and safety-sensitive marine queries.' },
     { id: 'evidence', label: 'Retrieve authoritative evidence', dependsOn: ['resolve_location_time'], required: false, enabled: asksEvidence, status: 'pending', reason: 'Official advisories and domain rules strengthen operational answers but retrieval may degrade independently.' },
     { id: 'synthesis', label: `Synthesize grounded response (${effectiveLanguage})`, dependsOn: [], required: true, enabled: true, status: 'pending', reason: `Final synthesis generates explainable response in ${effectiveLanguage}.` }
@@ -44,7 +44,7 @@ export function createOrcaPlan(query: string, language: LanguageCode = 'en'): Or
   const pfz = tasks.find(t => t.id === 'pfz');
   if (pfz?.enabled) pfz.dependsOn = ['resolve_location_time', 'risk', ...(gis?.enabled ? ['gis' as OrcaTaskId] : [])];
   const safeRoute = tasks.find(t => t.id === 'safe_route');
-  if (safeRoute?.enabled) safeRoute.dependsOn = ['resolve_location_time', 'risk', 'pfz', ...(gis?.enabled ? ['gis' as OrcaTaskId] : [])];
+  if (safeRoute?.enabled) safeRoute.dependsOn = ['resolve_location_time', 'risk', ...(pfz?.enabled ? ['pfz' as OrcaTaskId] : []), ...(gis?.enabled ? ['gis' as OrcaTaskId] : [])];
   const alerts = tasks.find(t => t.id === 'alerts');
   if (alerts?.enabled) alerts.dependsOn = ['weather', 'ocean', 'risk', ...(gis?.enabled ? ['gis' as OrcaTaskId] : []), ...(pfz?.enabled ? ['pfz' as OrcaTaskId] : [])];
   const evidence = tasks.find(t => t.id === 'evidence');
@@ -52,7 +52,7 @@ export function createOrcaPlan(query: string, language: LanguageCode = 'en'): Or
   const synthesis = tasks.find(t => t.id === 'synthesis');
   if (synthesis) synthesis.dependsOn = tasks.filter(t => t.id !== 'synthesis' && t.enabled).map(t => t.id);
   const enabled = tasks.filter(t => t.enabled).map(t => t.label).join(' -> ');
-  return { planId: id('plan'), intent: asksRouting && asksPfz ? 'pfz_safe_routing' : asksPfz ? 'potential_fishing_zone_intelligence' : asksAlerts ? 'marine_alert_intelligence' : asksSatellite ? 'earth_observation_marine_intelligence' : asksSafety ? 'marine_safety_fishing_advisory' : 'marine_intelligence', rationale: `Dynamic route selected from query signals. Enabled branches: ${enabled}`, tasks, generatedAt: new Date().toISOString() };
+  return { planId: id('plan'), intent: asksRouting ? 'pfz_safe_routing' : asksPfz ? 'potential_fishing_zone_intelligence' : asksAlerts ? 'marine_alert_intelligence' : asksSatellite ? 'earth_observation_marine_intelligence' : asksSafety ? 'marine_safety_fishing_advisory' : 'marine_intelligence', rationale: `Dynamic route selected from query signals. Enabled branches: ${enabled}`, tasks, generatedAt: new Date().toISOString() };
 }
 
 export function replanAfterFailure({ plan, failedTask, reason }: ReplanInput): OrcaPlan {
