@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import { LanguageCode } from '../types';
 import { MULTILINGUAL_DICTIONARY } from '../data/coastalData';
+import { OrcaWaveLogo } from './ui/OrcaWaveLogo';
+import { OrcaWordmark } from './ui/OrcaWordmark';
 
 type TabId = 'dashboard' | 'analysis' | 'satellite' | 'evidence' | 'simulator';
 
@@ -84,31 +86,13 @@ const navItems: {
 /** ORCA-X wordmark: a sounding mark struck over a contour. */
 const Wordmark: React.FC<{ compact?: boolean }> = ({ compact = false }) => (
   <div className="flex items-center gap-3">
-    {/* Logo — sonar ring fires on hover, Waves icon swims like ocean current */}
-    <span className="orca-logo-box flex h-9 w-9 shrink-0 items-center justify-center border border-shoal/35 bg-shoal/10 cursor-pointer">
-      <Waves className="orca-logo-icon h-4 w-4 text-shoal" />
-    </span>
-
-    <div className="min-w-0">
-      <div className="flex items-baseline gap-2">
-        {/* ORCA‑X — each letter pings like a sonar echo propagating across the water column */}
-        <span className="orca-wordmark font-display text-lg font-bold tracking-tight text-chartpaper">
-          <span className="orca-wordmark-letter">O</span>
-          <span className="orca-wordmark-letter">R</span>
-          <span className="orca-wordmark-letter">C</span>
-          <span className="orca-wordmark-letter">A</span>
-          <span className="orca-wordmark-letter">&#8209;</span>
-          <span className="orca-wordmark-letter">X</span>
-        </span>
-        <span className="font-mono text-[9px] tracking-[0.16em] text-buoy/85">
-          v2.4
-        </span>
-      </div>
-      {!compact && (
-        <p className="mt-0.5 truncate font-mono text-[9.5px] tracking-[0.14em] text-fathom">
-          OCEAN REASONING AI
-        </p>
-      )}
+    <OrcaWaveLogo size="md" variant="sidebar" className="shrink-0" />
+    <div className="min-w-0 flex-1">
+      <OrcaWordmark
+        size="md"
+        badge="v2.4"
+        subtitle={compact ? undefined : "OCEAN REASONING AI"}
+      />
     </div>
   </div>
 );
