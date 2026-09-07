@@ -607,7 +607,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
               className: 'buoy-icon',
               html: `
                 <div class="relative flex items-center justify-center">
-                  <div class="w-5 h-5 rounded-full bg-purple-500/80 border border-white shadow-md flex items-center justify-center text-[10px] text-white font-mono">
+                  <div class="w-5 h-5 rounded-full bg-slate-950 border border-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.8)] flex items-center justify-center text-[10px] text-amber-300 font-mono">
                     📡
                   </div>
                 </div>
@@ -1167,10 +1167,10 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
             onClick={() => setShowBuoys(!showBuoys)}
             title="Toggle Ocean Buoys"
             className={`px-2 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1 transition-all whitespace-nowrap ${
-              showBuoys ? 'bg-purple-950/70 text-purple-300 border border-purple-700/50 shadow-[0_0_10px_rgba(168,85,247,0.25)]' : 'text-slate-400 hover:bg-slate-800/60'
+              showBuoys ? 'bg-amber-950/70 text-amber-300 border border-amber-600/60 shadow-[0_0_10px_rgba(245,158,11,0.25)]' : 'text-slate-400 hover:bg-slate-800/60'
             }`}
           >
-            <Radio className="h-3 w-3 text-purple-400" />
+            <Radio className="h-3 w-3 text-amber-400" />
             <span className="hidden md:inline">{dict.buoys}</span>
           </button>
 
@@ -1244,7 +1244,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
 
           <button
             onClick={() => setShowVessels(!showVessels)}
-            title="Toggle Live INCOIS Moored Ocean Buoys & Sentinel-1 SAR Surveillance"
+            title="Toggle Live INCOIS Moored Ocean Buoy Stations (NDBP/NIOT Telemetry)"
             className={`px-2 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1 transition-all whitespace-nowrap ${
               showVessels
                 ? 'bg-amber-950/90 text-amber-200 border border-amber-500/80 shadow-[0_0_12px_rgba(245,158,11,0.5)] font-bold'
@@ -1252,12 +1252,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
             }`}
           >
             <span>📡</span>
-            <span className="hidden sm:inline">INCOIS Buoys & SAR</span>
-            {vesselsData?.darkVesselCount ? (
-              <span className="ml-0.5 px-1.5 py-0.2 rounded-full bg-red-600 text-white text-[9px] font-black font-mono animate-pulse">
-                {vesselsData.darkVesselCount}
-              </span>
-            ) : null}
+            <span className="hidden sm:inline">INCOIS Buoys (Live)</span>
           </button>
 
         </div>
@@ -1517,44 +1512,36 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         </div>
         <div className="space-y-1 text-[11px]">
           <div className="flex items-center space-x-2">
+            <span className="w-3.5 h-3.5 rounded-full bg-cyan-500 border border-white shadow-[0_0_8px_rgba(6,182,212,0.8)] flex items-center justify-center text-[8px] text-white">⚓</span>
+            <span className="text-cyan-200 font-semibold">My Boat / Base Port</span>
+          </div>
+          <div className="flex items-center space-x-2">
             <span className="w-3.5 h-0.5 bg-rose-500 border border-rose-500 border-dashed"></span>
-            <span className="text-slate-300 font-semibold">IMBL Border (1974/PCA)</span>
+            <span className="text-rose-300 font-semibold">IMBL Border (1974/PCA)</span>
           </div>
           <div className="flex items-center space-x-2">
-            <span className="w-3 h-3 rounded bg-emerald-500/30 border border-emerald-500"></span>
-            <span className="text-slate-300 font-semibold">Marine Protected Area</span>
+            <span className="w-3 h-3 rounded bg-emerald-500/25 border border-emerald-400 border-dashed"></span>
+            <span className="text-emerald-300 font-semibold">Marine Protected Area</span>
           </div>
           <div className="flex items-center space-x-2">
-            <span className="w-3 h-3 rounded bg-red-500/40 border border-red-500"></span>
-            <span className="text-slate-300">{dict.offshoreHazard}</span>
+            <span className="w-3 h-3 rounded bg-amber-500/30 border border-amber-400 border-dashed"></span>
+            <span className="text-amber-300 font-semibold">{dict.offshoreHazard || 'Offshore Hazard Sector'}</span>
           </div>
           <div className="flex items-center space-x-2">
-            <span className="w-3 h-3 rounded bg-blue-500/30 border border-blue-400"></span>
-            <span className="text-slate-300">{dict.inshoreBuffer}</span>
+            <span className="w-3.5 h-0.5 bg-cyan-400 border border-cyan-400 border-dashed"></span>
+            <span className="text-cyan-300 font-semibold">INCOIS Frontline (WFS)</span>
           </div>
           <div className="flex items-center space-x-2">
-            <span className="w-3 h-0.5 bg-emerald-400 border border-emerald-400 border-dashed"></span>
-            <span className="text-slate-300">{dict.fairwayChannel}</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-purple-500 border border-white"></span>
-            <span className="text-slate-300">{dict.buoyStation}</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 border border-emerald-200 shadow-[0_0_8px_rgba(16,185,129,0.8)]"></span>
-            <span className="text-emerald-300 font-semibold">PFZ Hotspot (NOAA/ISRO)</span>
+            <span className="w-3.5 h-3.5 rounded-full bg-emerald-600 border border-emerald-300 shadow-[0_0_8px_rgba(16,185,129,0.8)] flex items-center justify-center text-[9px] text-white">🐟</span>
+            <span className="text-emerald-300 font-semibold">PFZ Hotspot (INCOIS/ISRO)</span>
           </div>
           <div className="flex items-center space-x-2">
             <span className="w-3.5 h-0.5 bg-emerald-400 border border-emerald-300 border-dashed"></span>
-            <span className="text-cyan-300 font-semibold">Safe Route Polyline</span>
+            <span className="text-emerald-300 font-semibold">Safe Route Polyline (A*)</span>
           </div>
           <div className="flex items-center space-x-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-red-600 border border-red-300 shadow-[0_0_8px_rgba(239,68,68,0.9)] animate-pulse"></span>
-            <span className="text-red-400 font-bold">🚨 Dark Vessel (SAR Match)</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 border border-white"></span>
-            <span className="text-cyan-200">🚢 AIS Broadcast Vessel</span>
+            <span className="w-3.5 h-3.5 rounded-full bg-slate-950 border border-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.8)] flex items-center justify-center text-[8px] text-amber-300">📡</span>
+            <span className="text-amber-300 font-semibold">{dict.buoyStation || 'INCOIS MoES Buoy'}</span>
           </div>
         </div>
         <div className="text-[10px] text-cyan-300/90 pt-0.5 font-mono">

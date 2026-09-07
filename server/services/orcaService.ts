@@ -15,6 +15,7 @@ import { fuseMarineDecision } from './decisionFusion.ts';
 import { runAgenticSafeRouting } from './agenticSafeRouting.ts';
 import { runAgenticAlertEvaluation } from './agenticAlertAgent.ts';
 import { getSession, recordSessionTurn, resolveConversationalContext } from './conversationService.ts';
+import { generateLocalizedIntentBriefing } from './intentBriefingLocalization.ts';
 
 let genAIClient: GoogleGenAI | null = null;
 function getGenAI(): GoogleGenAI | null {
@@ -172,145 +173,26 @@ export async function runOrcaAgentWorkflow(
           : '';
         const prompt = `You are ORCA-X, a grounded marine intelligence assistant. User query: "${query}". Location: ${location.name}, ${location.country}. Time: ${timeWindow.requestedText}. Intent: ${plan.intent}. ${recentTurnsText}LIVE weather source=${realtime.weather.source}, wind=${realtime.weather.windSpeedKts}kt, gust=${realtime.weather.windGustKts}kt, weatherCode=${realtime.weather.weatherCode}. LIVE marine source=${realtime.ocean.source}, wave=${realtime.ocean.waveHeightMeters}m, swell=${realtime.ocean.swellHeightMeters}m. Risk=${risk.riskScore}/100 ${risk.riskLevel}, confidence=${risk.confidenceScore}%. ${geofenceSummary} ${pfzSummary} ${decisionSummary} ${routeSummary} ${alertSummaryText} Evidence=${evidence.map(e => `${e.title} | ${e.sourceAuthority} | ${e.excerpt}`).join(' || ')}. Never invent measurements. Critical alerts and AVOID decisions must be treated as hard operational warnings. The cyclone signal is only a proxy unless authoritative IMD confirmation is present. State degraded data explicitly and do not imply that ORCA-X replaces IMD, INCOIS, MRCC, nautical charts or statutory warnings.`;
         for (const model of ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-3.7-flash']) {
-          try { const response = await genAI.models.generateContent({ model, contents: prompt, config: { temperature: 0.2, topP: 0.85 } }); if (response.text) { groundedSummary = response.text; break; } } catch { trace.logs.push(`Model ${model} unavailable; trying next model.`); }
-        }
+          try { const response = await genAI.models.generateContent({ model, contents: prompt, config: { temperature: 0.2, topP: 0.85 } }); if (response.text) { groundedSummary = response.text; break; } } catch { trace.logs.push(`Model ${model} unavailable; trying next model.`); }        }
       }
+
       const buildIntentGroundedBriefing = (): string => {
-        const qLower = query.toLowerCase();
-        const bestZone = pfz?.bestZone || (pfz?.zones && pfz.zones[0]);
-        const nearestImbl = geofenceAnalysis?.nearestImbl;
-        const nearestMpa = geofenceAnalysis?.nearestMpa;
+        const localized = generateLocalizedIntentBriefing({
+          query,
+          language,
+          location: location!,
+          timeText: timeWindow!.requestedText,
+          weather: realtime!.weather,
+          ocean: realtime!.ocean,
+          risk: risk!,
+          operationalDecision,
+          pfz,
+          safeRoute,
+          alertSummary,
+          geofence: geofenceAnalysis,
+        });
 
-        // Query Category 7: Why has fish productivity declined?
-        if (qLower.includes('decline') || qLower.includes('productivity') || qLower.includes('কমে') || qLower.includes('कम')) {
-          return [
-            `Scientific Assessment: Drivers of Coastal Fish Productivity Decline near ${location!.name}`,
-            '',
-            'Based on authoritative oceanographic research from CMFRI and INCOIS, coastal catch fluctuations and pelagic biomass declines are driven by four coupled environmental mechanisms:',
-            '',
-            '1. Breakdown of Seasonal Upwelling: Weakening or delayed coastal wind stress reduces Ekman transport, halting the vertical advection of nutrient-rich (nitrates, phosphates) sub-surface waters into the sunlit euphotic zone.',
-            '2. Sea Surface Warming & Thermal Stratification: Sustained SST anomalies (>30.0°C) intensify vertical stratification, suppressing diatom blooms and dropping chlorophyll-a below 0.3 mg/m³. Pelagic shoals (oil sardine, Indian mackerel) disperse into deeper offshore waters.',
-            '3. Benthic Deoxygenation & Shelf Hypoxia: Heavy monsoon runoff combined with strong halocline stratification triggers severe bottom-water hypoxia (dissolved oxygen < 2.0 mg/L) across the inner continental shelf, displacing demersal species (prawns, croakers).',
-            '4. Climatic Teleconnections (IOD / ENSO): Positive Indian Ocean Dipole and El Niño events deepen the regional thermocline by 15–30 meters, leading to multi-month seasonal contractions in harvestable biomass.',
-            '',
-            `Current Local Telemetry: SST is ${realtime!.ocean.seaSurfaceTemperatureC.toFixed(1)}°C, wave height is ${realtime!.ocean.waveHeightMeters.toFixed(1)}m, wind is ${realtime!.weather.windSpeedKts.toFixed(0)} kts. Operational Directive: ${operationalDecision?.decision || 'PROCEED'}.`
-          ].join('\n');
-        }
-
-        // Query Category 6: What is the safest route for a fishing vessel?
-        if (qLower.includes('route') || qLower.includes('routing') || qLower.includes('safest path') || qLower.includes('পথ') || qLower.includes('পாதை') || qLower.includes('रास्ता')) {
-          const destName = safeRoute?.destinationLabel || (bestZone ? `PFZ Zone #${bestZone.rank} (${bestZone.id})` : 'Designated Offshore Channel');
-          const distNm = safeRoute?.distanceKm ? (safeRoute.distanceKm / 1.852).toFixed(1) : (bestZone?.distanceNm ?? '12.5');
-          const distKm = safeRoute?.distanceKm ? safeRoute.distanceKm.toFixed(1) : (bestZone?.distanceKm ?? '23.1');
-          const waypointsCount = safeRoute?.waypointCount && safeRoute.waypointCount > 0 ? safeRoute.waypointCount : 5;
-
-          return [
-            `Safe Navigation Route for Fishing Vessels (${location!.name} Sector)`,
-            '',
-            `• Routing Status: ${safeRoute?.status === 'ROUTE_FOUND' ? 'SAFE PASSAGE CLEARED' : 'CORRIDOR ACTIVE'}`,
-            `• Origin: ${location!.name} Port (${location!.latitude.toFixed(4)}°N, ${location!.longitude.toFixed(4)}°E)`,
-            `• Destination: ${destName}`,
-            `• Navigational Distance: ${distNm} NM (${distKm} km)`,
-            `• Safe Waypoints: ${waypointsCount} navigation waypoints generated avoiding high breaker surf sectors.`,
-            `• Boundary Clearances: Avoids International Maritime Boundary Line (IMBL) buffer and Marine Protected Area (MPA) sanctuaries.`,
-            `• Prevailing Sea State: Douglas Scale ${realtime!.ocean.seaStateIndex} (${realtime!.ocean.seaStateDescription}), wave height ${realtime!.ocean.waveHeightMeters.toFixed(1)}m, surface current ${realtime!.ocean.currentSpeedKts.toFixed(1)} kts.`,
-            '',
-            `Operational Directive: ${operationalDecision?.decision || 'PROCEED'}. Carry mandatory safety equipment (VHF Ch 16, lifejackets, distress flares).`
-          ].join('\n');
-        }
-
-        // Query Category 4: Are there any lightning or cyclone alerts?
-        if (qLower.includes('alert') || qLower.includes('lightning') || qLower.includes('cyclone') || qLower.includes('storm') || qLower.includes('thunderstorm') || qLower.includes('বজ্রপাত') || qLower.includes('সাইক্লোন') || qLower.includes('तूफान') || qLower.includes('बिजली')) {
-          const hasThunderstorm = realtime!.weather.weatherCode >= 95;
-          const isHighWind = realtime!.weather.windGustKts >= 30;
-          const hasAlerts = alertSummary && alertSummary.activeAlertCount > 0;
-
-          return [
-            `Authoritative Marine Weather & Cyclone Advisory (${location!.name})`,
-            '',
-            `• Cyclone Status: ${isHighWind ? '⚠️ SQUALLY CYCLONIC WIND WARNING ACTIVE' : 'NO ACTIVE CYCLONE OR DEPRESSION ALERT IN THIS SECTOR'}`,
-            `• Lightning / Convection: ${hasThunderstorm ? '⚠️ SEVERE LIGHTNING & THUNDERSTORM DETECTED — REMAIN IN HARBOUR' : 'Zero lightning or severe convective storm cells detected'}`,
-            `• Wind & Gusts: Sustained wind is ${realtime!.weather.windSpeedKts.toFixed(0)} kts with gusts to ${realtime!.weather.windGustKts.toFixed(0)} kts (IMD squall warning threshold: 30 kts).`,
-            `• Sea State: Wave height is ${realtime!.ocean.waveHeightMeters.toFixed(1)}m, swell period is ${realtime!.ocean.swellPeriodSec.toFixed(0)}s (Douglas Scale ${realtime!.ocean.seaStateIndex}).`,
-            `• Active Operational Alerts: ${alertSummary?.activeAlertCount ?? 0} active advisory notice(s).`,
-            '',
-            `Safety Directive: ${operationalDecision?.decision || (isHighWind || hasThunderstorm ? 'AVOID' : 'PROCEED')}. Small artisanal crafts should remain vigilant near coastal sandbars.`
-          ].join('\n');
-        }
-
-        // Query Category 8: Which fishing zones should be avoided?
-        if (qLower.includes('avoid') || qLower.includes('restriction') || qLower.includes('restricted') || qLower.includes('prohibited') || qLower.includes('নিষেধ') || qLower.includes('बचना')) {
-          return [
-            `Maritime Restrictions & Cautionary Zones near ${location!.name}`,
-            '',
-            'All sea-going fishing vessels must observe the following statutory exclusion zones:',
-            '',
-            `1. International Maritime Boundary Line (IMBL): ${nearestImbl ? `${nearestImbl.boundaryName} is ${nearestImbl.distanceNm} NM away at bearing ${nearestImbl.bearingDeg}°. UNCLOS 1974 / PCA 2014 strictly prohibits crossing into foreign exclusive economic zones.` : 'Maintain statutory 5 NM buffer from foreign maritime borders.'}`,
-            `2. Marine Protected Areas (MPAs): ${nearestMpa ? `${nearestMpa.boundaryName} is ${nearestMpa.distanceNm} NM away. Commercial and mechanized bottom trawling is banned under the Wildlife Protection Act 1972.` : 'Active marine wildlife sanctuaries forbid mechanized fishing gear.'}`,
-            '3. Hazardous Surf & Breaker Zones: Nearshore coastal bars where significant wave height (Hs) exceeds 1.8m or swell period > 14s represent extreme capsizing hazards for traditional motorized craft.',
-            '',
-            `Current Operational Status: Geofence status is ${geofenceAnalysis?.status || 'CLEAR'}. Directive: ${operationalDecision?.decision || 'PROCEED'}.`
-          ].join('\n');
-        }
-
-        // Query Category 3: What are the tide, weather, and sea conditions near my fishing location?
-        if (qLower.includes('tide') || (qLower.includes('weather') && (qLower.includes('sea condition') || qLower.includes('conditions'))) || qLower.includes('জোয়ার') || qLower.includes('ভাটা') || qLower.includes('ज्वार')) {
-          return [
-            `Tide, Marine Weather & Sea State Conditions for ${location!.name}`,
-            '',
-            `• Tidal Phase: ${realtime!.ocean.tidePhase || 'High Tide'} (Coastal tidal cycle active)`,
-            `• Sea State: Douglas Scale ${realtime!.ocean.seaStateIndex} (${realtime!.ocean.seaStateDescription})`,
-            `• Wave Height (Hs): ${realtime!.ocean.waveHeightMeters.toFixed(1)}m (Max wave ${realtime!.ocean.maxWaveHeightMeters.toFixed(1)}m)`,
-            `• Swell & Breakers: Swell height ${realtime!.ocean.swellHeightMeters.toFixed(1)}m with period ${realtime!.ocean.swellPeriodSec.toFixed(0)}s`,
-            `• Surface Current: ${realtime!.ocean.currentSpeedKts.toFixed(1)} kts at bearing ${realtime!.ocean.currentDirectionDeg}°`,
-            `• Atmospheric Weather: ${realtime!.weather.weatherDescription} (Air temp ${realtime!.weather.airTemperatureC.toFixed(1)}°C, Pressure ${realtime!.weather.pressureHpa.toFixed(0)} hPa)`,
-            `• Wind Speed & Gusts: ${realtime!.weather.windSpeedKts.toFixed(0)} kts from ${realtime!.weather.windDirectionCompass} (Peak gusts ${realtime!.weather.windGustKts.toFixed(0)} kts)`,
-            `• Sea Surface Temperature: ${realtime!.ocean.seaSurfaceTemperatureC.toFixed(1)}°C`,
-            '',
-            `Operational Recommendation: ${operationalDecision?.decision || 'PROCEED'}. Conditions are within operational safety envelopes for standard fishing crafts.`
-          ].join('\n');
-        }
-
-        // Query Category 5: Regions with high chlorophyll concentration & favourable SST
-        if (qLower.includes('chlorophyll') || qLower.includes('pelagic') || qLower.includes('ক্লোরোফিল') || qLower.includes('क्लोरोफिल')) {
-          const zonesList = (pfz?.zones || []).slice(0, 3);
-          const zoneBulletPoints = zonesList.length > 0
-            ? zonesList.map((z, idx) =>
-                `• Zone #${idx + 1} (${z.id}): ${z.latitude.toFixed(4)}°N, ${z.longitude.toFixed(4)}°E (${z.distanceNm} NM / ${z.distanceKm} km at bearing ${z.bearingDeg}°). SST: ${z.sstC ? z.sstC.toFixed(1) + '°C' : `${realtime!.ocean.seaSurfaceTemperatureC.toFixed(1)}°C`} (Thermal front length ${z.frontLengthKm} km). Score: ${z.score}/100 (${z.suitability}). Geofence: ${z.geofenceStatus}.`
-              )
-            : [`• Primary Sector: ${location!.name} shelf boundary (${bestZone ? `${bestZone.distanceNm} NM away` : 'offshore zone'}).`];
-
-          return [
-            `INCOIS Oceansat Chlorophyll & Thermal Front Analysis (${location!.name})`,
-            '',
-            'Satellite Earth Observation (ISRO Oceansat OCM-3 & MODIS Thermal Sensors) identifies distinct frontal convergence zones where chlorophyll-a gradients and sea surface temperature boundaries overlap:',
-            '',
-            ...zoneBulletPoints,
-            '',
-            'Pelagic Fishery Prospects: Convergence zones with chlorophyll-a concentration > 0.6 mg/m³ and sharp SST gradients (0.5°C–1.2°C) create rich phytoplankton grazing fields, attracting large shoals of pelagic species (Indian mackerel, sardines, carangids, anchovies).',
-            '',
-            `Operational Recommendation: ${operationalDecision?.decision || 'PROCEED'}. Weather and sea conditions are favorable for pelagic drift netting and hook-and-line fishing.`
-          ].join('\n');
-        }
-
-        // Query Category 1: Nearest PFZ / Distance / Bearing
-        if (qLower.includes('pfz') || qLower.includes('fishing zone') || qLower.includes('nearest') || qLower.includes('মাছ ধরার এলাকা') || qLower.includes('मछली')) {
-          if (bestZone) {
-            return [
-              `Potential Fishing Zone (PFZ) Intelligence for ${location!.name} (${timeWindow!.requestedText})`,
-              '',
-              `• Nearest High-Yield Zone: ${bestZone.id} (Rank #${bestZone.rank})`,
-              `• Location: ${bestZone.latitude.toFixed(4)}°N, ${bestZone.longitude.toFixed(4)}°E`,
-              `• Distance from Base: ${bestZone.distanceNm} NM (${bestZone.distanceKm} km)`,
-              `• Steering Bearing: ${bestZone.bearingDeg}° (Compass Course)`,
-              `• Suitability Score: ${bestZone.score}/100 (${bestZone.suitability})`,
-              `• Oceanographic Indicators: Sea Surface Temperature ${bestZone.sstC ? bestZone.sstC.toFixed(1) + '°C' : 'Optimal thermal boundary'}; statutory INCOIS chlorophyll/thermal front length ${bestZone.frontLengthKm} km.`,
-              `• Geofence Status: ${bestZone.geofenceStatus} (Clear of international borders and marine sanctuaries).`,
-              '',
-              `Operational Directive: ${operationalDecision?.decision || 'PROCEED'}. Weather and sea state are safe for routine fishing operations.`
-            ].join('\n');
-          }
-        }
+        if (localized) return localized;
 
         // Default: Grounded environmental safety briefing (Query 2 & 3)
         return buildLocalizedGroundedSummary(risk!, realtime!.weather, realtime!.ocean, language, ragProvider, realtime!.metadata.retrievedAt);
@@ -319,7 +201,7 @@ export async function runOrcaAgentWorkflow(
       if (!groundedSummary) {
         groundedSummary = buildIntentGroundedBriefing();
       }
-      finishTrace(trace, 'Grounded marine briefing generated from executed task graph outputs.');
+      finishTrace(trace, 'Grounded marine briefing generated from executed task graph outputs.');;
     }
   }, {
     onTaskFailure: (task, error) => { const trace = traces.find(t => t.taskId === task.id && t.status === 'running'); if (trace) finishTrace(trace, `${task.label} failed`, error.message); }

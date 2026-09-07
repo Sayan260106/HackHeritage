@@ -64,14 +64,16 @@ export const MarineChatDrawer: React.FC<MarineChatDrawerProps> = ({
     }
   }, [isOpen, turns]);
 
-  // Contextual scenario follow-up recommendations
+  // All 8 canonical ISRO Problem Statement 26176 scenario recommendations
   const scenarioSuggestions = [
-    { label: '🌅 Tomorrow morning conditions', query: 'What are the marine and sea conditions tomorrow morning?' },
-    { label: '🎣 Nearest High-Yield PFZ', query: 'Where is the nearest Potential Fishing Zone from here?' },
-    { label: '⚡ Cyclone & Lightning Alerts', query: 'Are there any lightning, squall or cyclone alerts in this sector?' },
-    { label: '🧭 Safe Route to Zone', query: 'What is the safest route for a fishing vessel considering weather and geofencing?' },
-    { label: '🛑 Restricted Boundaries', query: 'Which fishing zones should be avoided due to hazardous conditions or geofencing?' },
-    { label: '🐟 Fish Productivity Drivers', query: 'Why has fish productivity declined in this coastal region?' },
+    { label: '🎣 Q1: Nearest PFZ Today', query: 'Where is the nearest Potential Fishing Zone today?' },
+    { label: '⚓ Q2: Venture Safety Tomorrow', query: 'Is it safe to venture into the sea tomorrow morning?' },
+    { label: '🌊 Q3: Tide & Sea Conditions', query: 'What are the tide, weather, and sea conditions near my fishing location?' },
+    { label: '⚡ Q4: Cyclone & Lightning Alerts', query: 'Are there any lightning or cyclone alerts in my area?' },
+    { label: '🛰️ Q5: Chlorophyll & SST Fronts', query: 'Which regions show high chlorophyll concentration and favourable sea surface temperature?' },
+    { label: '🧭 Q6: Safest Navigation Route', query: 'What is the safest route for a fishing vessel considering weather and sea-state conditions?' },
+    { label: '🔬 Q7: Fish Productivity Decline', query: 'Why has fish productivity declined in a particular coastal region?' },
+    { label: '🛑 Q8: Restricted Geofence Zones', query: 'Which fishing zones should be avoided due to hazardous marine conditions or geofencing restrictions?' },
   ];
 
   const handleSend = (e?: React.FormEvent) => {

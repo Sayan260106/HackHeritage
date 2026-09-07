@@ -43,6 +43,7 @@
     "test:conversation": "tsx scripts/test-conversation-session.ts",
     "test:forecast": "tsx scripts/test-marine-forecast.ts",
     "test:rag": "tsx scripts/test-rag-evidence.ts",
+    "test:isro-benchmarks": "tsx scripts/test-all-8-isro-queries.ts",
     "smoke": "node scripts/smoke-test.mjs"
   },
 
