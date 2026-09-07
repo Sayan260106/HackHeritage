@@ -13,6 +13,7 @@ import { WhatIfSimulator } from "../components/WhatIfSimulator";
 import { AudioAlertController } from "../components/AudioAlertController";
 import { OrcaAnalysisResponse, LanguageCode } from "../types";
 import { COASTAL_LOCATIONS, MULTILINGUAL_DICTIONARY } from "../data/coastalData";
+import { detectQueryLanguage } from "../utils/languageDetector";
 
 interface ConsolePageProps {
   onExit: () => void;
@@ -41,6 +42,13 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
       setErrorMessage(null);
     }
 
+    // Auto-detect regional script from query (e.g. Bengali, Hindi, Tamil)
+    const detected = detectQueryLanguage(queryText, responseLanguage);
+    const effectiveLang = (responseLanguage && responseLanguage !== 'en') ? responseLanguage : detected.language;
+    if (effectiveLang !== language) {
+      setLanguage(effectiveLang);
+    }
+
     try {
       const response = await fetch("/api/orca/query", {
         method: "POST",
@@ -49,7 +57,7 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
           query: queryText,
           locationOverride: locOverride,
           timeOverride,
-          language: responseLanguage,
+          language: effectiveLang,
         }),
       });
 
@@ -215,7 +223,7 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
                   <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
                     <div className="space-y-4 lg:col-span-5">
                       <QueryPanel
-                        onSearch={(q, loc, time) => fetchAnalysis(q, loc, time)}
+                        onSearch={(q, loc, time, detectedLang) => fetchAnalysis(q, loc, time, detectedLang || language)}
                         isLoading={isLoading}
                         language={language}
                       />

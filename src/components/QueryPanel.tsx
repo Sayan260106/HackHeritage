@@ -15,9 +15,10 @@ import {
 } from 'lucide-react';
 import { LanguageCode } from '../types';
 import { MULTILINGUAL_DICTIONARY, COASTAL_LOCATIONS } from '../data/coastalData';
+import { detectQueryLanguage } from '../utils/languageDetector';
 
 interface QueryPanelProps {
-  onSearch: (query: string, locationOverride?: string, timeOverride?: string) => void;
+  onSearch: (query: string, locationOverride?: string, timeOverride?: string, detectedLang?: LanguageCode) => void;
   isLoading: boolean;
   language: LanguageCode;
 }
@@ -35,12 +36,28 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
   const [selectedTime, setSelectedTime] = useState<string>('');
 
   const dict = MULTILINGUAL_DICTIONARY[language] || MULTILINGUAL_DICTIONARY.en;
+  const detected = detectQueryLanguage(inputQuery, language);
 
-  // Fisherman-tailored quick question chips with icon tags
+  // Fisherman-tailored quick question chips with icon tags across languages
   const samplePrompts = [
     {
       text: 'Is it safe to go fishing near Digha right now?',
       tag: '⚓ Can I go fishing today?',
+      loc: 'digha'
+    },
+    {
+      text: 'কাল সকালে দিঘায় কি মাছ ধরা নিরাপদ?',
+      tag: '🇧🇩 বাংলা: দিঘায় মাছ ধরা',
+      loc: 'digha'
+    },
+    {
+      text: 'क्या कल सुबह दीघा में मछली पकड़ना सुरक्षित है?',
+      tag: '🇮🇳 हिन्दी: दीघा मौसम व सुरक्षा',
+      loc: 'digha'
+    },
+    {
+      text: 'திஹா அருகே நாளை காலை மீன்பிடிக்க பாதுகாப்பானதா?',
+      tag: '🇮🇳 தமிழ்: மீன்பிடி பாதுகாப்பு',
       loc: 'digha'
     },
     {
@@ -140,13 +157,15 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputQuery.trim() || isLoading) return;
-    onSearch(inputQuery, selectedLocation || undefined, selectedTime || undefined);
+    const detectedLang = detectQueryLanguage(inputQuery, language);
+    onSearch(inputQuery, selectedLocation || undefined, selectedTime || undefined, detectedLang.language);
   };
 
   const handleSelectPreset = (promptText: string, locKey: string) => {
     setInputQuery(promptText);
     setSelectedLocation(locKey);
-    onSearch(promptText, locKey);
+    const detectedLang = detectQueryLanguage(promptText, language);
+    onSearch(promptText, locKey, undefined, detectedLang.language);
   };
 
   return (
@@ -168,6 +187,19 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
 
       {/* Main Search Input Form */}
       <form onSubmit={handleFormSubmit} className="space-y-3">
+        {/* Dynamic Indian Regional Script Identification Banner */}
+        {detected.language !== 'en' && (
+          <div className="flex items-center justify-between text-[11px] font-mono text-cyan-300 bg-cyan-950/70 border border-cyan-800/60 px-3 py-1.5 rounded-lg shadow-sm">
+            <span className="flex items-center gap-1.5">
+              <Sparkles className="h-3.5 w-3.5 text-cyan-300 animate-pulse" />
+              <span>Script Identified: <strong className="text-white">{detected.nativeName} ({detected.name})</strong></span>
+            </span>
+            <span className="text-[10px] text-cyan-400/80 bg-cyan-900/50 px-1.5 py-0.5 rounded border border-cyan-700/50 font-semibold">
+              Auto-Switching Response & Voice
+            </span>
+          </div>
+        )}
+
         <div className="relative flex items-center">
           <div className="absolute left-3.5 text-slate-400 pointer-events-none">
             <Search className="h-4 w-4" />
