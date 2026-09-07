@@ -14,6 +14,7 @@ if str(ML_SRC) not in sys.path:
 try:
     from ml.src.predict import LEGACY_FEATURE_COLUMNS, MODEL_VERSION, OrcaXRiskPredictor, build_inference_features  # noqa: E402
 except ImportError:
+    # pyrefly: ignore [missing-import]
     from predict import LEGACY_FEATURE_COLUMNS, MODEL_VERSION, OrcaXRiskPredictor, build_inference_features  # noqa: E402
 
 

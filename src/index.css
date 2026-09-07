@@ -1074,3 +1074,22 @@ html.lenis, html.lenis body {
     animation: none !important;
   }
 }
+
+/* ============================================================================
+   ORCA-X — Leaflet Safe Route & Waypoint Tooltips
+   ========================================================================= */
+.orca-route-tooltip {
+  background: rgba(10, 22, 32, 0.95) !important;
+  border: 1px solid rgba(16, 185, 129, 0.6) !important;
+  color: #f4f7f4 !important;
+  font-family: var(--font-mono), monospace !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  border-radius: 6px !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6) !important;
+  padding: 3px 7px !important;
+}
+.orca-route-tooltip::before {
+  border-top-color: rgba(10, 22, 32, 0.95) !important;
+}
+

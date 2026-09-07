@@ -288,6 +288,7 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
                         ocean={analysisData.ocean}
                         riskLevel={analysisData.risk.riskLevel}
                         risk={analysisData.risk}
+                        safeRoute={analysisData.safeRoute}
                         onSelectLocation={handleLocationSelect}
                         onCoordinateClick={handleMapCoordinateClick}
                         language={language}
@@ -350,6 +351,7 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
                     ocean={analysisData.ocean}
                     riskLevel={analysisData.risk.riskLevel}
                     risk={analysisData.risk}
+                    safeRoute={analysisData.safeRoute}
                     onSelectLocation={handleLocationSelect}
                     onCoordinateClick={handleMapCoordinateClick}
                     language={language}
@@ -388,6 +390,7 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
                     ocean={analysisData.ocean}
                     riskLevel={analysisData.risk.riskLevel}
                     risk={analysisData.risk}
+                    safeRoute={analysisData.safeRoute}
                     onSelectLocation={handleLocationSelect}
                     onCoordinateClick={handleMapCoordinateClick}
                     language={language}

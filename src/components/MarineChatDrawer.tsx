@@ -17,7 +17,8 @@ import {
   ChevronRight,
   Clock,
   Layers,
-  ArrowRight
+  ArrowRight,
+  Navigation
 } from 'lucide-react';
 import { ConversationTurn, LanguageCode, LocationInfo, OrcaAnalysisResponse } from '../types';
 import { MULTILINGUAL_DICTIONARY } from '../data/coastalData';
@@ -334,6 +335,33 @@ export const MarineChatDrawer: React.FC<MarineChatDrawerProps> = ({
                             {analysis.risk?.riskScore ?? 'N/A'}/100
                           </span>
                         </div>
+                      </div>
+                    )}
+
+                    {/* Safe Route Quick Indicator */}
+                    {analysis?.safeRoute?.status === 'ROUTE_FOUND' && (
+                      <div className="flex items-center justify-between p-2 rounded-xl bg-emerald-950/40 border border-emerald-800/60 font-mono text-[11px]">
+                        <div className="flex items-center gap-1.5 text-emerald-300 font-bold truncate">
+                          <Navigation className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                          <span className="truncate">
+                            Passage: {((analysis.safeRoute.distanceKm || 0) / 1.852).toFixed(1)} NM ({analysis.safeRoute.distanceKm} km)
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => {
+                            if (onSelectTurnData) onSelectTurnData(analysis);
+                            if (analysis.safeRoute?.destination && (window as any).__orcaPlotRouteTo) {
+                              (window as any).__orcaPlotRouteTo(
+                                analysis.safeRoute.destination.latitude,
+                                analysis.safeRoute.destination.longitude,
+                                analysis.safeRoute.destinationLabel || 'Safe Target'
+                              );
+                            }
+                          }}
+                          className="px-2 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg text-[10px] transition-all flex items-center gap-1 shadow cursor-pointer shrink-0"
+                        >
+                          🧭 View on Map
+                        </button>
                       </div>
                     )}
 

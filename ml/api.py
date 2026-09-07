@@ -6,7 +6,9 @@ from pathlib import Path
 import sys
 from typing import Optional, Union
 
+# pyrefly: ignore [missing-import]
 from fastapi import FastAPI, HTTPException
+# pyrefly: ignore [missing-import]
 from pydantic import BaseModel
 
 ML_ROOT = Path(__file__).resolve().parent
@@ -18,6 +20,7 @@ try:
     from ml.src.predict import MODEL_VERSION, OrcaXRiskPredictor  # noqa: E402
 except ImportError:
     try:
+        # pyrefly: ignore [missing-import]
         from predict import MODEL_VERSION, OrcaXRiskPredictor  # noqa: E402
     except ImportError:
         from .src.predict import MODEL_VERSION, OrcaXRiskPredictor  # noqa: E402

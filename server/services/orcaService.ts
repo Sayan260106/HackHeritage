@@ -134,7 +134,21 @@ export async function runOrcaAgentWorkflow(
       const trace = startTrace('SafeRoutingAgent', 'Fuse risk/PFZ/geofence decisions and compute a geofence-safe route to the selected PFZ', 'safe_route', task.dependsOn);
       const routing = runAgenticSafeRouting({ origin: location, risk, geofence: geofenceAnalysis, pfz }); operationalDecision = routing.decision;
       const route = routing.route;
-      safeRoute = { status: routing.status, destinationLabel: routing.destinationLabel, distanceKm: route?.distanceKm, directDistanceKm: route?.directDistanceKm, routeEfficiencyPct: route?.routeEfficiencyPct, waypointCount: route?.waypoints.length ?? 0, warnings: routing.warnings, rationale: route?.rationale || routing.decision.rationale, source: route?.source || 'ORCA-X agentic safe-routing decision gate' };
+      safeRoute = {
+        status: routing.status,
+        destinationLabel: routing.destinationLabel,
+        distanceKm: route?.distanceKm,
+        directDistanceKm: route?.directDistanceKm,
+        routeEfficiencyPct: route?.routeEfficiencyPct,
+        waypointCount: route?.waypoints?.length ?? 0,
+        waypoints: route?.waypoints,
+        avoidedConstraints: route?.avoidedConstraints,
+        origin: route?.origin,
+        destination: route?.destination,
+        warnings: routing.warnings,
+        rationale: route?.rationale || routing.decision.rationale,
+        source: route?.source || 'ORCA-X agentic safe-routing decision gate'
+      };
       trace.logs.push(`Decision Fusion: ${routing.decision.decision} (${routing.decision.confidence}, score ${routing.decision.score}/100).`); trace.logs.push(`Routing status: ${routing.status}; destination: ${routing.destinationLabel ?? 'none'}; waypoints: ${route?.waypoints.length ?? 0}.`);
       for (const warning of routing.warnings) trace.logs.push(`[ROUTING WARNING] ${warning}`);
       finishTrace(trace, `${routing.status} | decision=${routing.decision.decision} | waypoints=${route?.waypoints.length ?? 0}`);

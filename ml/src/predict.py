@@ -10,6 +10,7 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
+# pyrefly: ignore [missing-import]
 import xgboost as xgb
 
 ML_SRC = Path(__file__).resolve().parent

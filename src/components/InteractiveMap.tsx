@@ -30,6 +30,7 @@ interface InteractiveMapProps {
   ocean: OceanData;
   riskLevel: RiskLevel;
   risk?: RiskPrediction;
+  safeRoute?: any;
   onSelectLocation: (locKey: string) => void;
   onCoordinateClick?: (lat: number, lon: number) => void;
   language: LanguageCode;
@@ -42,6 +43,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   ocean,
   riskLevel,
   risk,
+  safeRoute,
   onSelectLocation,
   onCoordinateClick,
   language
@@ -74,6 +76,16 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   const [safeRouteResult, setSafeRouteResult] = useState<any | null>(null);
   const [isCalculatingRoute, setIsCalculatingRoute] = useState<boolean>(false);
   const [showSafeRouteLayer, setShowSafeRouteLayer] = useState<boolean>(true);
+
+  // Sync external safe route from Agent execution if available
+  useEffect(() => {
+    if (safeRoute && safeRoute.status === 'ROUTE_FOUND' && Array.isArray(safeRoute.waypoints) && safeRoute.waypoints.length > 0) {
+      setSafeRouteResult(safeRoute);
+      if (safeRoute.destination) {
+        setRouteDestination(safeRoute.destination);
+      }
+    }
+  }, [safeRoute]);
 
   // Global callbacks for leaflet popups (relocate boat, plot safe route & dispatch Coast Guard warning)
   useEffect(() => {
@@ -689,6 +701,24 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           const uid = props.UID ?? props.uid ?? 'INCOIS-FRONT';
           const year = props.YEAR ?? props.year ?? '2026';
           const julianDay = props.JULIAN_DAY ?? props.julian_day ?? '';
+
+          let midLat = 0;
+          let midLon = 0;
+          if (feature.geometry?.coordinates) {
+            const coords = feature.geometry.type === 'LineString'
+              ? feature.geometry.coordinates
+              : Array.isArray(feature.geometry.coordinates?.[0])
+                ? feature.geometry.coordinates[0]
+                : [];
+            if (Array.isArray(coords) && coords.length > 0) {
+              const midIdx = Math.floor(coords.length / 2);
+              if (Array.isArray(coords[midIdx]) && coords[midIdx].length >= 2) {
+                midLon = Number(coords[midIdx][0]);
+                midLat = Number(coords[midIdx][1]);
+              }
+            }
+          }
+
           layer.bindPopup(`
             <div class="p-2.5 space-y-2 max-w-[270px] bg-slate-900 text-slate-100 rounded-lg text-xs font-mono">
               <div class="font-bold text-cyan-300 border-b border-cyan-800/80 pb-1 flex items-center justify-between">
@@ -704,6 +734,14 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
               <p class="text-[10px] text-slate-300 italic bg-cyan-950/40 p-1.5 rounded border border-cyan-900/60">
                 Official statutory thermal/chlorophyll boundary where nutrient upwelling concentrates pelagic fish shoals.
               </p>
+              ${midLat !== 0 && midLon !== 0 ? `
+                <button
+                  onclick="window.__orcaPlotRouteTo && window.__orcaPlotRouteTo(${midLat.toFixed(4)}, ${midLon.toFixed(4)}, 'INCOIS Front ${uid}')"
+                  class="w-full mt-1 py-1.5 px-2 bg-gradient-to-r from-cyan-600 to-emerald-600 hover:from-cyan-500 hover:to-emerald-500 text-white font-bold text-[10px] rounded transition-all text-center flex items-center justify-center gap-1 shadow cursor-pointer"
+                >
+                  🧭 Compute Safe Route to Front
+                </button>
+              ` : ''}
             </div>
           `);
         }
@@ -811,7 +849,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
               <span class="bg-slate-800 px-1 rounded text-emerald-300">Daily Statutory</span>
             </div>
 
-            <div class="grid grid-cols-2 gap-1 pt-1">
+            <div class="grid grid-cols-2 gap-1.5 pt-1">
               <button
                 onclick="window.__orcaSetBoatLocation && window.__orcaSetBoatLocation(${zone.latitude}, ${zone.longitude})"
                 class="py-1 px-1.5 bg-cyan-700 hover:bg-cyan-600 text-white font-bold text-[10px] rounded transition-all text-center flex items-center justify-center gap-1 shadow cursor-pointer"
@@ -820,9 +858,9 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
               </button>
               <button
                 onclick="window.__orcaPlotRouteTo && window.__orcaPlotRouteTo(${zone.latitude}, ${zone.longitude}, 'INCOIS Front #${zone.rank}')"
-                class="py-1 px-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] rounded transition-all text-center flex items-center justify-center gap-1 shadow cursor-pointer"
+                class="py-1 px-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-[10px] rounded transition-all text-center flex items-center justify-center gap-1 shadow cursor-pointer"
               >
-                🧭 Safe Route to Front
+                🧭 Compute Safe Route Here
               </button>
             </div>
           </div>
@@ -856,26 +894,75 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
     const waypoints = safeRouteResult.waypoints;
     const latLngs = waypoints.map((wp: any) => [wp.latitude, wp.longitude]);
 
-    // 1. Safe Navigation Polyline (Emerald Glowing Dashed Line)
+    // 1a. Route Base Glow Halo (Contrasting Outer Shadow / Corridor Casing)
+    const haloPolyline = L.polyline(latLngs, {
+      color: '#064e3b',
+      weight: 8,
+      opacity: 0.75,
+      lineCap: 'round',
+      lineJoin: 'round'
+    });
+    haloPolyline.addTo(layerGroup);
+
+    // 1b. Safe Navigation Polyline (Vibrant Emerald Glowing Dashed Passage)
     const polyline = L.polyline(latLngs, {
       color: '#10b981',
       weight: 4.5,
-      opacity: 0.9,
-      dashArray: '8, 8'
+      opacity: 0.95,
+      dashArray: '8, 8',
+      lineCap: 'round',
+      lineJoin: 'round'
     });
 
-    // 2. Waypoint Markers along the route
+    const routeDistanceNm = ((safeRouteResult.distanceKm || 0) / 1.852).toFixed(1);
+    const routeDirectNm = ((safeRouteResult.directDistanceKm || 0) / 1.852).toFixed(1);
+
+    polyline.bindPopup(`
+      <div class="p-2.5 space-y-2 max-w-[280px] bg-slate-900 text-slate-100 rounded-xl font-mono text-xs shadow-2xl border border-emerald-500/50">
+        <div class="flex items-center justify-between border-b border-slate-700/80 pb-1.5 font-bold text-emerald-400">
+          <span class="flex items-center gap-1.5">🧭 Safe Navigation Route</span>
+          <span class="text-[9px] bg-emerald-950 text-emerald-300 px-1.5 py-0.5 rounded border border-emerald-700 font-black">ACTIVE</span>
+        </div>
+        <div class="space-y-1 text-[11px] bg-slate-950/80 p-2 rounded border border-slate-800">
+          <div class="flex justify-between"><span class="text-slate-400">Total Route:</span> <span class="text-emerald-300 font-bold">${routeDistanceNm} NM (${safeRouteResult.distanceKm} km)</span></div>
+          <div class="flex justify-between"><span class="text-slate-400">Direct Distance:</span> <span class="text-cyan-300">${routeDirectNm} NM</span></div>
+          <div class="flex justify-between"><span class="text-slate-400">Sequenced Waypoints:</span> <span class="text-white font-bold">${waypoints.length} points</span></div>
+          ${safeRouteResult.routeEfficiencyPct ? `<div class="flex justify-between"><span class="text-slate-400">Passage Efficiency:</span> <span class="text-amber-300 font-bold">${safeRouteResult.routeEfficiencyPct}%</span></div>` : ''}
+          <div class="flex justify-between"><span class="text-slate-400">Geofence Status:</span> <span class="text-emerald-400 font-bold">VERIFIED CLEAR</span></div>
+        </div>
+        ${safeRouteResult.avoidedConstraints?.length > 0 ? `
+          <div class="text-[10px] text-amber-300 bg-amber-950/40 p-1.5 rounded border border-amber-800/40 space-y-0.5">
+            <span class="font-bold text-amber-400">Avoided Constraints:</span>
+            <div class="text-slate-200">${safeRouteResult.avoidedConstraints.join(', ')}</div>
+          </div>
+        ` : ''}
+        ${safeRouteResult.rationale ? `
+          <p class="text-[10px] text-slate-300 italic bg-emerald-950/30 p-1.5 rounded border border-emerald-900/40">
+            💡 ${safeRouteResult.rationale}
+          </p>
+        ` : ''}
+      </div>
+    `);
+
+    // 2. Waypoint Markers along the route with sequenced bearing and distance tags
     waypoints.forEach((wp: any, idx: number) => {
       const isStart = idx === 0;
       const isEnd = idx === waypoints.length - 1;
-      if (!isStart && !isEnd && idx % 2 !== 0 && waypoints.length > 8) return;
+      // Keep density balanced for long routes, but always include key inflection nodes
+      if (!isStart && !isEnd && idx % 2 !== 0 && waypoints.length > 10) return;
+
+      const cumDistNm = ((wp.cumulativeDistanceKm || 0) / 1.852).toFixed(1);
+      const bearingStr = wp.bearingDeg !== undefined ? `${wp.bearingDeg}°` : '—';
 
       const wpIcon = L.divIcon({
         className: 'custom-wp-marker-icon',
         html: `
-          <div class="relative flex items-center justify-center cursor-pointer">
-            <div class="w-6 h-6 rounded-full ${isStart ? 'bg-cyan-600 border-2 border-white' : isEnd ? 'bg-emerald-600 border-2 border-white animate-pulse' : 'bg-slate-800 border border-emerald-400'} shadow-lg flex items-center justify-center text-[10px] text-white font-bold font-mono">
+          <div class="relative flex items-center justify-center cursor-pointer group">
+            <div class="w-6 h-6 rounded-full ${isStart ? 'bg-cyan-600 border-2 border-white shadow-[0_0_12px_rgba(6,182,212,0.8)]' : isEnd ? 'bg-emerald-600 border-2 border-white animate-pulse shadow-[0_0_12px_rgba(16,185,129,0.8)]' : 'bg-slate-800 border-2 border-emerald-400'} shadow-lg flex items-center justify-center text-[10px] text-white font-bold font-mono">
               ${isStart ? '⚓' : isEnd ? '🏁' : idx}
+            </div>
+            <div class="absolute -bottom-4 hidden group-hover:flex bg-slate-950/90 text-cyan-300 text-[9px] font-mono px-1 rounded border border-cyan-700 whitespace-nowrap shadow-md z-30">
+              ${cumDistNm} NM
             </div>
           </div>
         `,
@@ -885,24 +972,49 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
 
       const marker = L.marker([wp.latitude, wp.longitude], { icon: wpIcon });
 
+      // Hover tooltip showing sequence number, distance, and bearing tag
+      marker.bindTooltip(
+        isStart 
+          ? '⚓ Route Origin (Boat)' 
+          : isEnd 
+            ? `🏁 Destination • ${cumDistNm} NM` 
+            : `WP #${idx} • ${cumDistNm} NM • ${bearingStr}`,
+        {
+          direction: 'top',
+          offset: [0, -12],
+          className: 'orca-route-tooltip'
+        }
+      );
+
       const popupContent = `
-        <div class="p-2 space-y-1 bg-slate-900 text-slate-100 rounded-lg text-xs font-mono">
-          <div class="font-bold text-emerald-400 border-b border-slate-700 pb-1 flex items-center gap-1">
+        <div class="p-2.5 space-y-2 bg-slate-900 text-slate-100 rounded-xl text-xs font-mono max-w-[250px] shadow-2xl border border-slate-700">
+          <div class="font-bold text-emerald-400 border-b border-slate-700 pb-1.5 flex items-center justify-between">
             <span>${isStart ? '⚓ Route Origin (Boat)' : isEnd ? '🏁 Safe Destination' : `Waypoint #${idx}`}</span>
+            <span class="text-[10px] text-cyan-300">${wp.latitude.toFixed(3)}°N, ${wp.longitude.toFixed(3)}°E</span>
           </div>
-          <div class="flex justify-between text-[11px]">
-            <span class="text-slate-400">Cumulative:</span>
-            <span class="font-bold text-cyan-300">${((wp.cumulativeDistanceKm || 0) / 1.852).toFixed(1)} NM (${(wp.cumulativeDistanceKm || 0).toFixed(1)} KM)</span>
-          </div>
-          ${wp.bearingDeg !== undefined ? `
-            <div class="flex justify-between text-[11px]">
-              <span class="text-slate-400">Compass Bearing:</span>
-              <span class="font-bold text-amber-300">${wp.bearingDeg}°</span>
+          <div class="space-y-1 text-[11px] bg-slate-950/80 p-2 rounded border border-slate-800">
+            <div class="flex justify-between">
+              <span class="text-slate-400">Cumulative Distance:</span>
+              <span class="font-bold text-cyan-300">${cumDistNm} NM (${(wp.cumulativeDistanceKm || 0).toFixed(1)} km)</span>
             </div>
-          ` : ''}
-          <div class="flex justify-between text-[11px]">
-            <span class="text-slate-400">Geofence Status:</span>
-            <span class="font-bold ${wp.geofenceStatus === 'CLEAR' ? 'text-emerald-400' : 'text-amber-400'}">${wp.geofenceStatus}</span>
+            ${wp.bearingDeg !== undefined ? `
+              <div class="flex justify-between">
+                <span class="text-slate-400">Compass Bearing:</span>
+                <span class="font-bold text-amber-300">${wp.bearingDeg}°</span>
+              </div>
+            ` : ''}
+            <div class="flex justify-between border-t border-slate-800 pt-1">
+              <span class="text-slate-400">Geofence Status:</span>
+              <span class="font-bold ${wp.geofenceStatus === 'CLEAR' ? 'text-emerald-400' : 'text-amber-400'}">${wp.geofenceStatus}</span>
+            </div>
+          </div>
+          <div class="pt-1">
+            <button
+              onclick="window.__orcaSetBoatLocation && window.__orcaSetBoatLocation(${wp.latitude}, ${wp.longitude})"
+              class="w-full py-1 px-2 rounded bg-cyan-700 hover:bg-cyan-600 text-white font-bold text-[10px] flex items-center justify-center gap-1 shadow cursor-pointer transition-all"
+            >
+              ⚓ Set Boat Position Here
+            </button>
           </div>
         </div>
       `;
@@ -914,7 +1026,22 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
     polyline.addTo(layerGroup);
     layerGroup.addTo(map);
     routeLayerGroupRef.current = layerGroup;
-  }, [showSafeRouteLayer, safeRouteResult]);
+
+    // 3. Auto-centering Camera on Origin and Destination Bounds
+    if (latLngs.length > 0) {
+      try {
+        const bounds = L.latLngBounds(latLngs);
+        map.fitBounds(bounds, {
+          padding: [60, 60],
+          maxZoom: 13,
+          animate: !reducedMotion,
+          duration: 0.8
+        });
+      } catch (err) {
+        console.warn('Could not auto-fit map bounds to safe route:', err);
+      }
+    }
+  }, [showSafeRouteLayer, safeRouteResult, reducedMotion]);
 
   // Render Real-Time AIS & Sentinel-1 SAR Dark Vessel Layer
   useEffect(() => {
@@ -1440,16 +1567,33 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
               <Navigation className={`h-3.5 w-3.5 ${isCalculatingRoute ? 'animate-spin text-cyan-400' : 'text-emerald-400'}`} />
               <span>Safe Route Navigation</span>
             </span>
-            <button
-              onClick={() => {
-                setRouteDestination(null);
-                setSafeRouteResult(null);
-              }}
-              className="text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 px-1.5 py-0.5 rounded text-[10px] font-bold"
-              title="Clear Active Navigation Route"
-            >
-              ✕ Clear
-            </button>
+            <div className="flex items-center gap-1.5">
+              {safeRouteResult?.waypoints && safeRouteResult.waypoints.length > 0 && (
+                <button
+                  onClick={() => {
+                    const map = mapInstanceRef.current;
+                    if (map && safeRouteResult?.waypoints) {
+                      const bounds = L.latLngBounds(safeRouteResult.waypoints.map((w: any) => [w.latitude, w.longitude]));
+                      map.fitBounds(bounds, { padding: [60, 60], maxZoom: 13, animate: true, duration: 0.6 });
+                    }
+                  }}
+                  className="text-cyan-300 hover:text-white bg-slate-800 hover:bg-slate-700 px-1.5 py-0.5 rounded text-[10px] font-bold flex items-center gap-1"
+                  title="Frame Camera to Full Safe Route"
+                >
+                  🎯 Frame
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  setRouteDestination(null);
+                  setSafeRouteResult(null);
+                }}
+                className="text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 px-1.5 py-0.5 rounded text-[10px] font-bold"
+                title="Clear Active Navigation Route"
+              >
+                ✕ Clear
+              </button>
+            </div>
           </div>
 
           {isCalculatingRoute ? (
