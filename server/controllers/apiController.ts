@@ -187,10 +187,34 @@ export function gisSpatialAnalysis(req: Request, res: Response) {
   }
 }
 
-export function health(_req: Request, res: Response) {
+export async function health(_req: Request, res: Response) {
+  const mlUrl = process.env.ORCA_ML_API_URL || 'http://127.0.0.1:8000';
+  const ragUrl = process.env.ORCA_RAG_API_URL || 'http://127.0.0.1:8001';
+  const qdrantUrl = process.env.QDRANT_URL || 'http://127.0.0.1:6333';
+
+  const [mlCheck, ragCheck, qdrantCheck] = await Promise.all([
+    fetch(`${mlUrl}/health`, { signal: AbortSignal.timeout(600) })
+      .then(r => r.ok)
+      .catch(() => false),
+    fetch(`${ragUrl}/health`, { signal: AbortSignal.timeout(600) })
+      .then(r => r.ok)
+      .catch(() => false),
+    fetch(`${qdrantUrl}/healthz`, { signal: AbortSignal.timeout(600) })
+      .then(r => r.ok)
+      .catch(() => false),
+  ]);
+
   res.json({
     status: 'healthy',
     timestamp: new Date().toISOString(),
+    liveStatus: {
+      mlService: mlCheck ? 'ONLINE' : 'PHYSICS_FALLBACK',
+      ragService: ragCheck ? 'ONLINE' : 'LEXICAL_FALLBACK',
+      qdrantVectorDb: qdrantCheck ? 'ONLINE' : 'OFFLINE',
+      geminiLlm: process.env.GEMINI_API_KEY ? 'ACTIVE' : 'DETERMINISTIC_FALLBACK',
+      openMeteo: 'ONLINE',
+      incoisPfz: 'AVAILABLE',
+    },
     services: {
       liveWeather: 'open_meteo_current_conditions',
       liveMarine: 'open_meteo_marine_current_conditions',
@@ -200,10 +224,10 @@ export function health(_req: Request, res: Response) {
       pfzSatelliteEngine: 'incois_geoserver_wfs_daily_statutory_fronts',
       satelliteCatalog: 'copernicus_dataspace_stac',
       satelliteProcessing: 'incois_statutory_ocean_fronts_and_copernicus_stac',
-      riskEngine: 'xgboost_with_rule_based_fallback',
-      mlRiskApi: process.env.ORCA_ML_API_URL || 'http://127.0.0.1:8000',
-      evidenceRetrieval: 'bge-m3-qdrant_with_lexical_fallback',
-      ragApi: process.env.ORCA_RAG_API_URL || 'http://127.0.0.1:8001',
+      riskEngine: mlCheck ? 'xgboost_microservice' : 'xgboost_with_rule_based_fallback',
+      mlRiskApi: mlUrl,
+      evidenceRetrieval: ragCheck ? 'bge-m3-qdrant_vector' : 'bge-m3-qdrant_with_lexical_fallback',
+      ragApi: ragUrl,
       agentOrchestrator: 'server_workflow',
       geminiGroundingAgent: process.env.GEMINI_API_KEY ? 'configured' : 'standby_deterministic',
       geofenceSurveillance: 'authentic_unclos_pca_treaty_engine',

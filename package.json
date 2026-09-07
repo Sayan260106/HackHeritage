@@ -6,6 +6,8 @@
   "type": "module",
   "scripts": {
     "dev": "tsx server/app.ts",
+    "dev:all": "node scripts/dev-all.mjs",
+    "health": "node scripts/system-health.mjs",
     "dev:ml": "uvicorn ml.api:app --reload --host 0.0.0.0 --port 8000",
     "dev:rag": "uvicorn ml.rag_api:app --reload --host 0.0.0.0 --port 8001",
     "ingest:rag": "tsx scripts/ingest-rag.mjs",

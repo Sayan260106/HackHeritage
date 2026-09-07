@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { AlertCircle, ArrowLeft, RefreshCw, MessageSquare } from "lucide-react";
+import { AlertCircle, ArrowLeft, RefreshCw, MessageSquare, Activity } from "lucide-react";
 import { LeftNavbar } from "../components/LeftNavbar";
 import { InteractiveMap } from "../components/InteractiveMap";
 import { QueryPanel } from "../components/QueryPanel";
@@ -12,6 +12,7 @@ import { SatelliteAnalysisView } from "../components/SatelliteAnalysisView";
 import { WhatIfSimulator } from "../components/WhatIfSimulator";
 import { AudioAlertController } from "../components/AudioAlertController";
 import { MarineChatDrawer } from "../components/MarineChatDrawer";
+import { SystemHealthModal } from "../components/SystemHealthModal";
 import { OrcaAnalysisResponse, LanguageCode, ConversationTurn } from "../types";
 import { COASTAL_LOCATIONS, MULTILINGUAL_DICTIONARY } from "../data/coastalData";
 import { detectQueryLanguage } from "../utils/languageDetector";
@@ -32,6 +33,7 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
   const [sessionId, setSessionId] = useState<string>(() => `session-${Date.now()}`);
   const [chatTurns, setChatTurns] = useState<ConversationTurn[]>([]);
   const [isChatDrawerOpen, setIsChatDrawerOpen] = useState<boolean>(false);
+  const [isHealthModalOpen, setIsHealthModalOpen] = useState<boolean>(false);
 
   const fetchAnalysis = async (
     queryText: string,
@@ -203,6 +205,15 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
                 </button>
               );
             })}
+
+            <button
+              onClick={() => setIsHealthModalOpen(true)}
+              title="Inspect multi-service connectivity & fallback health"
+              className="ml-auto shrink-0 flex items-center gap-1.5 rounded-xl border border-cyan-500/30 bg-slate-950/80 px-3 py-2 text-xs font-mono text-cyan-300 hover:bg-slate-900 hover:text-white hover:border-cyan-400 transition-all active:scale-95"
+            >
+              <Activity className="h-3.5 w-3.5 text-emerald-400 animate-pulse" />
+              <span className="hidden sm:inline">System Diagnostics</span>
+            </button>
           </div>
 
           {/* Maritime Audio Siren & Multi-lingual Warning Voice Controller */}
@@ -410,6 +421,12 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
             </div>
           )}
         </main>
+
+        <SystemHealthModal
+          isOpen={isHealthModalOpen}
+          onClose={() => setIsHealthModalOpen(false)}
+          language={language}
+        />
 
         {/* Floating Multi-Turn Marine Chat Drawer Button */}
         <button
