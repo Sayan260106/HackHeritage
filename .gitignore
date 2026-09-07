@@ -6,8 +6,8 @@ coverage/
 *.log
 
 # Public assets & video/scrolly frame sequences
-/public/
-public/
+# /public/
+# public/
 
 # Python
 __pycache__/
