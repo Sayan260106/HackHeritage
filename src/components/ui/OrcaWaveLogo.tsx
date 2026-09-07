@@ -30,7 +30,7 @@ export const OrcaWaveLogo: React.FC<OrcaWaveLogoProps> = ({
 
   // Harmonious backdrop styling depending on variant
   const variantStyles = {
-    home: 'border border-shoal/40 bg-abyssal/80 shadow-md shadow-shoal/20 hover:border-shoal/70',
+    home: 'border border-cyan-400/40 bg-black/30 backdrop-blur-sm shadow-sm hover:border-cyan-400/80',
     sidebar: 'border border-shoal/35 bg-abyssal/60 hover:border-shoal/60',
     console: 'border border-cyan-400/40 bg-gradient-to-br from-cyan-950/80 via-slate-950/90 to-blue-950/80 shadow-lg shadow-cyan-500/15 hover:border-cyan-400/70',
   }[variant];
