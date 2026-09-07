@@ -38,6 +38,7 @@
     "test:all-languages": "tsx scripts/test-all-10-languages-all-warnings.ts",
     "test:hybrid-types": "tsx scripts/test-all-hybrid-types.ts",
     "test:mosdac-cache": "tsx scripts/test-mosdac-cache.ts",
+    "test:conversation": "tsx scripts/test-conversation-session.ts",
     "smoke": "node scripts/smoke-test.mjs"
   },
   "dependencies": {

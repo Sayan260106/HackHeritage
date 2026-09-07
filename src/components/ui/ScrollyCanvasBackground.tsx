@@ -7,11 +7,13 @@ interface ScrollyCanvasBackgroundProps {
   initialFrame?: number;
 }
 
-const TOTAL_FRAMES = 301;
+const TOTAL_FRAMES = 499;
 
 function getFrameUrl(index: number): string {
-  const padded = String(index).padStart(6, "0");
-  return `/background_frames/frame_${padded}.webp`;
+  // index is 0-based (0 to 498); frame files in new_bg_frames are 1-based (frame_00001.webp to frame_00499.webp)
+  const frameNum = Math.min(TOTAL_FRAMES, Math.max(1, index + 1));
+  const padded = String(frameNum).padStart(5, "0");
+  return `/new_bg_frames/frame_${padded}.webp`;
 }
 
 export const ScrollyCanvasBackground: React.FC<ScrollyCanvasBackgroundProps> = ({
@@ -126,26 +128,23 @@ export const ScrollyCanvasBackground: React.FC<ScrollyCanvasBackgroundProps> = (
         };
 
         img.onerror = (e) => {
-          // Fallback if public background_frames fails for an indexed asset
-          if (index < 240) {
-            const fallback = `/frames/frame_${String(index).padStart(6, "0")}.jpeg`;
-            img.src = fallback;
-            img.onload = () => {
-              imagesRef.current[index] = img;
-              loadedSetRef.current.add(index);
-              if (index === 0 && renderedFrameRef.current === -1) {
-                drawFrame(0);
-              }
-              resolve(img);
-            };
-            img.onerror = () => reject(e);
-          } else {
-            reject(e);
-          }
+          // Fallback to background_frames if new_bg_frames fails
+          const fallbackIdx = Math.min(300, Math.round((index / (totalFrames - 1)) * 300));
+          const fallback = `/background_frames/frame_${String(fallbackIdx).padStart(6, "0")}.webp`;
+          img.src = fallback;
+          img.onload = () => {
+            imagesRef.current[index] = img;
+            loadedSetRef.current.add(index);
+            if (index === 0 && renderedFrameRef.current === -1) {
+              drawFrame(0);
+            }
+            resolve(img);
+          };
+          img.onerror = () => reject(e);
         };
       });
     },
-    [drawFrame],
+    [drawFrame, totalFrames],
   );
 
   // Progressive image preloader: load hero batch immediately, then progressively stream the rest
@@ -156,7 +155,7 @@ export const ScrollyCanvasBackground: React.FC<ScrollyCanvasBackgroundProps> = (
     async function preloadSequence() {
       // Step 1: Eagerly load initial keyframes for the hero section
       const priorityBatch: Promise<HTMLImageElement>[] = [];
-      for (let i = 0; i < Math.min(30, totalFrames); i++) {
+      for (let i = 0; i < Math.min(35, totalFrames); i++) {
         priorityBatch.push(loadSingleImage(i));
       }
       await Promise.allSettled(priorityBatch);
@@ -166,8 +165,8 @@ export const ScrollyCanvasBackground: React.FC<ScrollyCanvasBackgroundProps> = (
       drawFrame(0);
 
       // Step 2: Progressively load remaining frames in small batches with yielding
-      const BATCH_SIZE = 15;
-      for (let i = 30; i < totalFrames; i += BATCH_SIZE) {
+      const BATCH_SIZE = 18;
+      for (let i = 35; i < totalFrames; i += BATCH_SIZE) {
         if (isCancelled) break;
         const batch: Promise<HTMLImageElement>[] = [];
         for (let j = i; j < Math.min(i + BATCH_SIZE, totalFrames); j++) {
@@ -175,7 +174,7 @@ export const ScrollyCanvasBackground: React.FC<ScrollyCanvasBackgroundProps> = (
         }
         await Promise.allSettled(batch);
         // Small yield to keep main thread completely unblocked for smooth 60fps scrolling
-        await new Promise((r) => setTimeout(r, 16));
+        await new Promise((r) => setTimeout(r, 15));
       }
     }
 
@@ -202,7 +201,7 @@ export const ScrollyCanvasBackground: React.FC<ScrollyCanvasBackgroundProps> = (
       if (!imagesRef.current[target]) {
         loadSingleImage(target);
       }
-      for (let offset = 1; offset <= 3; offset++) {
+      for (let offset = 1; offset <= 5; offset++) {
         if (target + offset < totalFrames && !imagesRef.current[target + offset]) {
           loadSingleImage(target + offset);
         }
@@ -243,11 +242,11 @@ export const ScrollyCanvasBackground: React.FC<ScrollyCanvasBackgroundProps> = (
       const current = currentFrameFloatRef.current;
       const diff = target - current;
 
-      // Butter-smooth lerp factor for responsive cinematic glide
+      // Butter-smooth lerp factor for responsive cinematic glide across 499 frames
       if (Math.abs(diff) < 0.005) {
         currentFrameFloatRef.current = target;
       } else {
-        currentFrameFloatRef.current += diff * 0.15;
+        currentFrameFloatRef.current += diff * 0.16;
       }
 
       const roundedFrame = Math.min(
