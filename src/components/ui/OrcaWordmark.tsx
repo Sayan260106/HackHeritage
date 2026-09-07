@@ -53,7 +53,6 @@ export const OrcaWordmark: React.FC<OrcaWordmarkProps> = ({
     <div
       className={`orca-wordmark-wrapper group relative inline-flex flex-col select-none cursor-pointer ${className}`}
       onMouseEnter={handleMouseEnter}
-      title="ORCA-X — Sentinel Satellite Orbital Reconnaissance (Hover to replay)"
     >
       {/* ── Main Wordmark Reveal Aperture ── */}
       <div className={`relative inline-flex items-center overflow-visible ${sizeMap.topPad}`}>
