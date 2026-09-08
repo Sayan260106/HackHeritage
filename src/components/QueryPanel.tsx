@@ -24,6 +24,9 @@ interface QueryPanelProps {
   isLoading: boolean;
   language: LanguageCode;
   onOpenChat?: () => void;
+  activeLocationName?: string;
+  activeLocationKey?: string;
+  activeQuery?: string;
 }
 
 export const ISRO_BENCHMARK_QUERIES = [
@@ -89,7 +92,10 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
   onSearch,
   isLoading,
   language,
-  onOpenChat
+  onOpenChat,
+  activeLocationName,
+  activeLocationKey,
+  activeQuery
 }) => {
   const [inputQuery, setInputQuery] = useState<string>('Is it safe to fish near Digha tomorrow morning?');
   const [isListening, setIsListening] = useState<boolean>(false);
@@ -98,6 +104,23 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
   const [selectedLocation, setSelectedLocation] = useState<string>('');
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [activePromptTab, setActivePromptTab] = useState<'isro' | 'regional'>('isro');
+
+  // Sync selected location key when parent updates active location
+  useEffect(() => {
+    if (activeLocationKey) {
+      setSelectedLocation(activeLocationKey);
+    }
+  }, [activeLocationKey]);
+
+  // Sync query input text when active location or active query changes
+  useEffect(() => {
+    if (activeQuery) {
+      setInputQuery(activeQuery);
+    } else if (activeLocationName) {
+      const displayLoc = activeLocationName.split('/')[0].trim();
+      setInputQuery(`Is it safe to fish near ${displayLoc} tomorrow morning?`);
+    }
+  }, [activeLocationName, activeQuery]);
 
   const dict = MULTILINGUAL_DICTIONARY[language] || MULTILINGUAL_DICTIONARY.en;
   const detected = detectQueryLanguage(inputQuery, language);
@@ -356,7 +379,17 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
             <select
               id="select-coastal-station"
               value={selectedLocation}
-              onChange={(e) => setSelectedLocation(e.target.value)}
+              onChange={(e) => {
+                const newLocKey = e.target.value;
+                setSelectedLocation(newLocKey);
+                if (newLocKey && COASTAL_LOCATIONS[newLocKey]) {
+                  const loc = COASTAL_LOCATIONS[newLocKey];
+                  const newQueryText = `Is it safe to fish near ${loc.name} right now?`;
+                  setInputQuery(newQueryText);
+                  const detectedLang = detectQueryLanguage(newQueryText, language);
+                  onSearch(newQueryText, newLocKey, selectedTime || undefined, detectedLang.language);
+                }
+              }}
               className="bg-transparent text-slate-200 text-xs w-full cursor-pointer"
             >
               <option value="" className="bg-slate-900 text-slate-400">{dict.autoLocation}</option>
