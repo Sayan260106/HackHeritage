@@ -181,26 +181,26 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
           </button>
 
           {/* Multi-Port Coastal Hubs Live Status Bar (Section 2C: Touch-Snap Carousel) */}
-          <div className="flex items-center space-x-2 horizontal-snap-carousel py-2.5 px-4 orca-glass-panel rounded-xl text-xs font-mono shadow-lg">
-            <span className="text-[11px] text-cyan-400 font-bold uppercase tracking-wider shrink-0 flex items-center gap-1.5 px-1">
+          <div className="flex items-center space-x-2 horizontal-snap-carousel overflow-x-auto py-2.5 px-4 orca-glass-panel rounded-xl text-xs font-mono shadow-lg scrollbar-thin scrollbar-thumb-slate-700">
+            <span className="text-[11px] text-cyan-400 font-bold uppercase tracking-wider shrink-0 flex items-center gap-1.5 px-1 pr-2 border-r border-slate-800">
               <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
               <span>Coastal Ports:</span>
             </span>
-            {['digha', 'puri', 'paradeep', 'visakhapatnam', 'kochi', 'chennai', 'mumbai'].map((key) => {
+            {Object.keys(COASTAL_LOCATIONS).map((key) => {
               const loc = COASTAL_LOCATIONS[key];
               if (!loc) return null;
-              const isSelected = analysisData?.location.name.toLowerCase().includes(key);
+              const isSelected = analysisData?.location.name.toLowerCase().includes(loc.name.toLowerCase()) || analysisData?.location.name.toLowerCase().includes(key);
               return (
                 <button
                   key={key}
                   onClick={() => handleLocationSelect(key)}
-                  className={`min-h-[44px] px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center space-x-1.5 active:scale-95 ${
+                  className={`min-h-[38px] px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center space-x-1.5 active:scale-95 shrink-0 ${
                     isSelected
                       ? 'bg-cyan-400 text-slate-950 shadow-md shadow-cyan-400/30 font-black border border-cyan-300'
                       : 'bg-slate-900 text-slate-200 hover:text-white hover:bg-slate-800 border border-slate-700'
                   }`}
                 >
-                  <span>{loc.name.split(' ')[0]}</span>
+                  <span>{loc.name.split('/')[0].split(' ')[0]}</span>
                   <span className="text-[10px] opacity-80 font-mono">({loc.latitude.toFixed(1)}°N)</span>
                 </button>
               );
@@ -264,6 +264,9 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
                         isLoading={isLoading}
                         language={language}
                         onOpenChat={() => setIsChatDrawerOpen(true)}
+                        activeLocationName={analysisData?.location.name}
+                        activeLocationKey={analysisData ? Object.keys(COASTAL_LOCATIONS).find(k => COASTAL_LOCATIONS[k].name === analysisData.location.name) : undefined}
+                        activeQuery={analysisData?.originalQuery}
                       />
                       <MarineTelemetry
                         weather={analysisData.weather}
