@@ -12,34 +12,22 @@ interface MultilingualCase {
 
 const TEST_CASES: MultilingualCase[] = [
   {
-    id: 'EN-1',
-    lang: 'en',
-    langName: 'English',
-    locationKey: 'digha',
+    id: 'EN-1', lang: 'en', langName: 'English', locationKey: 'digha',
     query: 'What is the safest route for a fishing vessel considering weather and sea-state conditions?',
     expectedIntent: 'pfz_safe_routing',
   },
   {
-    id: 'HI-1',
-    lang: 'hi',
-    langName: 'Hindi (हिन्दी)',
-    locationKey: 'mumbai',
+    id: 'HI-1', lang: 'hi', langName: 'Hindi (हिन्दी)', locationKey: 'mumbai',
     query: 'क्या कल सुबह मुंबई के पास मछली पकड़ने के लिए समुद्र में जाना सुरक्षित है?',
     expectedIntent: 'marine_safety_fishing_advisory',
   },
   {
-    id: 'BN-1',
-    lang: 'bn',
-    langName: 'Bengali (বাংলা)',
-    locationKey: 'digha',
+    id: 'BN-1', lang: 'bn', langName: 'Bengali (বাংলা)', locationKey: 'digha',
     query: 'দীঘার কাছে আজ সবচেয়ে কাছের সম্ভাব্য মাছ ধরার অঞ্চল (PFZ) কোথায়?',
     expectedIntent: 'potential_fishing_zone_intelligence',
   },
   {
-    id: 'TA-1',
-    lang: 'ta',
-    langName: 'Tamil (தமிழ்)',
-    locationKey: 'chennai',
+    id: 'TA-1', lang: 'ta', langName: 'Tamil (தமிழ்)', locationKey: 'chennai',
     query: 'சென்னை அருகே ஏதேனும் புயல் அல்லது மின்னல் எச்சரிக்கைகள் உள்ளதா?',
     expectedIntent: 'marine_alert_intelligence',
   },
@@ -61,6 +49,19 @@ async function runMultilingualE2E() {
       const startTime = Date.now();
       const response = await runOrcaAgentWorkflow(tc.query, tc.locationKey, undefined, tc.lang);
       const elapsed = Date.now() - startTime;
+
+      if (response.detectedIntent !== tc.expectedIntent) {
+        throw new Error(`Expected intent ${tc.expectedIntent}, received ${response.detectedIntent}.`);
+      }
+      if (response.language !== tc.lang) {
+        throw new Error(`Expected language ${tc.lang}, received ${response.language}.`);
+      }
+      if (!response.location?.name || !response.weather || !response.ocean || !response.risk) {
+        throw new Error('Workflow returned incomplete required marine outputs.');
+      }
+      if (!response.executionPlan?.tasks?.some(task => task.status === 'completed' && task.id === 'synthesis')) {
+        throw new Error('Synthesis task did not complete.');
+      }
 
       console.log(`✓ Workflow Duration: ${elapsed}ms`);
       console.log(`✓ Detected Intent: ${response.detectedIntent}`);
@@ -93,9 +94,7 @@ async function runMultilingualE2E() {
   console.log(`🎉 COMPLETED: ${passed}/${TEST_CASES.length} Multilingual End-to-End Tests Passed!`);
   console.log('========================================================================');
 
-  if (passed !== TEST_CASES.length) {
-    process.exit(1);
-  }
+  if (passed !== TEST_CASES.length) process.exit(1);
 }
 
 runMultilingualE2E();
