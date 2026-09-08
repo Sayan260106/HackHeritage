@@ -1,7 +1,13 @@
+import { mkdir } from 'node:fs/promises';
 import { COASTAL_LOCATIONS } from '../src/data/coastalData.ts';
 import { analyzePfz } from '../server/services/pfzService.ts';
 
 async function main() {
+  // The PFZ service may persist normalized INCOIS cache data during the test.
+  // CI runners start from a clean checkout, so create the runtime cache path
+  // explicitly instead of relying on a developer-created local directory.
+  await mkdir('./data/realtime', { recursive: true });
+
   const location = COASTAL_LOCATIONS.goa;
   const result = await analyzePfz(location);
 
