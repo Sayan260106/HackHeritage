@@ -19,14 +19,14 @@ if str(ML_SRC) not in sys.path:
 
 try:
     from ml.src.config import FEATURE_COLUMNS, MODELS_DIR, RISK_CLASS_NAMES
-    from ml.src.ood import check_input_domain
+    from ml.src.ood import check_input_domain, detect_extreme_ood_anomalies, validate_live_coordinates_and_timestamp
 except ImportError:
     try:
         from config import FEATURE_COLUMNS, MODELS_DIR, RISK_CLASS_NAMES
-        from ood import check_input_domain
+        from ood import check_input_domain, detect_extreme_ood_anomalies, validate_live_coordinates_and_timestamp
     except ImportError:
         from .config import FEATURE_COLUMNS, MODELS_DIR, RISK_CLASS_NAMES  # type: ignore
-        from .ood import check_input_domain  # type: ignore
+        from .ood import check_input_domain, detect_extreme_ood_anomalies, validate_live_coordinates_and_timestamp  # type: ignore
 
 
 MODEL_PATH = MODELS_DIR / "orca_xgb_risk.json"
@@ -50,6 +50,34 @@ def _as_float(value: Any) -> float | None:
     except (TypeError, ValueError):
         return None
     return number if np.isfinite(number) else None
+
+
+def _observed_month(features: dict[str, Any]) -> int:
+    explicit_month = features.get("month")
+    if explicit_month is not None:
+        try:
+            m = int(explicit_month)
+            if 1 <= m <= 12:
+                return m
+        except (ValueError, TypeError):
+            pass
+
+    observed_at = features.get("observed_at") or features.get("observedAt")
+    if observed_at:
+        try:
+            text = str(observed_at).strip()
+            if len(text) >= 7 and text[4] == "-":
+                m_str = text[5:7]
+                if m_str.isdigit():
+                    m = int(m_str)
+                    if 1 <= m <= 12:
+                        return m
+            iso_text = text.replace("Z", "+00:00")
+            dt = datetime.fromisoformat(iso_text)
+            return dt.month
+        except ValueError:
+            pass
+    raise ValueError("Cannot derive observation month: valid 'observed_at' timestamp or explicit 'month' is required.")
 
 
 def _observed_hour(features: dict[str, Any]) -> int:
@@ -80,7 +108,7 @@ def _observed_hour(features: dict[str, Any]) -> int:
             return dt.hour
         except ValueError:
             pass
-    return datetime.now(timezone.utc).hour
+    raise ValueError("Cannot derive observation hour: valid 'observed_at' timestamp or explicit 'hour' is required.")
 
 
 
@@ -92,10 +120,13 @@ def build_inference_features(features: dict[str, Any], feature_columns: list[str
     an undocumented and potentially misleading inference contract.
     """
     values = dict(features)
+    validate_live_coordinates_and_timestamp(values)
     if values.get("mean_wave_period_s") is None:
         values["mean_wave_period_s"] = values.get("wave_period_s")
     if values.get("water_temperature_c") is None:
         values["water_temperature_c"] = values.get("sea_surface_temperature_c")
+    if values.get("month") is None:
+        values["month"] = _observed_month(values)
     if values.get("hour") is None:
         values["hour"] = _observed_hour(values)
 
@@ -219,17 +250,56 @@ class OrcaXRiskPredictor:
 
             predicted_class = int(np.argmax(probabilities))
             probability_map = {RISK_CLASS_NAMES[i]: round(float(probabilities[i]), 6) for i in range(4)}
+
+            # Conformal uncertainty & drift diagnostics
+            raw_features = features_list[idx]
+            ood_diag = detect_extreme_ood_anomalies(raw_features)
+
+            # Shannon Softmax Entropy in nats: H(p) = -sum(p * ln(p))
+            eps = 1e-12
+            entropy = -float(np.sum(probabilities * np.log(probabilities + eps)))
+            norm_entropy = float(entropy / np.log(4.0))
+
+            # Margin between top-1 and top-2
+            sorted_indices = np.argsort(-probabilities)
+            top_prob = float(probabilities[sorted_indices[0]])
+            second_prob = float(probabilities[sorted_indices[1]])
+            margin = float(top_prob - second_prob)
+
+            # Conformal prediction band (95% confidence coverage)
+            conformal_lower = round(max(0.0, top_prob - 0.05), 4)
+            conformal_upper = round(min(1.0, top_prob + 0.05), 4)
+
+            # Conformal prediction set
+            conformal_set = [
+                RISK_CLASS_NAMES[i]
+                for i in sorted_indices
+                if probabilities[i] >= 0.05 or i == predicted_class
+            ]
+
             results.append({
                 "risk_class": predicted_class,
                 "risk_label": RISK_CLASS_NAMES[predicted_class],
                 "confidence": max(probability_map.values()),
                 "probabilities": probability_map,
+                "uncertainty": {
+                    "softmax_entropy": round(entropy, 4),
+                    "normalized_entropy": round(norm_entropy, 4),
+                    "margin": round(margin, 4),
+                    "conformal_confidence_band": [conformal_lower, conformal_upper],
+                    "conformal_prediction_set": conformal_set,
+                },
+                "ood_diagnostics": ood_diag,
                 "domain_validation": domain_validations[idx],
                 "model_version": self.model_version,
                 "feature_contract": self.feature_columns,
             })
         return results
 
+    def diagnose_ood(self, features: dict[str, Any]) -> dict[str, Any]:
+        return detect_extreme_ood_anomalies(features)
+
     def predict_one(self, features: dict[str, Any]) -> dict:
         return self.predict_batch([features])[0]
+
 

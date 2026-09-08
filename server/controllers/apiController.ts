@@ -8,7 +8,7 @@ import { fetchMarineAndWeatherData } from '../services/marineService.ts';
 import { buildTomorrowMarineRiskForecast } from '../services/realtime/marineForecastService.ts';
 import { getRealtimeSourceReadiness } from '../services/realtime/marineDataFusion.ts';
 import { getMarineTelemetry, getMarineTelemetryAnalysis, getMarineTelemetrySummary } from '../services/realtime/marineTelemetry.ts';
-import { retrieveRagEvidence } from '../services/ragService.ts';
+import { retrieveRagEvidence, liveIngestEvidence } from '../services/ragService.ts';
 import { getEvidenceCorpusSize, getSupportedLocationCount, runOrcaAgentWorkflow } from '../services/orcaService.ts';
 import { localizeRiskPrediction } from '../../src/utils/marineRiskLocalization.ts';
 import { analyzeMaritimeGeofencing } from '../services/geofenceService.ts';
@@ -154,6 +154,29 @@ export async function evidenceSearch(req: Request, res: Response) {
   } catch (error) {
     console.error('Evidence search error:', error);
     res.status(503).json({ error: error instanceof Error ? error.message : 'Evidence search failed.' });
+  }
+}
+
+export async function evidenceLiveIngest(req: Request, res: Response) {
+  try {
+    const { title, excerpt, sourceAuthority, documentType, publicationDate, complianceRule, officialUrl, id } = req.body;
+    if (!title || !excerpt || !sourceAuthority) {
+      return res.status(400).json({ error: 'title, excerpt, and sourceAuthority are required for live evidence ingestion.' });
+    }
+    const result = await liveIngestEvidence({
+      title,
+      excerpt,
+      sourceAuthority,
+      documentType,
+      publicationDate,
+      complianceRule,
+      officialUrl,
+      id,
+    });
+    res.json(result);
+  } catch (error) {
+    console.error('Evidence live-ingest error:', error);
+    res.status(503).json({ error: error instanceof Error ? error.message : 'Live evidence ingestion failed.' });
   }
 }
 

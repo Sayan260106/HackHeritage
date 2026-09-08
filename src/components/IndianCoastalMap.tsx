@@ -8,14 +8,23 @@ interface IndianCoastalMapProps {
 
 // Visual map coordinates scaled to SVG viewBox 0 0 600 650
 const MAP_PORTS = [
-  { key: 'digha', name: 'Digha', state: 'West Bengal', x: 440, y: 150, risk: 'LOW', lat: '21.6°N', depth: '12m' },
-  { key: 'paradeep', name: 'Paradeep', state: 'Odisha', x: 410, y: 210, risk: 'MODERATE', lat: '20.3°N', depth: '18m' },
-  { key: 'puri', name: 'Puri', state: 'Odisha', x: 390, y: 245, risk: 'LOW', lat: '19.8°N', depth: '15m' },
-  { key: 'visakhapatnam', name: 'Visakhapatnam', state: 'Andhra Pradesh', x: 360, y: 310, risk: 'LOW', lat: '17.7°N', depth: '22m' },
-  { key: 'chennai', name: 'Chennai', state: 'Tamil Nadu', x: 310, y: 440, risk: 'MODERATE', lat: '13.1°N', depth: '25m' },
-  { key: 'kochi', name: 'Kochi', state: 'Kerala', x: 200, y: 530, risk: 'LOW', lat: '9.9°N', depth: '20m' },
-  { key: 'goa', name: 'Goa', state: 'Goa', x: 175, y: 380, risk: 'LOW', lat: '15.4°N', depth: '16m' },
-  { key: 'mumbai', name: 'Mumbai', state: 'Maharashtra', x: 160, y: 275, risk: 'LOW', lat: '18.9°N', depth: '28m' },
+  { key: 'digha', name: 'Digha', state: 'West Bengal', x: 440, y: 150, risk: 'LOW', lat: '21.6°N', depth: '14m' },
+  { key: 'sagar_island', name: 'Sagar Island', state: 'West Bengal', x: 458, y: 156, risk: 'LOW', lat: '21.7°N', depth: '10m' },
+  { key: 'sundarbans', name: 'Sundarbans', state: 'West Bengal', x: 475, y: 162, risk: 'LOW', lat: '21.8°N', depth: '8m' },
+  { key: 'paradeep', name: 'Paradeep', state: 'Odisha', x: 410, y: 210, risk: 'MODERATE', lat: '20.3°N', depth: '35m' },
+  { key: 'puri', name: 'Puri', state: 'Odisha', x: 390, y: 245, risk: 'LOW', lat: '19.8°N', depth: '22m' },
+  { key: 'gopalpur', name: 'Gopalpur', state: 'Odisha', x: 375, y: 270, risk: 'LOW', lat: '19.3°N', depth: '28m' },
+  { key: 'visakhapatnam', name: 'Visakhapatnam', state: 'Andhra Pradesh', x: 360, y: 310, risk: 'LOW', lat: '17.7°N', depth: '45m' },
+  { key: 'kakinada', name: 'Kakinada', state: 'Andhra Pradesh', x: 340, y: 350, risk: 'LOW', lat: '17.0°N', depth: '18m' },
+  { key: 'chennai', name: 'Chennai', state: 'Tamil Nadu', x: 310, y: 440, risk: 'MODERATE', lat: '13.1°N', depth: '30m' },
+  { key: 'tuticorin', name: 'Tuticorin', state: 'Tamil Nadu', x: 260, y: 560, risk: 'LOW', lat: '8.8°N', depth: '25m' },
+  { key: 'kochi', name: 'Kochi', state: 'Kerala', x: 200, y: 530, risk: 'LOW', lat: '9.9°N', depth: '24m' },
+  { key: 'mangalore', name: 'Mangalore', state: 'Karnataka', x: 185, y: 440, risk: 'LOW', lat: '12.9°N', depth: '26m' },
+  { key: 'goa', name: 'Goa', state: 'Goa', x: 175, y: 380, risk: 'LOW', lat: '15.4°N', depth: '20m' },
+  { key: 'mumbai', name: 'Mumbai', state: 'Maharashtra', x: 160, y: 275, risk: 'LOW', lat: '18.9°N', depth: '32m' },
+  { key: 'veraval', name: 'Veraval', state: 'Gujarat', x: 135, y: 235, risk: 'LOW', lat: '20.9°N', depth: '22m' },
+  { key: 'porbandar', name: 'Porbandar', state: 'Gujarat', x: 125, y: 200, risk: 'LOW', lat: '21.6°N', depth: '28m' },
+  { key: 'port_blair', name: 'Port Blair', state: 'Andaman & Nicobar', x: 530, y: 450, risk: 'LOW', lat: '11.6°N', depth: '65m' },
 ];
 
 export const IndianCoastalMap: React.FC<IndianCoastalMapProps> = ({ onSelectPort }) => {

@@ -129,3 +129,14 @@ def predict_risk_batch(request: BatchRiskRequest):
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Batch risk prediction failed: {exc}") from exc
 
+
+@app.post("/diagnostics/ood")
+def diagnose_ood(request: RiskRequest):
+    try:
+        payload = request.model_dump(exclude_none=True)
+        diagnostics = predictor.diagnose_ood(payload)
+        return {"success": True, **diagnostics}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"OOD diagnostics failed: {exc}") from exc
+
+

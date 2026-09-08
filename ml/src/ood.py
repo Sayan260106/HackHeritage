@@ -1,8 +1,11 @@
 """Conservative physical-domain validation for ORCA-X models."""
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from typing import Any, Iterable
+
+import numpy as np
 
 from config import FEATURE_COLUMNS
 
@@ -105,3 +108,124 @@ def check_input_domain(features: dict[str, Any], feature_names: Iterable[str] | 
         TRAINING_DATASET,
         DEPLOYMENT_VALIDATION_STATUS,
     )
+
+
+def validate_live_coordinates_and_timestamp(features: dict[str, Any]) -> None:
+    """Strictly validates that a live inference payload contains required coordinates and timestamps.
+
+    Rejects missing coordinates or timestamps to guarantee zero synthetic feature generation.
+    """
+    lat = features.get("latitude")
+    if lat is None:
+        raise ValueError("Missing required live coordinate: 'latitude' is mandatory.")
+    try:
+        lat_f = float(lat)
+        if not (-90.0 <= lat_f <= 90.0) or not np.isfinite(lat_f):
+            raise ValueError(f"Invalid latitude: {lat}. Must be a finite number between -90 and 90.")
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"Invalid latitude: {lat}. Must be a finite number between -90 and 90.") from exc
+
+    lon = features.get("longitude")
+    if lon is None:
+        raise ValueError("Missing required live coordinate: 'longitude' is mandatory.")
+    try:
+        lon_f = float(lon)
+        if not (-180.0 <= lon_f <= 180.0) or not np.isfinite(lon_f):
+            raise ValueError(f"Invalid longitude: {lon}. Must be a finite number between -180 and 180.")
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"Invalid longitude: {lon}. Must be a finite number between -180 and 180.") from exc
+
+    # Timestamp validation: must have observed_at/observedAt or explicit month & hour
+    observed_at = features.get("observed_at") or features.get("observedAt")
+    has_explicit_time = features.get("month") is not None and features.get("hour") is not None
+
+    if not observed_at and not has_explicit_time:
+        raise ValueError(
+            "Missing required observation timestamp: payload must provide 'observed_at' (ISO timestamp) "
+            "or explicit 'month' and 'hour'."
+        )
+
+    if has_explicit_time:
+        try:
+            m = int(features["month"])
+            h = int(features["hour"])
+            if not (1 <= m <= 12):
+                raise ValueError(f"Invalid month: {m}. Must be between 1 and 12.")
+            if not (0 <= h <= 23):
+                raise ValueError(f"Invalid hour: {h}. Must be between 0 and 23.")
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"Invalid time coordinates: {exc}") from exc
+
+
+def detect_extreme_ood_anomalies(features: dict[str, Any]) -> dict[str, Any]:
+    """Out-Of-Distribution (OOD) detector for extreme marine weather anomalies.
+
+    Identifies unprecedented weather events exceeding the historical Indian coastal training envelope
+    (e.g., severe cyclonic storm surges, category-4/5 hurricane winds, rogue breaking waves).
+    """
+    anomalies: list[str] = []
+
+    wave_height = features.get("wave_height_m")
+    if wave_height is not None:
+        try:
+            wh = float(wave_height)
+            if wh > 9.0:
+                anomalies.append(f"Unprecedented rogue/cyclonic wave height ({wh:.1f}m > 9.0m historical coastal envelope)")
+        except (TypeError, ValueError):
+            pass
+
+    wind_gust = features.get("wind_gust_kts")
+    if wind_gust is not None:
+        try:
+            wg = float(wind_gust)
+            if wg > 80.0:
+                anomalies.append(f"Severe cyclonic wind gust ({wg:.1f} kts > 80.0 kts historical coastal envelope)")
+        except (TypeError, ValueError):
+            pass
+
+    wind_speed = features.get("wind_speed_kts")
+    if wind_speed is not None:
+        try:
+            ws = float(wind_speed)
+            if ws > 64.0:
+                anomalies.append(f"Hurricane/super-cyclonic sustained wind speed ({ws:.1f} kts > 64.0 kts)")
+        except (TypeError, ValueError):
+            pass
+
+    pressure = features.get("air_pressure_hpa")
+    if pressure is not None:
+        try:
+            pr = float(pressure)
+            if pr < 950.0:
+                anomalies.append(f"Deep cyclonic core pressure depression ({pr:.1f} hPa < 950.0 hPa)")
+            elif pr > 1045.0:
+                anomalies.append(f"Extreme high pressure anomaly ({pr:.1f} hPa > 1045.0 hPa)")
+        except (TypeError, ValueError):
+            pass
+
+    sst = features.get("water_temperature_c") or features.get("sea_surface_temperature_c")
+    if sst is not None:
+        try:
+            t = float(sst)
+            if t > 35.0:
+                anomalies.append(f"Unprecedented marine heatwave SST ({t:.1f}°C > 35.0°C)")
+            elif t < 14.0:
+                anomalies.append(f"Extreme low ocean temperature anomaly ({t:.1f}°C < 14.0°C for Indian waters)")
+        except (TypeError, ValueError):
+            pass
+
+    is_ood = len(anomalies) > 0
+    severity = "EXTREME_CYCLONIC_ANOMALY" if is_ood else "NORMAL"
+
+    return {
+        "is_ood": is_ood,
+        "severity": severity,
+        "anomalies": anomalies,
+        "recommendation": (
+            "IMMEDIATE MARITIME EVACUATION: Conditions exceed the statistical training envelope of operational models. "
+            "Heed statutory IMD/INCOIS cyclone bulletins and Coast Guard emergency instructions immediately."
+            if is_ood
+            else "Conditions are within the normal operational distribution envelope."
+        ),
+    }
+
