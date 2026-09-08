@@ -9,6 +9,19 @@ interface MlRiskResult {
   risk_label: RiskLevel;
   confidence: number;
   probabilities: Record<string, number>;
+  uncertainty?: {
+    softmax_entropy: number;
+    normalized_entropy: number;
+    margin: number;
+    conformal_confidence_band: [number, number];
+    conformal_prediction_set: RiskLevel[];
+  };
+  ood_diagnostics?: {
+    is_ood: boolean;
+    severity: 'NORMAL' | 'EXTREME_CYCLONIC_ANOMALY' | 'OUT_OF_DISTRIBUTION';
+    anomalies: string[];
+    recommendation?: string;
+  };
   model_version?: string;
   domain_validation?: {
     status: 'UNVALIDATED_DEPLOYMENT_DOMAIN' | 'INVALID_INPUT';
@@ -17,6 +30,29 @@ interface MlRiskResult {
     warnings: string[];
     invalid_features: string[];
   };
+}
+
+let lastHealthCheck = { healthy: false, checkedAt: 0 };
+
+export async function checkMlHealth(force = false): Promise<boolean> {
+  const now = Date.now();
+  if (!force && now - lastHealthCheck.checkedAt < 4000) {
+    return lastHealthCheck.healthy;
+  }
+  const { url } = getMlApiConfig();
+  try {
+    const res = await fetch(`${url}/health`, {
+      method: 'GET',
+      headers: { Connection: 'keep-alive' },
+      signal: AbortSignal.timeout(800),
+    });
+    const isHealthy = res.ok;
+    lastHealthCheck = { healthy: isHealthy, checkedAt: now };
+    return isHealthy;
+  } catch {
+    lastHealthCheck = { healthy: false, checkedAt: now };
+    return false;
+  }
 }
 
 function getMlApiConfig() {
@@ -181,6 +217,18 @@ function formatRiskPrediction(
   } : undefined;
   if (domainValidation?.status === 'UNVALIDATED_DEPLOYMENT_DOMAIN') advisories.push('ML output is decision support. Defer to IMD/INCOIS/Coast Guard advisories for statutory safety decisions.');
 
+  if (result.ood_diagnostics?.is_ood) {
+    advisories.unshift(`⚠️ STATISTICAL OOD ANOMALY: ${result.ood_diagnostics.anomalies.join('; ')}. Conditions exceed historical operational training envelope!`);
+  }
+  if (result.uncertainty) {
+    if (result.uncertainty.normalized_entropy > 0.65) {
+      advisories.push('High class transition entropy: marine parameters are near the decision boundary between risk categories.');
+    }
+    if (result.uncertainty.margin < 0.2) {
+      advisories.push(`Close margin (${(result.uncertainty.margin * 100).toFixed(1)}%) between top classifications.`);
+    }
+  }
+
   const modelVersion = result.model_version || 'orca-xgb-risk-unknown';
   return {
     riskScore,
@@ -197,6 +245,20 @@ function formatRiskPrediction(
     domainValidation,
     validUntil: new Date(Date.now() + 3 * 3600 * 1000).toISOString(),
     generatedAt: new Date().toISOString(),
+    probabilities: result.probabilities,
+    uncertainty: result.uncertainty ? {
+      softmaxEntropy: result.uncertainty.softmax_entropy,
+      normalizedEntropy: result.uncertainty.normalized_entropy,
+      margin: result.uncertainty.margin,
+      conformalConfidenceBand: result.uncertainty.conformal_confidence_band,
+      conformalPredictionSet: result.uncertainty.conformal_prediction_set,
+    } : undefined,
+    oodDiagnostics: result.ood_diagnostics ? {
+      isOod: result.ood_diagnostics.is_ood,
+      severity: result.ood_diagnostics.severity,
+      anomalies: result.ood_diagnostics.anomalies,
+      recommendation: result.ood_diagnostics.recommendation,
+    } : undefined,
   };
 }
 
@@ -213,7 +275,10 @@ export async function predictMarineRiskWithMl(
   try {
     const response = await fetch(`${url}/predict-risk`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Connection: 'keep-alive',
+      },
       body: JSON.stringify(buildFeaturePayload(weather, ocean, location)),
       signal: controller.signal,
     });
@@ -241,7 +306,10 @@ export async function predictMarineRiskBatchWithMl(
   try {
     const response = await fetch(`${url}/predict-risk-batch`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Connection: 'keep-alive',
+      },
       body: JSON.stringify({
         items: items.map((item) => buildFeaturePayload(item.weather, item.ocean, item.location)),
       }),

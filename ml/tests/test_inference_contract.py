@@ -102,7 +102,64 @@ class InferenceContractTests(unittest.TestCase):
         features_explicit = build_inference_features(forecast_point_explicit, LEGACY_FEATURE_COLUMNS)
         self.assertEqual(features_explicit["hour"], 21.0)
 
+    def test_missing_coordinates_rejected(self) -> None:
+        # Latitude missing
+        no_lat = dict(self.sample)
+        del no_lat["latitude"]
+        with self.assertRaises(ValueError):
+            self.predictor.predict_one(no_lat)
+
+        # Longitude missing
+        no_lon = dict(self.sample)
+        del no_lon["longitude"]
+        with self.assertRaises(ValueError):
+            self.predictor.predict_one(no_lon)
+
+    def test_missing_timestamp_rejected(self) -> None:
+        # Both observed_at and month/hour missing
+        no_time = dict(self.sample)
+        del no_time["observed_at"]
+        del no_time["month"]
+        if "hour" in no_time:
+            del no_time["hour"]
+        with self.assertRaises(ValueError):
+            self.predictor.predict_one(no_time)
+
+    def test_uncertainty_and_conformal_metrics(self) -> None:
+        result = self.predictor.predict_one(self.sample)
+        self.assertIn("uncertainty", result)
+        unc = result["uncertainty"]
+
+        self.assertIn("softmax_entropy", unc)
+        self.assertIn("normalized_entropy", unc)
+        self.assertIn("margin", unc)
+        self.assertIn("conformal_confidence_band", unc)
+        self.assertIn("conformal_prediction_set", unc)
+
+        self.assertGreaterEqual(unc["softmax_entropy"], 0.0)
+        self.assertTrue(0.0 <= unc["normalized_entropy"] <= 1.0)
+        self.assertTrue(0.0 <= unc["margin"] <= 1.0)
+        band = unc["conformal_confidence_band"]
+        self.assertEqual(len(band), 2)
+        self.assertTrue(0.0 <= band[0] <= band[1] <= 1.0)
+        self.assertIn(result["risk_label"], unc["conformal_prediction_set"])
+
+    def test_ood_detection_for_extreme_anomalies(self) -> None:
+        # Normal condition -> Not OOD
+        normal_result = self.predictor.predict_one(self.sample)
+        self.assertFalse(normal_result["ood_diagnostics"]["is_ood"])
+        self.assertEqual(normal_result["ood_diagnostics"]["severity"], "NORMAL")
+
+        # Rogue wave extreme anomaly (>9.0m)
+        rogue_wave_point = dict(self.sample)
+        rogue_wave_point["wave_height_m"] = 11.5
+        ood_result = self.predictor.predict_one(rogue_wave_point)
+        self.assertTrue(ood_result["ood_diagnostics"]["is_ood"])
+        self.assertEqual(ood_result["ood_diagnostics"]["severity"], "EXTREME_CYCLONIC_ANOMALY")
+        self.assertTrue(any("rogue/cyclonic" in a.lower() for a in ood_result["ood_diagnostics"]["anomalies"]))
+
 
 if __name__ == "__main__":
     unittest.main()
+
 
