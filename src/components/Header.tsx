@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Waves, 
-  Compass, 
-  Activity, 
-  Globe, 
-  ShieldCheck, 
-  Layers, 
-  Satellite, 
-  Cpu, 
-  SlidersHorizontal, 
+import {
+  Waves,
+  Compass,
+  Activity,
+  Globe,
+  ShieldCheck,
+  Layers,
+  Satellite,
+  Cpu,
+  SlidersHorizontal,
   BookOpen,
   Radio,
   Clock,
@@ -18,6 +18,8 @@ import {
 import { LanguageCode } from '../types';
 import { MULTILINGUAL_DICTIONARY } from '../data/coastalData';
 import { hydrophoneEngine } from '../services/hydrophoneAudio';
+import { OrcaWaveLogo } from './ui/OrcaWaveLogo';
+import { OrcaWordmark } from './ui/OrcaWordmark';
 
 interface HeaderProps {
   currentTab: 'dashboard' | 'analysis' | 'satellite' | 'evidence' | 'simulator';
@@ -78,32 +80,26 @@ export const Header: React.FC<HeaderProps> = ({
     { code: 'hi', label: 'Hindi', native: 'हिन्दी' },
     { code: 'ta', label: 'Tamil', native: 'தமிழ்' },
     { code: 'or', label: 'Odia', native: 'ଓଡ଼ିଆ' },
-    { code: 'te', label: 'Telugu', native: 'తెలుగు' }
+    { code: 'te', label: 'Telugu', native: 'తెలుగు' },
+    { code: 'ml', label: 'Malayalam', native: 'മലയാളം' },
+    { code: 'gu', label: 'Gujarati', native: 'ગુજરાતી' },
+    { code: 'mr', label: 'Marathi', native: 'मराठी' },
+    { code: 'kn', label: 'Kannada', native: 'ಕನ್ನಡ' }
   ];
 
   return (
     <header className="border-b border-slate-800 bg-slate-950/90 backdrop-blur-md sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          
+
           {/* Logo & Identity */}
           <div className="flex items-center space-x-3">
-            <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-cyan-500 via-blue-600 to-indigo-700 flex items-center justify-center shadow-lg shadow-cyan-500/20 border border-cyan-400/30">
-              <Waves className="h-6 w-6 text-white animate-pulse" />
-            </div>
-            <div>
-              <div className="flex items-center space-x-2">
-                <span className="font-extrabold text-xl tracking-tight bg-gradient-to-r from-cyan-400 via-sky-300 to-blue-200 bg-clip-text text-transparent">
-                  ORCA-X
-                </span>
-                <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-cyan-950/80 border border-cyan-700/50 text-cyan-300 font-mono">
-                  v2.4 SIH
-                </span>
-              </div>
-              <p className="text-xs text-slate-400 font-medium hidden sm:block">
-                {dict.missionSubtitle}
-              </p>
-            </div>
+            <OrcaWaveLogo size="lg" variant="console" className="shrink-0" />
+            <OrcaWordmark
+              size="lg"
+              badge="v2.4 SIH"
+              subtitle={dict.missionSubtitle}
+            />
           </div>
 
           {/* Navigation Tabs */}
@@ -111,11 +107,10 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               id="tab-dashboard"
               onClick={() => setCurrentTab('dashboard')}
-              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                currentTab === 'dashboard'
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${currentTab === 'dashboard'
                   ? 'bg-cyan-500 text-slate-950 shadow-sm shadow-cyan-500/50'
                   : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
-              }`}
+                }`}
             >
               <Compass className="h-3.5 w-3.5" />
               <span>Mission Control</span>
@@ -124,11 +119,10 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               id="tab-analysis"
               onClick={() => setCurrentTab('analysis')}
-              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                currentTab === 'analysis'
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${currentTab === 'analysis'
                   ? 'bg-cyan-500 text-slate-950 shadow-sm shadow-cyan-500/50'
                   : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
-              }`}
+                }`}
             >
               <Activity className="h-3.5 w-3.5" />
               <span>ML Risk Drivers</span>
@@ -137,11 +131,10 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               id="tab-satellite"
               onClick={() => setCurrentTab('satellite')}
-              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                currentTab === 'satellite'
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${currentTab === 'satellite'
                   ? 'bg-cyan-500 text-slate-950 shadow-sm shadow-cyan-500/50'
                   : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
-              }`}
+                }`}
             >
               <Satellite className="h-3.5 w-3.5" />
               <span>Satellite GIS</span>
@@ -150,11 +143,10 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               id="tab-evidence"
               onClick={() => setCurrentTab('evidence')}
-              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                currentTab === 'evidence'
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${currentTab === 'evidence'
                   ? 'bg-cyan-500 text-slate-950 shadow-sm shadow-cyan-500/50'
                   : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
-              }`}
+                }`}
             >
               <BookOpen className="h-3.5 w-3.5" />
               <span>RAG Corpus</span>
@@ -163,11 +155,10 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               id="tab-simulator"
               onClick={() => setCurrentTab('simulator')}
-              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                currentTab === 'simulator'
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${currentTab === 'simulator'
                   ? 'bg-cyan-500 text-slate-950 shadow-sm shadow-cyan-500/50'
                   : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
-              }`}
+                }`}
             >
               <SlidersHorizontal className="h-3.5 w-3.5" />
               <span>What-If Studio</span>
@@ -176,7 +167,7 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Right Status & Language Controls */}
           <div className="flex items-center space-x-3">
-            
+
             {/* Live Clock / UTC */}
             <div className="hidden lg:flex flex-col items-end text-[11px] font-mono text-slate-400 border-r border-slate-800 pr-3">
               <div className="flex items-center space-x-1 text-slate-300">
@@ -216,11 +207,10 @@ export const Header: React.FC<HeaderProps> = ({
               id="hydrophone-audio-toggle"
               onClick={handleToggleAudio}
               title={isAudioActive ? "Hydrophone Ambiance: Active (Click to mute)" : "Hydrophone Ambiance: Muted (Click to enable ocean audio)"}
-              className={`flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
-                isAudioActive
+              className={`flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all border ${isAudioActive
                   ? "bg-cyan-950/80 border-cyan-500/80 text-cyan-300 shadow-md shadow-cyan-500/20"
                   : "bg-slate-900 border-slate-700 text-slate-400 hover:text-slate-200 hover:border-slate-600"
-              }`}
+                }`}
             >
               {isAudioActive ? (
                 <>

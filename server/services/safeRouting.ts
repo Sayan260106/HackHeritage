@@ -1,4 +1,4 @@
-import type { GeofenceSpatialAnalysis, RiskLevel } from '../../src/types.ts';
+import type { GeofenceSpatialAnalysis, OilSpillEvent, RiskLevel } from '../../src/types.ts';
 import { analyzeMaritimeGeofencing, calculateBearingDeg, haversineDistanceKm } from './geofenceService.ts';
 
 export interface RouteCoordinate {
@@ -11,6 +11,7 @@ export interface SafeRouteRequest {
   destination: RouteCoordinate;
   riskLevel?: RiskLevel;
   maxNodes?: number;
+  oilSpills?: OilSpillEvent[];
 }
 
 export interface SafeRouteWaypoint extends RouteCoordinate {
@@ -150,19 +151,29 @@ export function calculateSafeRoute(request: SafeRouteRequest): SafeRouteResult {
     };
   }
 
-  const maxNodes = Math.max(400, Math.min(request.maxNodes ?? DEFAULT_MAX_NODES, 4000));
-  const stepKm = DEFAULT_STEP_KM;
+  const maxNodes = Math.max(800, Math.min(request.maxNodes ?? DEFAULT_MAX_NODES, 4500));
+  
+  // Adaptive step size based on direct distance so any operational route (up to 150 km) scales cleanly
+  const stepKm = Math.max(1.5, Math.min(6.0, Number((directDistanceKm / 24).toFixed(2))));
   const bearing = calculateBearingDeg(request.origin.latitude, request.origin.longitude, request.destination.latitude, request.destination.longitude);
   const bearingRad = toRadians(bearing);
   const northDirect = directDistanceKm * Math.cos(bearingRad);
   const eastDirect = directDistanceKm * Math.sin(bearingRad);
-  const marginKm = Math.min(MAX_GRID_RADIUS_KM, Math.max(12, directDistanceKm * 0.35));
-  const rows = Math.min(41, Math.max(7, Math.ceil((Math.abs(northDirect) + marginKm * 2) / stepKm) + 1));
-  const cols = Math.min(41, Math.max(7, Math.ceil((Math.abs(eastDirect) + marginKm * 2) / stepKm) + 1));
-  const rowOrigin = Math.floor(rows / 2);
-  const colOrigin = Math.floor(cols / 2);
-  const rowDestination = rowOrigin + nearestIndex(northDirect, stepKm);
-  const colDestination = colOrigin + nearestIndex(eastDirect, stepKm);
+
+  // Relative coordinate offsets in grid cells
+  const deltaRow = Math.round(northDirect / stepKm);
+  const deltaCol = Math.round(eastDirect / stepKm);
+  const marginCells = Math.max(4, Math.round(12 / stepKm));
+
+  // Determine grid dimensions ensuring origin and destination always fit with safety margin
+  const rows = Math.min(55, Math.abs(deltaRow) + marginCells * 2 + 1);
+  const cols = Math.min(55, Math.abs(deltaCol) + marginCells * 2 + 1);
+
+  // Position origin so destination is safely bounded within grid extents
+  const rowOrigin = deltaRow >= 0 ? marginCells : rows - 1 - marginCells;
+  const colOrigin = deltaCol >= 0 ? marginCells : cols - 1 - marginCells;
+  const rowDestination = rowOrigin + deltaRow;
+  const colDestination = colOrigin + deltaCol;
 
   if (rowDestination < 0 || rowDestination >= rows || colDestination < 0 || colDestination >= cols || rows * cols > maxNodes) {
     return {
@@ -179,13 +190,27 @@ export function calculateSafeRoute(request: SafeRouteRequest): SafeRouteResult {
   }
 
   const nodes = new Map<string, GridNode>();
+  let avoidedOilSpillCount = 0;
   for (let row = 0; row < rows; row += 1) {
     for (let col = 0; col < cols; col += 1) {
       const north = (row - rowOrigin) * stepKm;
       const east = (col - colOrigin) * stepKm;
       const point = move(request.origin, north, east);
       const geofence = analyzeMaritimeGeofencing(point.latitude, point.longitude);
-      const blocked = isHardBlocked(geofence);
+      
+      let isOilSpillBlocked = false;
+      if (Array.isArray(request.oilSpills) && request.oilSpills.length > 0) {
+        for (const spill of request.oilSpills) {
+          const dKm = haversineDistanceKm(point.latitude, point.longitude, spill.latitude, spill.longitude);
+          if (dKm <= 6.5) {
+            isOilSpillBlocked = true;
+            avoidedOilSpillCount++;
+            break;
+          }
+        }
+      }
+
+      const blocked = isHardBlocked(geofence) || isOilSpillBlocked;
       const cautionCost = geofence.status === 'CAUTION' ? 1 : 0;
       nodes.set(key(row, col), { row, col, point, blocked, cautionCost, geofence });
     }

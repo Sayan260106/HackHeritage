@@ -14,6 +14,8 @@ import { analyzePfz, type PfzAnalysis } from './pfzService.ts';
 import { fuseMarineDecision } from './decisionFusion.ts';
 import { runAgenticSafeRouting } from './agenticSafeRouting.ts';
 import { runAgenticAlertEvaluation } from './agenticAlertAgent.ts';
+import { getSession, recordSessionTurn, resolveConversationalContext } from './conversationService.ts';
+import { generateLocalizedIntentBriefing } from './intentBriefingLocalization.ts';
 
 let genAIClient: GoogleGenAI | null = null;
 function getGenAI(): GoogleGenAI | null {
@@ -24,7 +26,13 @@ function unavailableSatellite(location: LocationInfo): SatelliteData {
   return { status: 'UNAVAILABLE', satelliteName: 'No satellite source', processingTime: new Date().toISOString(), latitude: location.latitude, longitude: location.longitude, source: 'No satellite source', sourceUrl: '', observationType: 'NO_OBSERVATION', warnings: ['Satellite branch unavailable; no EO observation was supplied.'], observations: [] };
 }
 
-export async function runOrcaAgentWorkflow(query: string, locationOverride?: string, timeOverride?: string, language: LanguageCode = 'en'): Promise<OrcaAnalysisResponse> {
+export async function runOrcaAgentWorkflow(
+  query: string,
+  locationOverride?: string,
+  timeOverride?: string,
+  language: LanguageCode = 'en',
+  sessionId?: string
+): Promise<OrcaAnalysisResponse> {
   const queryId = `orca-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
   const traces: AgentStepTrace[] = [];
   const startTrace = (agentName: AgentStepTrace['agentName'], inputSummary: string, taskId?: string, dependencies?: string[]) => {
@@ -57,32 +65,39 @@ export async function runOrcaAgentWorkflow(query: string, locationOverride?: str
   let freshnessTimestamp = new Date().toISOString();
 
   const realtimePromise = new Map<string, ReturnType<typeof fetchMarineAndWeatherData>>();
-  const getRealtime = (lat: number, lon: number) => {
-    const key = `${lat},${lon}`;
+  const getRealtime = (lat: number, lon: number, tw?: TimeWindow) => {
+    // Key includes isForecast + start time so forecast vs current never share a cached promise.
+    const key = `${lat},${lon}:${tw?.isForecast ? tw.resolvedStartTime : 'current'}`;
     let promise = realtimePromise.get(key);
-    if (!promise) { promise = fetchMarineAndWeatherData(lat, lon); realtimePromise.set(key, promise); }
+    if (!promise) { promise = fetchMarineAndWeatherData(lat, lon, tw); realtimePromise.set(key, promise); }
     return promise;
   };
 
   const result = await executeOrcaPlan(plan, {
     resolve_location_time: async () => {
       const trace = startTrace('LocationTimeResolver', 'Resolve geographic and temporal intent', 'resolve_location_time');
-      location = resolveLocation(query, locationOverride); timeWindow = resolveTimeWindow(query, timeOverride);
-      trace.logs.push(`Matched location: ${location.name} (${location.latitude}, ${location.longitude})`); finishTrace(trace, `Target: ${location.name} | ${timeWindow.requestedText}`);
+      const resolved = resolveConversationalContext(query, sessionId, locationOverride, timeOverride);
+      location = resolved.resolvedLocation;
+      timeWindow = resolved.resolvedTimeWindow;
+      if (sessionId) {
+        trace.logs.push(`Conversation Session active: ${sessionId}`);
+      }
+      trace.logs.push(`Matched location: ${location.name} (${location.latitude}, ${location.longitude})`);
+      finishTrace(trace, `Target: ${location.name} | ${timeWindow.requestedText}`);
     },
     weather: async () => {
       if (!location) throw new Error('Location/time context is unavailable.');
-      const trace = startTrace('WeatherAgent', `Fetch LIVE weather for ${location.name}`, 'weather', ['resolve_location_time']);
-      realtime = await getRealtime(location.latitude, location.longitude); freshnessTimestamp = realtime.metadata.retrievedAt;
+      const trace = startTrace('WeatherAgent', `Fetch ${timeWindow?.isForecast ? 'FORECAST' : 'LIVE'} weather for ${location.name}`, 'weather', ['resolve_location_time']);
+      realtime = await getRealtime(location.latitude, location.longitude, timeWindow); freshnessTimestamp = realtime.metadata.retrievedAt;
       trace.logs.push(`Source: ${realtime.weather.source}; observed at ${realtime.weather.observedAt}; retrieved at ${realtime.weather.retrievedAt || realtime.metadata.retrievedAt}.`);
-      finishTrace(trace, `LIVE | Temperature ${realtime.weather.airTemperatureC}°C | Wind ${realtime.weather.windSpeedKts} kts | Gust ${realtime.weather.windGustKts} kts`);
+      finishTrace(trace, `${timeWindow?.isForecast ? 'FORECAST' : 'LIVE'} | Temperature ${realtime.weather.airTemperatureC}°C | Wind ${realtime.weather.windSpeedKts} kts | Gust ${realtime.weather.windGustKts} kts`);
     },
     ocean: async () => {
       if (!location) throw new Error('Location/time context is unavailable.');
-      const trace = startTrace('OceanAgent', `Fetch LIVE marine conditions for ${location.name}`, 'ocean', ['resolve_location_time']);
-      realtime = await getRealtime(location.latitude, location.longitude);
+      const trace = startTrace('OceanAgent', `Fetch ${timeWindow?.isForecast ? 'FORECAST' : 'LIVE'} marine conditions for ${location.name}`, 'ocean', ['resolve_location_time']);
+      realtime = await getRealtime(location.latitude, location.longitude, timeWindow);
       for (const warning of realtime.metadata.warnings) trace.logs.push(warning);
-      finishTrace(trace, `LIVE | Wave ${realtime.ocean.waveHeightMeters}m | Swell ${realtime.ocean.swellHeightMeters}m | Current ${realtime.ocean.currentSpeedKts} kts`);
+      finishTrace(trace, `${timeWindow?.isForecast ? 'FORECAST' : 'LIVE'} | Wave ${realtime.ocean.waveHeightMeters}m | Swell ${realtime.ocean.swellHeightMeters}m | Current ${realtime.ocean.currentSpeedKts} kts`);
     },
     satellite: async () => {
       if (!location || !timeWindow) throw new Error('Location/time context is unavailable.');
@@ -119,7 +134,21 @@ export async function runOrcaAgentWorkflow(query: string, locationOverride?: str
       const trace = startTrace('SafeRoutingAgent', 'Fuse risk/PFZ/geofence decisions and compute a geofence-safe route to the selected PFZ', 'safe_route', task.dependsOn);
       const routing = runAgenticSafeRouting({ origin: location, risk, geofence: geofenceAnalysis, pfz }); operationalDecision = routing.decision;
       const route = routing.route;
-      safeRoute = { status: routing.status, destinationLabel: routing.destinationLabel, distanceKm: route?.distanceKm, directDistanceKm: route?.directDistanceKm, routeEfficiencyPct: route?.routeEfficiencyPct, waypointCount: route?.waypoints.length ?? 0, warnings: routing.warnings, rationale: route?.rationale || routing.decision.rationale, source: route?.source || 'ORCA-X agentic safe-routing decision gate' };
+      safeRoute = {
+        status: routing.status,
+        destinationLabel: routing.destinationLabel,
+        distanceKm: route?.distanceKm,
+        directDistanceKm: route?.directDistanceKm,
+        routeEfficiencyPct: route?.routeEfficiencyPct,
+        waypointCount: route?.waypoints?.length ?? 0,
+        waypoints: route?.waypoints,
+        avoidedConstraints: route?.avoidedConstraints,
+        origin: route?.origin,
+        destination: route?.destination,
+        warnings: routing.warnings,
+        rationale: route?.rationale || routing.decision.rationale,
+        source: route?.source || 'ORCA-X agentic safe-routing decision gate'
+      };
       trace.logs.push(`Decision Fusion: ${routing.decision.decision} (${routing.decision.confidence}, score ${routing.decision.score}/100).`); trace.logs.push(`Routing status: ${routing.status}; destination: ${routing.destinationLabel ?? 'none'}; waypoints: ${route?.waypoints.length ?? 0}.`);
       for (const warning of routing.warnings) trace.logs.push(`[ROUTING WARNING] ${warning}`);
       finishTrace(trace, `${routing.status} | decision=${routing.decision.decision} | waypoints=${route?.waypoints.length ?? 0}`);
@@ -152,13 +181,41 @@ export async function runOrcaAgentWorkflow(query: string, locationOverride?: str
         const pfzSummary = pfz ? `PFZ: status=${pfz.status}; best=${pfz.bestZone ? `${pfz.bestZone.id} score=${pfz.bestZone.score}/100 suitability=${pfz.bestZone.suitability} confidence=${pfz.bestZone.confidence}` : 'none'}; warnings=${pfz.warnings.join(' | ') || 'none'}.` : 'PFZ: not selected.';
         const decisionSummary = operationalDecision ? `DECISION: ${operationalDecision.decision}; score=${operationalDecision.score}/100; confidence=${operationalDecision.confidence}; rationale=${operationalDecision.rationale}.` : 'DECISION: not required.';
         const routeSummary = safeRoute ? `SAFE ROUTE: status=${safeRoute.status}; destination=${safeRoute.destinationLabel || 'none'}; distance=${safeRoute.distanceKm ?? 'N/A'} km; waypoints=${safeRoute.waypointCount}.` : 'SAFE ROUTE: not selected.';
-        const prompt = `You are ORCA-X, a grounded marine intelligence assistant. User query: "${query}". Location: ${location.name}, ${location.country}. Time: ${timeWindow.requestedText}. Intent: ${plan.intent}. LIVE weather source=${realtime.weather.source}, wind=${realtime.weather.windSpeedKts}kt, gust=${realtime.weather.windGustKts}kt, weatherCode=${realtime.weather.weatherCode}. LIVE marine source=${realtime.ocean.source}, wave=${realtime.ocean.waveHeightMeters}m, swell=${realtime.ocean.swellHeightMeters}m. Risk=${risk.riskScore}/100 ${risk.riskLevel}, confidence=${risk.confidenceScore}%. ${geofenceSummary} ${pfzSummary} ${decisionSummary} ${routeSummary} ${alertSummaryText} Evidence=${evidence.map(e => `${e.title} | ${e.sourceAuthority} | ${e.excerpt}`).join(' || ')}. Never invent measurements. Critical alerts and AVOID decisions must be treated as hard operational warnings. The cyclone signal is only a proxy unless authoritative IMD confirmation is present. State degraded data explicitly and do not imply that ORCA-X replaces IMD, INCOIS, MRCC, nautical charts or statutory warnings.`;
+        const activeSession = sessionId ? getSession(sessionId) : undefined;
+        const recentTurnsText = activeSession && activeSession.turns.length > 0
+          ? `CONVERSATION HISTORY:\n${activeSession.turns.slice(-3).map((t, idx) => `Turn ${idx + 1}: User asked: "${t.query}" | Response excerpt: "${t.responseSummary.slice(0, 160)}..."`).join('\n')}\n`
+          : '';
+        const prompt = `You are ORCA-X, a grounded marine intelligence assistant. User query: "${query}". Location: ${location.name}, ${location.country}. Time: ${timeWindow.requestedText}. Intent: ${plan.intent}. ${recentTurnsText}LIVE weather source=${realtime.weather.source}, wind=${realtime.weather.windSpeedKts}kt, gust=${realtime.weather.windGustKts}kt, weatherCode=${realtime.weather.weatherCode}. LIVE marine source=${realtime.ocean.source}, wave=${realtime.ocean.waveHeightMeters}m, swell=${realtime.ocean.swellHeightMeters}m. Risk=${risk.riskScore}/100 ${risk.riskLevel}, confidence=${risk.confidenceScore}%. ${geofenceSummary} ${pfzSummary} ${decisionSummary} ${routeSummary} ${alertSummaryText} Evidence=${evidence.map(e => `${e.title} | ${e.sourceAuthority} | ${e.excerpt}`).join(' || ')}. Never invent measurements. Critical alerts and AVOID decisions must be treated as hard operational warnings. The cyclone signal is only a proxy unless authoritative IMD confirmation is present. State degraded data explicitly and do not imply that ORCA-X replaces IMD, INCOIS, MRCC, nautical charts or statutory warnings.`;
         for (const model of ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-3.7-flash']) {
-          try { const response = await genAI.models.generateContent({ model, contents: prompt, config: { temperature: 0.2, topP: 0.85 } }); if (response.text) { groundedSummary = response.text; break; } } catch { trace.logs.push(`Model ${model} unavailable; trying next model.`); }
-        }
+          try { const response = await genAI.models.generateContent({ model, contents: prompt, config: { temperature: 0.2, topP: 0.85 } }); if (response.text) { groundedSummary = response.text; break; } } catch { trace.logs.push(`Model ${model} unavailable; trying next model.`); }        }
       }
-      if (!groundedSummary) groundedSummary = buildLocalizedGroundedSummary(risk, realtime.weather, realtime.ocean, language, ragProvider, realtime.metadata.retrievedAt);
-      finishTrace(trace, 'Grounded marine briefing generated from executed task graph outputs.');
+
+      const buildIntentGroundedBriefing = (): string => {
+        const localized = generateLocalizedIntentBriefing({
+          query,
+          language,
+          location: location!,
+          timeText: timeWindow!.requestedText,
+          weather: realtime!.weather,
+          ocean: realtime!.ocean,
+          risk: risk!,
+          operationalDecision,
+          pfz,
+          safeRoute,
+          alertSummary,
+          geofence: geofenceAnalysis,
+        });
+
+        if (localized) return localized;
+
+        // Default: Grounded environmental safety briefing (Query 2 & 3)
+        return buildLocalizedGroundedSummary(risk!, realtime!.weather, realtime!.ocean, language, ragProvider, realtime!.metadata.retrievedAt);
+      };
+
+      if (!groundedSummary) {
+        groundedSummary = buildIntentGroundedBriefing();
+      }
+      finishTrace(trace, 'Grounded marine briefing generated from executed task graph outputs.');;
     }
   }, {
     onTaskFailure: (task, error) => { const trace = traces.find(t => t.taskId === task.id && t.status === 'running'); if (trace) finishTrace(trace, `${task.label} failed`, error.message); }
@@ -195,7 +252,45 @@ export async function runOrcaAgentWorkflow(query: string, locationOverride?: str
   if (ragDegraded) finalWarnings.push('Evidence retrieval did not complete; response was synthesized with available grounded data.');
   if (result.replans > 0) finalWarnings.push(`Execution replanned ${result.replans} time${result.replans === 1 ? '' : 's'} after an optional branch failure.`);
 
-  const response: OrcaAnalysisResponse = { queryId, originalQuery: query, language, detectedIntent: result.plan.intent, location, timeWindow, weather: realtime.weather, ocean: realtime.ocean, satellite, risk, gisLayers, geofenceAnalysis, pfz, operationalDecision, safeRoute, alertSummary, evidence, agentTraces: traces, groundedSummary, executionPlan: { planId: result.plan.planId, intent: result.plan.intent, rationale: result.plan.rationale, tasks: result.plan.tasks, generatedAt: result.plan.generatedAt }, isDataDegraded: realtime.degraded || satelliteDegraded || pfzDegraded || ragDegraded || routingDegraded || alertsDegraded || operationalDecision?.confidence === 'LOW', warnings: [...new Set(finalWarnings)], freshnessTimestamp, officialDisclaimer: 'ORCA-X is an AI decision-support platform for marine intelligence. It does NOT supersede statutory warnings from INCOIS, IMD, or Maritime Rescue Coordination Centres (MRCC). Open-Meteo modelled marine currents/tides are advisory and do not replace nautical navigation information.' };
+  const response: OrcaAnalysisResponse = {
+    queryId,
+    originalQuery: query,
+    language,
+    detectedIntent: result.plan.intent,
+    location,
+    timeWindow,
+    weather: realtime.weather,
+    ocean: realtime.ocean,
+    satellite,
+    risk,
+    gisLayers,
+    geofenceAnalysis,
+    pfz,
+    operationalDecision,
+    safeRoute,
+    alertSummary,
+    evidence,
+    agentTraces: traces,
+    groundedSummary,
+    executionPlan: {
+      planId: result.plan.planId,
+      intent: result.plan.intent,
+      rationale: result.plan.rationale,
+      tasks: result.plan.tasks,
+      generatedAt: result.plan.generatedAt
+    },
+    isDataDegraded: realtime.degraded || satelliteDegraded || pfzDegraded || ragDegraded || routingDegraded || alertsDegraded || operationalDecision?.confidence === 'LOW',
+    warnings: [...new Set(finalWarnings)],
+    freshnessTimestamp,
+    officialDisclaimer: 'ORCA-X is an AI decision-support platform for marine intelligence. It does NOT supersede statutory warnings from INCOIS, IMD, or Maritime Rescue Coordination Centres (MRCC). Open-Meteo modelled marine currents/tides are advisory and do not replace nautical navigation information.',
+    sessionId,
+  };
+
+  if (sessionId) {
+    const updatedSession = recordSessionTurn(sessionId, query, response);
+    response.turnIndex = updatedSession.turns.length;
+  }
+
   return response;
 }
 export function getSupportedLocationCount(): number { return Object.keys(COASTAL_LOCATIONS).length; }

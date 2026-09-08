@@ -10,14 +10,23 @@ import {
   orcaQuery,
   satelliteAnalysis,
   gisSpatialAnalysis,
+  getConversation,
+  listConversations,
+  deleteConversation,
+  createConversation,
 } from '../controllers/apiController.ts';
 
-import { analyzeVesselTraffic } from '../services/aisVesselService.ts';
+import { analyzeVesselTrafficAsync } from '../services/aisVesselService.ts';
 import { COASTAL_LOCATIONS } from '../../src/data/coastalData.ts';
 
 const router = Router();
 
 router.post('/orca/query', orcaQuery);
+router.post('/orca/chat', orcaQuery);
+router.get('/orca/conversations', listConversations);
+router.post('/orca/conversations', createConversation);
+router.get('/orca/conversations/:sessionId', getConversation);
+router.delete('/orca/conversations/:sessionId', deleteConversation);
 router.get('/marine/conditions', marineConditions);
 router.get('/marine/forecast', marineForecast);
 router.get('/marine/telemetry', marineTelemetry);
@@ -27,7 +36,7 @@ router.post('/satellite/analysis', satelliteAnalysis);
 router.post('/evidence/search', evidenceSearch);
 router.get('/gis/spatial-analysis', gisSpatialAnalysis);
 router.post('/gis/spatial-analysis', gisSpatialAnalysis);
-router.get('/vessels/live', (req, res, next) => {
+router.get('/vessels/live', async (req, res, next) => {
   try {
     const latStr = req.query.lat as string;
     const lonStr = req.query.lon as string;
@@ -47,7 +56,7 @@ router.get('/vessels/live', (req, res, next) => {
       name = 'Operating Point';
     }
 
-    const vesselData = analyzeVesselTraffic(latitude, longitude, name);
+    const vesselData = await analyzeVesselTrafficAsync(latitude, longitude, name);
     res.json(vesselData);
   } catch (error) {
     next(error);

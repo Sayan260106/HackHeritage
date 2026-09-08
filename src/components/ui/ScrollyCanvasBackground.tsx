@@ -7,11 +7,13 @@ interface ScrollyCanvasBackgroundProps {
   initialFrame?: number;
 }
 
-const TOTAL_FRAMES = 240;
+const TOTAL_FRAMES = 1076;
 
 function getFrameUrl(index: number): string {
-  const padded = String(index).padStart(6, "0");
-  return `/frames/frame_${padded}.jpeg`;
+  // index is 0-based (0 to 1075); frame files in ./public/bg are 1-based (frame_0001.webp to frame_1076.webp)
+  const frameNum = Math.min(TOTAL_FRAMES, Math.max(1, index + 1));
+  const padded = String(frameNum).padStart(4, "0");
+  return `/bg/frame_${padded}.webp`;
 }
 
 export const ScrollyCanvasBackground: React.FC<ScrollyCanvasBackgroundProps> = ({
@@ -20,9 +22,9 @@ export const ScrollyCanvasBackground: React.FC<ScrollyCanvasBackgroundProps> = (
   initialFrame = 0,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const imagesRef = useRef<(HTMLImageElement | null)[]>(new Array(totalFrames).fill(null));
+  const imagesRef = useRef<(HTMLImageElement | null)[]>([]);
   const loadedSetRef = useRef<Set<number>>(new Set());
-  
+
   // Animation state
   const targetFrameRef = useRef<number>(initialFrame);
   const currentFrameFloatRef = useRef<number>(initialFrame);
@@ -35,13 +37,12 @@ export const ScrollyCanvasBackground: React.FC<ScrollyCanvasBackgroundProps> = (
   const drawFrame = useCallback((frameIdx: number) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext("2d", { alpha: false });
     if (!ctx) return;
 
     // Find the closest loaded frame to avoid black flickers
     let imgToDraw = imagesRef.current[frameIdx];
     if (!imgToDraw || !imgToDraw.complete || imgToDraw.naturalWidth === 0) {
-      // Seek closest loaded frame
       let minDistance = Infinity;
       let closestIdx = -1;
       for (const loadedIdx of loadedSetRef.current) {
@@ -60,11 +61,11 @@ export const ScrollyCanvasBackground: React.FC<ScrollyCanvasBackgroundProps> = (
       return;
     }
 
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const canvasWidth = canvas.width / dpr;
-    const canvasHeight = canvas.height / dpr;
+    const canvasWidth = canvas.width;
+    const canvasHeight = canvas.height;
+    if (canvasWidth === 0 || canvasHeight === 0) return;
 
-    // Calculate aspect-ratio "cover" coordinates
+    // Calculate aspect-ratio "cover" coordinates directly on canvas pixels
     const imgWidth = imgToDraw.naturalWidth;
     const imgHeight = imgToDraw.naturalHeight;
     const scale = Math.max(canvasWidth / imgWidth, canvasHeight / imgHeight);
@@ -73,10 +74,9 @@ export const ScrollyCanvasBackground: React.FC<ScrollyCanvasBackgroundProps> = (
     const drawX = (canvasWidth - drawWidth) / 2;
     const drawY = (canvasHeight - drawHeight) / 2;
 
-    ctx.save();
-    ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
     ctx.drawImage(imgToDraw, drawX, drawY, drawWidth, drawHeight);
-    ctx.restore();
 
     renderedFrameRef.current = frameIdx;
   }, []);
@@ -93,10 +93,6 @@ export const ScrollyCanvasBackground: React.FC<ScrollyCanvasBackgroundProps> = (
     if (canvas.width !== w || canvas.height !== h) {
       canvas.width = w;
       canvas.height = h;
-      const ctx = canvas.getContext("2d");
-      if (ctx) {
-        ctx.scale(dpr, dpr);
-      }
       // Redraw current frame after resize
       if (renderedFrameRef.current >= 0) {
         drawFrame(renderedFrameRef.current);
@@ -104,17 +100,19 @@ export const ScrollyCanvasBackground: React.FC<ScrollyCanvasBackgroundProps> = (
     }
   }, [drawFrame]);
 
-  // Load single image with caching
+  // Load single image with caching and async decoding
   const loadSingleImage = useCallback(
     (index: number): Promise<HTMLImageElement> => {
       return new Promise((resolve, reject) => {
-        if (imagesRef.current[index]?.complete) {
+        if (imagesRef.current[index]?.complete && imagesRef.current[index]?.naturalWidth !== 0) {
           resolve(imagesRef.current[index]!);
           return;
         }
 
         const img = new Image();
+        img.decoding = "async";
         img.src = getFrameUrl(index);
+
         img.onload = () => {
           imagesRef.current[index] = img;
           loadedSetRef.current.add(index);
@@ -122,55 +120,63 @@ export const ScrollyCanvasBackground: React.FC<ScrollyCanvasBackgroundProps> = (
           // If this is the initial frame, draw immediately
           if (index === 0 && renderedFrameRef.current === -1) {
             drawFrame(0);
+          } else if (Math.abs(renderedFrameRef.current - index) <= 1) {
+            drawFrame(index);
           }
           resolve(img);
         };
-        img.onerror = (e) => {
-          // If public path fails, try fallback
-          const fallback = `/PicturesBG/frame_${String(index).padStart(6, "0")}.jpeg`;
-          img.src = fallback;
-          img.onload = () => {
-            imagesRef.current[index] = img;
-            loadedSetRef.current.add(index);
-            if (index === 0 && renderedFrameRef.current === -1) {
-              drawFrame(0);
-            }
-            resolve(img);
-          };
-          img.onerror = () => reject(e);
+
+        img.onerror = () => {
+          reject(new Error(`Failed to load frame ${index}`));
         };
       });
     },
     [drawFrame],
   );
 
-  // Progressive image preloader
+  // Progressive image preloader:
+  // Phase 1: Hero batch (frames 0..45) loads immediately
+  // Phase 2: Skeleton keyframe sampling (every 12th frame across 1076)
+  // Phase 3: Fill in remaining frames in background chunks
   useEffect(() => {
     let isCancelled = false;
+    imagesRef.current = new Array(totalFrames).fill(null);
+    loadedSetRef.current.clear();
 
     async function preloadSequence() {
-      // Step 1: Eagerly load initial keyframes (0 through 25)
-      const priorityBatch: Promise<HTMLImageElement>[] = [];
-      for (let i = 0; i < Math.min(25, totalFrames); i++) {
-        priorityBatch.push(loadSingleImage(i));
+      // Phase 1: Eagerly load initial hero frames
+      const heroBatch: Promise<HTMLImageElement>[] = [];
+      for (let i = 0; i < Math.min(45, totalFrames); i++) {
+        heroBatch.push(loadSingleImage(i));
       }
-      await Promise.allSettled(priorityBatch);
+      await Promise.allSettled(heroBatch);
       if (isCancelled) return;
 
-      // Draw initial frame as soon as priority batch completes
+      // Draw initial frame as soon as hero batch is ready
       drawFrame(0);
 
-      // Step 2: Progressively load remaining frames in small batches
-      const BATCH_SIZE = 12;
-      for (let i = 25; i < totalFrames; i += BATCH_SIZE) {
+      // Phase 2: Skeleton keyframes across entire sequence (every 12th frame)
+      // This provides instant full-page scrub responsiveness
+      const skeletonBatch: Promise<HTMLImageElement>[] = [];
+      for (let i = 45; i < totalFrames; i += 12) {
+        skeletonBatch.push(loadSingleImage(i));
+      }
+      await Promise.allSettled(skeletonBatch);
+      if (isCancelled) return;
+
+      // Phase 3: Progressively stream all remaining frames in gentle chunks
+      const CHUNK_SIZE = 20;
+      for (let i = 45; i < totalFrames; i += CHUNK_SIZE) {
         if (isCancelled) break;
-        const batch: Promise<HTMLImageElement>[] = [];
-        for (let j = i; j < Math.min(i + BATCH_SIZE, totalFrames); j++) {
-          batch.push(loadSingleImage(j));
+        const chunk: Promise<HTMLImageElement>[] = [];
+        for (let j = i; j < Math.min(i + CHUNK_SIZE, totalFrames); j++) {
+          if (!imagesRef.current[j]) {
+            chunk.push(loadSingleImage(j));
+          }
         }
-        await Promise.allSettled(batch);
-        // Small yield to keep main thread completely free for 60fps scrolling
-        await new Promise((r) => setTimeout(r, 20));
+        await Promise.allSettled(chunk);
+        // Yield to browser main thread so scrolling remains silky 60fps
+        await new Promise((r) => setTimeout(r, 12));
       }
     }
 
@@ -181,7 +187,7 @@ export const ScrollyCanvasBackground: React.FC<ScrollyCanvasBackgroundProps> = (
     };
   }, [totalFrames, loadSingleImage, drawFrame]);
 
-  // Handle scroll events and map page progress to target frame
+  // Handle scroll events and map page progress to target frame with neighborhood prefetch
   useEffect(() => {
     const handleScroll = () => {
       const scrollY = window.scrollY || window.pageYOffset;
@@ -192,6 +198,19 @@ export const ScrollyCanvasBackground: React.FC<ScrollyCanvasBackgroundProps> = (
       const progress = Math.min(1, Math.max(0, scrollY / maxScroll));
       const target = Math.min(totalFrames - 1, Math.max(0, Math.round(progress * (totalFrames - 1))));
       targetFrameRef.current = target;
+
+      // Opportunistically prefetch immediate neighborhood around current scroll position
+      if (!imagesRef.current[target]) {
+        loadSingleImage(target);
+      }
+      for (let offset = 1; offset <= 12; offset++) {
+        if (target + offset < totalFrames && !imagesRef.current[target + offset]) {
+          loadSingleImage(target + offset);
+        }
+        if (target - offset >= 0 && !imagesRef.current[target - offset]) {
+          loadSingleImage(target - offset);
+        }
+      }
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
@@ -203,7 +222,7 @@ export const ScrollyCanvasBackground: React.FC<ScrollyCanvasBackgroundProps> = (
       window.removeEventListener("scroll", handleScroll);
       window.removeEventListener("resize", handleResize);
     };
-  }, [totalFrames, handleResize]);
+  }, [totalFrames, handleResize, loadSingleImage]);
 
   // Main 60fps animation loop with inertial lerping
   useEffect(() => {
@@ -225,8 +244,12 @@ export const ScrollyCanvasBackground: React.FC<ScrollyCanvasBackgroundProps> = (
       const current = currentFrameFloatRef.current;
       const diff = target - current;
 
-      // Lerp factor: 0.14 provides buttery, responsive cinematic glide
-      currentFrameFloatRef.current += diff * 0.14;
+      // Responsive, buttery-smooth momentum interpolation across 1076 frames
+      if (Math.abs(diff) < 0.001) {
+        currentFrameFloatRef.current = target;
+      } else {
+        currentFrameFloatRef.current += diff * 0.16;
+      }
 
       const roundedFrame = Math.min(
         totalFrames - 1,
@@ -261,16 +284,10 @@ export const ScrollyCanvasBackground: React.FC<ScrollyCanvasBackgroundProps> = (
         }}
       />
 
-      {/* Balanced cinematic film tone - dims harsh sun glare so unboxed text remains crisp & prominent */}
+      {/* Balanced uniform cinematic film tone - preserves vibrant frames without any top gradient bar */}
       <div
         aria-hidden="true"
-        className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/45 to-black/60 pointer-events-none"
-      />
-
-      {/* Perimeter vignette for cinematic focus */}
-      <div
-        aria-hidden="true"
-        className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_45%,rgba(4,9,15,0.4)_80%,rgba(4,9,15,0.7)_100%)] pointer-events-none"
+        className="absolute inset-0 bg-black/25 pointer-events-none"
       />
 
       {/* Subtle Precision Sonar Grid / Telemetry Scan Accent */}

@@ -4,16 +4,27 @@ from __future__ import annotations
 from datetime import datetime
 from pathlib import Path
 import sys
-from typing import Optional
+from typing import Optional, Union
 
+# pyrefly: ignore [missing-import]
 from fastapi import FastAPI, HTTPException
+# pyrefly: ignore [missing-import]
 from pydantic import BaseModel
 
 ML_ROOT = Path(__file__).resolve().parent
 ML_SRC = ML_ROOT / "src"
 if str(ML_SRC) not in sys.path:
     sys.path.insert(0, str(ML_SRC))
-from predict import MODEL_VERSION, OrcaXRiskPredictor  # noqa: E402
+
+try:
+    from ml.src.predict import MODEL_VERSION, OrcaXRiskPredictor  # noqa: E402
+except ImportError:
+    try:
+        # pyrefly: ignore [missing-import]
+        from predict import MODEL_VERSION, OrcaXRiskPredictor  # noqa: E402
+    except ImportError:
+        from .src.predict import MODEL_VERSION, OrcaXRiskPredictor  # noqa: E402
+
 
 app = FastAPI(
     title="ORCA-X ML Risk API",
@@ -45,7 +56,8 @@ class RiskRequest(BaseModel):
     month: Optional[int] = None
     hour: Optional[int] = None
     season: Optional[int] = None
-    observed_at: Optional[datetime] = None
+    observed_at: Optional[Union[datetime, str]] = None
+
 
 
 @app.get("/")
@@ -83,6 +95,10 @@ def ready():
     }
 
 
+class BatchRiskRequest(BaseModel):
+    items: list[RiskRequest]
+
+
 @app.post("/predict-risk")
 def predict_risk(request: RiskRequest):
     try:
@@ -95,3 +111,21 @@ def predict_risk(request: RiskRequest):
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Risk prediction failed: {exc}") from exc
+
+
+@app.post("/predict-risk-batch")
+def predict_risk_batch(request: BatchRiskRequest):
+    try:
+        payloads = []
+        for item in request.items:
+            dumped = item.model_dump(exclude_none=True)
+            if isinstance(dumped.get("observed_at"), datetime):
+                dumped["observed_at"] = dumped["observed_at"].isoformat()
+            payloads.append(dumped)
+        results = predictor.predict_batch(payloads)
+        return {"success": True, "count": len(results), "results": results}
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Batch risk prediction failed: {exc}") from exc
+

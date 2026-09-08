@@ -34,6 +34,8 @@ export function runAgenticSafeRouting(request: AgenticSafeRoutingRequest): Agent
 
   const destination = request.destination ?? (request.pfz?.bestZone
     ? { latitude: request.pfz.bestZone.latitude, longitude: request.pfz.bestZone.longitude, label: request.pfz.bestZone.id }
+    : request.pfz?.zones && request.pfz.zones.length > 0
+    ? { latitude: request.pfz.zones[0].latitude, longitude: request.pfz.zones[0].longitude, label: request.pfz.zones[0].id }
     : undefined);
 
   if (!destination) {

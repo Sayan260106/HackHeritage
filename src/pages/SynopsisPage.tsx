@@ -25,6 +25,8 @@ import {
 } from "lucide-react";
 import { ContourField } from "../components/ui/ContourField";
 import { ScrollyCanvasBackground } from "../components/ui/ScrollyCanvasBackground";
+import { OrcaWaveLogo } from "../components/ui/OrcaWaveLogo";
+import { OrcaWordmark } from "../components/ui/OrcaWordmark";
 import { useLenis } from "../hooks/useLenis";
 import { DepthMarker } from "../components/ui/DepthMarker";
 import { Reveal } from "../components/ui/Reveal";
@@ -313,45 +315,42 @@ export const SynopsisPage: React.FC<SynopsisPageProps> = ({ onEnterConsole }) =>
   );
 
   return (
-    <div className="relative min-h-screen overflow-x-clip bg-abyssal/20 text-chartpaper selection:bg-shoal/20 selection:text-shoal">
+    <div className="relative min-h-screen overflow-x-clip text-chartpaper selection:bg-shoal/20 selection:text-shoal">
       {/* Live Cinematic Frame-by-Frame Scrollytelling Canvas Background - FULLY PROMINENT */}
       <ScrollyCanvasBackground />
 
       <DepthGauge />
 
-      {/* ---- Top rail ---------------------------------------------------- */}
-      <header className="sticky top-0 z-40 border-b border-shoal/20 bg-abyssal/75 backdrop-blur-xl shadow-lg shadow-abyssal/50">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-3.5 sm:px-8">
+      {/* ---- Top rail (Unboxed, transparent floating header) ------------- */}
+      <header className="sticky top-0 z-40 bg-transparent">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-4 sm:px-8">
           <div className="flex items-center gap-3">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-shoal/40 bg-shoal/10 shadow-sm shadow-shoal/20">
-              <Waves className="h-4 w-4 text-shoal" />
-            </span>
-            <span className="font-display text-base font-bold tracking-tight text-chartpaper">
-              ORCA&#8209;X
-            </span>
-            <span className="hidden font-mono text-[10px] tracking-[0.2em] text-fathom sm:inline">
-              OCEAN REASONING &amp; COLLABORATIVE AI
-            </span>
+            <OrcaWaveLogo size="sm" variant="home" className="shrink-0" />
+            <OrcaWordmark
+              size="sm"
+              badge="SIH v2.4"
+              subtitle="OCEAN REASONING & COLLABORATIVE AI"
+            />
           </div>
 
           <div className="flex items-center gap-4">
             <button
               onClick={handleToggleAudio}
               title={isAudioActive ? "Mute hydrophone audio" : "Enable hydrophone ocean audio"}
-              className={`flex items-center gap-2 rounded-full border px-3 py-1 font-mono text-[10px] uppercase tracking-[0.15em] transition-all ${
+              className={`flex items-center gap-2 rounded-full border px-3.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.15em] transition-all drop-shadow-md ${
                 isAudioActive
-                  ? "border-shoal/60 bg-shoal/20 text-shoal shadow-sm shadow-shoal/30"
-                  : "border-shoal/25 bg-abyssal/60 text-fathom hover:border-shoal/50 hover:text-shoal backdrop-blur-md"
+                  ? "border-cyan-400/80 bg-cyan-950/60 text-cyan-300 shadow-sm shadow-cyan-500/30"
+                  : "border-white/20 bg-black/30 text-slate-200 hover:border-cyan-400/50 hover:text-cyan-300 backdrop-blur-sm"
               }`}
             >
               {isAudioActive ? (
                 <>
-                  <Volume2 className="h-3.5 w-3.5 text-shoal animate-pulse" />
+                  <Volume2 className="h-3.5 w-3.5 text-cyan-400 animate-pulse" />
                   <span>Hydrophone On</span>
                 </>
               ) : (
                 <>
-                  <VolumeX className="h-3.5 w-3.5 text-fathom" />
+                  <VolumeX className="h-3.5 w-3.5 text-slate-300" />
                   <span>Hydrophone Off</span>
                 </>
               )}
@@ -359,7 +358,7 @@ export const SynopsisPage: React.FC<SynopsisPageProps> = ({ onEnterConsole }) =>
 
             <button
               onClick={onEnterConsole}
-              className="group flex items-center gap-2 rounded-full border border-shoal/30 bg-shoal/10 px-4 py-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-shoal shadow-sm transition-all duration-300 hover:border-shoal/60 hover:bg-shoal/20 hover:text-white"
+              className="group flex items-center gap-2 rounded-full border border-cyan-400/50 bg-black/40 px-4 py-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-cyan-300 backdrop-blur-sm shadow-sm transition-all duration-300 hover:border-cyan-400 hover:bg-cyan-500/25 hover:text-white drop-shadow-md"
             >
               Live console
               <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1" />
@@ -378,10 +377,11 @@ export const SynopsisPage: React.FC<SynopsisPageProps> = ({ onEnterConsole }) =>
             data-hero-tail
             className="mb-6 flex flex-wrap items-center gap-x-4 gap-y-2"
           >
-            <span className="rounded-full border border-cyan-400/50 bg-black/50 px-3.5 py-1 font-mono text-[11px] font-bold tracking-[0.16em] text-cyan-300 backdrop-blur-sm shadow-md">
-              Smart India Hackathon
+            <span className="flex items-center gap-2 font-mono text-[11px] font-bold tracking-[0.16em] text-cyan-300 drop-shadow-[0_2px_8px_rgba(0,0,0,0.95)]">
+              <span className="h-1.5 w-1.5 rounded-full bg-cyan-400" />
+              SMART INDIA HACKATHON
             </span>
-            <span aria-hidden="true" className="h-px w-8 bg-cyan-400/50" />
+            <span aria-hidden="true" className="h-px w-8 bg-cyan-400/40" />
             <span className="flex items-center gap-2 font-mono text-[11px] font-bold tracking-[0.16em] text-emerald-300 drop-shadow-[0_2px_6px_rgba(0,0,0,0.95)]">
               <span className="relative flex h-2 w-2">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400/70" />

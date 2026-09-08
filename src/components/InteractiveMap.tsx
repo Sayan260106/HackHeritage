@@ -17,7 +17,7 @@ import {
   ShieldCheck,
   AlertTriangle
 } from 'lucide-react';
-import { LocationInfo, GisLayerData, RiskLevel, RiskPrediction, OceanData, LanguageCode, GeofenceSpatialAnalysis, DarkVesselAnalysis, VesselTarget } from '../types';
+import { LocationInfo, GisLayerData, RiskLevel, RiskPrediction, OceanData, LanguageCode, GeofenceSpatialAnalysis, DarkVesselAnalysis, VesselTarget, OilSpillAnalysis, OilSpillEvent } from '../types';
 import { COASTAL_LOCATIONS, MULTILINGUAL_DICTIONARY } from '../data/coastalData';
 import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion';
 import { maritimeSiren } from '../services/audio/maritimeSirenService';
@@ -30,6 +30,7 @@ interface InteractiveMapProps {
   ocean: OceanData;
   riskLevel: RiskLevel;
   risk?: RiskPrediction;
+  safeRoute?: any;
   onSelectLocation: (locKey: string) => void;
   onCoordinateClick?: (lat: number, lon: number) => void;
   language: LanguageCode;
@@ -42,6 +43,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   ocean,
   riskLevel,
   risk,
+  safeRoute,
   onSelectLocation,
   onCoordinateClick,
   language
@@ -51,10 +53,13 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const tileLayerRef = useRef<L.TileLayer | null>(null);
+  const satelliteLayerRef = useRef<L.TileLayer | null>(null);
+  const seamarksLayerRef = useRef<L.TileLayer | null>(null);
   const geojsonLayerRef = useRef<L.GeoJSON | null>(null);
   const pfzLayerGroupRef = useRef<L.LayerGroup | null>(null);
   const routeLayerGroupRef = useRef<L.LayerGroup | null>(null);
   const vesselLayerGroupRef = useRef<L.LayerGroup | null>(null);
+  const oilSpillLayerGroupRef = useRef<L.LayerGroup | null>(null);
   const targetMarkerRef = useRef<L.Marker | null>(null);
   const clickMarkerRef = useRef<L.Marker | null>(null);
   const onCoordinateClickRef = useRef(onCoordinateClick);
@@ -63,13 +68,25 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   }, [onCoordinateClick]);
 
   const [isLocating, setIsLocating] = useState<boolean>(false);
+  const [isSatelliteView, setIsSatelliteView] = useState<boolean>(false);
   const [pfzZones, setPfzZones] = useState<any[]>([]);
+  const [pfzFrontlines, setPfzFrontlines] = useState<any | null>(null);
 
   // Safe Routing Navigation State
   const [routeDestination, setRouteDestination] = useState<{ latitude: number; longitude: number; name?: string } | null>(null);
   const [safeRouteResult, setSafeRouteResult] = useState<any | null>(null);
   const [isCalculatingRoute, setIsCalculatingRoute] = useState<boolean>(false);
   const [showSafeRouteLayer, setShowSafeRouteLayer] = useState<boolean>(true);
+
+  // Sync external safe route from Agent execution if available
+  useEffect(() => {
+    if (safeRoute && safeRoute.status === 'ROUTE_FOUND' && Array.isArray(safeRoute.waypoints) && safeRoute.waypoints.length > 0) {
+      setSafeRouteResult(safeRoute);
+      if (safeRoute.destination) {
+        setRouteDestination(safeRoute.destination);
+      }
+    }
+  }, [safeRoute]);
 
   // Global callbacks for leaflet popups (relocate boat, plot safe route & dispatch Coast Guard warning)
   useEffect(() => {
@@ -151,8 +168,29 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   const [showPfz, setShowPfz] = useState<boolean>(true);
   const [showVessels, setShowVessels] = useState<boolean>(true);
   const [vesselsData, setVesselsData] = useState<DarkVesselAnalysis | null>(null);
+  const [showOilSpills, setShowOilSpills] = useState<boolean>(true);
+  const [oilSpillsData, setOilSpillsData] = useState<OilSpillAnalysis | null>(null);
   const [showSstOverlay, setShowSstOverlay] = useState<boolean>(true);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+
+  // Fetch live satellite oil spill analysis (NASA EONET & Copernicus STAC)
+  useEffect(() => {
+    let isMounted = true;
+    fetch('/api/gis/oil-spills', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ latitude: location.latitude, longitude: location.longitude })
+    })
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (isMounted && data && Array.isArray(data.events)) {
+          setOilSpillsData(data);
+        }
+      })
+      .catch(err => console.error('Failed to fetch live oil spill satellite data:', err));
+
+    return () => { isMounted = false; };
+  }, [location.latitude, location.longitude]);
 
   // Fetch live AIS vessel traffic & Sentinel-1 SAR dark vessel analysis
   useEffect(() => {
@@ -169,7 +207,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
     return () => { isMounted = false; };
   }, [location.latitude, location.longitude]);
 
-  // Fetch live PFZ satellite analysis for current location
+  // Fetch live statutory INCOIS PFZ satellite analysis for current location
   useEffect(() => {
     let isMounted = true;
     fetch('/api/pfz/analyze', {
@@ -183,11 +221,26 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
     })
       .then(res => res.ok ? res.json() : null)
       .then(data => {
-        if (isMounted && data && Array.isArray(data.zones)) {
-          setPfzZones(data.zones);
+        if (isMounted && data) {
+          if (Array.isArray(data.zones)) {
+            setPfzZones(data.zones);
+          }
+          if (data.frontlines) {
+            setPfzFrontlines(data.frontlines);
+          }
         }
       })
       .catch(err => console.error('Failed to fetch real-time PFZ satellite zones:', err));
+
+    // Also fetch full daily statutory frontlines GeoJSON if not yet populated
+    fetch('/api/pfz/frontlines')
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (isMounted && data?.features) {
+          setPfzFrontlines(data);
+        }
+      })
+      .catch(() => {});
 
     return () => { isMounted = false; };
   }, [location.latitude, location.longitude, location.name]);
@@ -279,11 +332,12 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       });
 
       // OpenStreetMap Detailed Map Engine (Google Maps-level details: cities, towns, villages, beaches, ports, roads)
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         subdomains: ['a', 'b', 'c'],
         maxZoom: 19,
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
       }).addTo(map);
+      tileLayerRef.current = osmLayer;
 
       // Force Leaflet to recalculate container size immediately
       requestAnimationFrame(() => map.invalidateSize());
@@ -365,6 +419,47 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       targetMarkerRef.current = null;
     };
   }, []);
+
+  // Toggle Real High-Resolution Optical Satellite Imagery Base Layer
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+
+    if (isSatelliteView) {
+      if (tileLayerRef.current && map.hasLayer(tileLayerRef.current)) {
+        map.removeLayer(tileLayerRef.current);
+      }
+      if (!satelliteLayerRef.current) {
+        satelliteLayerRef.current = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+          maxZoom: 19,
+          attribution: 'Satellite Imagery &copy; Esri, Maxar, Earthstar Geographics, CNES/Airbus DS, USDA, USGS, AeroGRID, IGN'
+        });
+      }
+      if (!map.hasLayer(satelliteLayerRef.current)) {
+        satelliteLayerRef.current.addTo(map);
+      }
+      if (!seamarksLayerRef.current) {
+        seamarksLayerRef.current = L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png', {
+          maxZoom: 18,
+          opacity: 0.85,
+          attribution: '&copy; OpenSeaMap contributors'
+        });
+      }
+      if (!map.hasLayer(seamarksLayerRef.current)) {
+        seamarksLayerRef.current.addTo(map);
+      }
+    } else {
+      if (satelliteLayerRef.current && map.hasLayer(satelliteLayerRef.current)) {
+        map.removeLayer(satelliteLayerRef.current);
+      }
+      if (seamarksLayerRef.current && map.hasLayer(seamarksLayerRef.current)) {
+        map.removeLayer(seamarksLayerRef.current);
+      }
+      if (tileLayerRef.current && !map.hasLayer(tileLayerRef.current)) {
+        tileLayerRef.current.addTo(map);
+      }
+    }
+  }, [isSatelliteView]);
 
   // Update map view when location changes
   useEffect(() => {
@@ -546,7 +641,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
               className: 'buoy-icon',
               html: `
                 <div class="relative flex items-center justify-center">
-                  <div class="w-5 h-5 rounded-full bg-purple-500/80 border border-white shadow-md flex items-center justify-center text-[10px] text-white font-mono">
+                  <div class="w-5 h-5 rounded-full bg-slate-950 border border-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.8)] flex items-center justify-center text-[10px] text-amber-300 font-mono">
                     📡
                   </div>
                 </div>
@@ -598,7 +693,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
     }
   }, [gisLayers, location, riskLevel, ocean, showHazardZones, showSafeCorridors, showBuoys, showImbl, showMpas]);
 
-  // Render Real-Time Potential Fishing Zones (PFZ) Layer
+  // Render Real-Time Potential Fishing Zones (PFZ) Layer & INCOIS Satellite Frontlines
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map) return;
@@ -608,136 +703,202 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       pfzLayerGroupRef.current = null;
     }
 
-    if (!showPfz || !pfzZones || pfzZones.length === 0) return;
+    if (!showPfz) return;
 
     const layerGroup = L.layerGroup();
 
-    pfzZones.forEach((zone: any) => {
-      const isHigh = zone.suitability === 'HIGH';
-      const isMod = zone.suitability === 'MODERATE';
-      const isRestricted = zone.geofenceStatus === 'RESTRICTED';
+    // 1. Render Official INCOIS Statutory Frontlines (Illuminated Cyan Polylines)
+    if (pfzFrontlines && pfzFrontlines.features && Array.isArray(pfzFrontlines.features) && pfzFrontlines.features.length > 0) {
+      const frontlinesLayer = L.geoJSON(pfzFrontlines, {
+        style: () => ({
+          color: '#06b6d4',
+          weight: 3.5,
+          opacity: 0.9,
+          dashArray: '8, 5',
+          lineCap: 'round',
+          lineJoin: 'round',
+        }),
+        onEachFeature: (feature: any, layer: L.Layer) => {
+          const props = feature.properties || {};
+          const uid = props.UID ?? props.uid ?? 'INCOIS-FRONT';
+          const year = props.YEAR ?? props.year ?? '2026';
+          const julianDay = props.JULIAN_DAY ?? props.julian_day ?? '';
 
-      const strokeColor = isRestricted ? '#f43f5e' : isHigh ? '#10b981' : isMod ? '#f59e0b' : '#3b82f6';
-      const fillColor = isRestricted ? '#9f1239' : isHigh ? '#059669' : isMod ? '#d97706' : '#1d4ed8';
+          let midLat = 0;
+          let midLon = 0;
+          if (feature.geometry?.coordinates) {
+            const coords = feature.geometry.type === 'LineString'
+              ? feature.geometry.coordinates
+              : Array.isArray(feature.geometry.coordinates?.[0])
+                ? feature.geometry.coordinates[0]
+                : [];
+            if (Array.isArray(coords) && coords.length > 0) {
+              const midIdx = Math.floor(coords.length / 2);
+              if (Array.isArray(coords[midIdx]) && coords[midIdx].length >= 2) {
+                midLon = Number(coords[midIdx][0]);
+                midLat = Number(coords[midIdx][1]);
+              }
+            }
+          }
 
-      // 1. Chlorophyll & Thermal Front Gradient Circle
-      const circle = L.circle([zone.latitude, zone.longitude], {
-        radius: isHigh ? 3000 : 2000,
-        color: strokeColor,
-        weight: isHigh ? 2.5 : 1.5,
-        opacity: 0.85,
-        fillColor: fillColor,
-        fillOpacity: isHigh ? 0.25 : 0.15,
-        dashArray: isRestricted ? '5, 5' : undefined
+          layer.bindPopup(`
+            <div class="p-2.5 space-y-2 max-w-[270px] bg-slate-900 text-slate-100 rounded-lg text-xs font-mono">
+              <div class="font-bold text-cyan-300 border-b border-cyan-800/80 pb-1 flex items-center justify-between">
+                <span class="flex items-center gap-1">🛰️ INCOIS Satellite Front</span>
+                <span class="text-[9px] bg-cyan-950 text-cyan-300 px-1.5 py-0.5 rounded border border-cyan-700/60 font-black">GOVT WFS</span>
+              </div>
+              <div class="space-y-1 text-[11px] bg-slate-950/80 p-2 rounded border border-slate-800">
+                <div class="flex justify-between"><span class="text-slate-400">Front UID:</span> <span class="text-white font-bold">${uid}</span></div>
+                <div class="flex justify-between"><span class="text-slate-400">Julian Day:</span> <span class="text-cyan-300 font-semibold">${julianDay} (${year})</span></div>
+                <div class="flex justify-between"><span class="text-slate-400">Agency:</span> <span class="text-emerald-400 font-bold">INCOIS / MoES</span></div>
+                <div class="flex justify-between"><span class="text-slate-400">Sensors:</span> <span class="text-slate-200">Oceansat / Thermal Comp.</span></div>
+              </div>
+              <p class="text-[10px] text-slate-300 italic bg-cyan-950/40 p-1.5 rounded border border-cyan-900/60">
+                Official statutory thermal/chlorophyll boundary where nutrient upwelling concentrates pelagic fish shoals.
+              </p>
+              ${midLat !== 0 && midLon !== 0 ? `
+                <button
+                  onclick="window.__orcaPlotRouteTo && window.__orcaPlotRouteTo(${midLat.toFixed(4)}, ${midLon.toFixed(4)}, 'INCOIS Front ${uid}')"
+                  class="w-full mt-1 py-1.5 px-2 bg-gradient-to-r from-cyan-600 to-emerald-600 hover:from-cyan-500 hover:to-emerald-500 text-white font-bold text-[10px] rounded transition-all text-center flex items-center justify-center gap-1 shadow cursor-pointer"
+                >
+                  🧭 Compute Safe Route to Front
+                </button>
+              ` : ''}
+            </div>
+          `);
+        }
       });
+      frontlinesLayer.addTo(layerGroup);
+    }
 
-      // 2. Custom Glowing Fish Icon Pin
-      const fishIcon = L.divIcon({
-        className: 'custom-pfz-marker-icon',
-        html: `
-          <div class="relative flex items-center justify-center cursor-pointer">
-            <div class="absolute w-8 h-8 rounded-full ${isHigh ? 'bg-emerald-500/40 animate-ping' : 'bg-amber-500/30'}"></div>
-            <div class="px-2 py-0.5 rounded-full ${isRestricted ? 'bg-rose-700 border-rose-400' : isHigh ? 'bg-emerald-600 border-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.5)]' : 'bg-amber-600 border-amber-300'} border flex items-center gap-1 shadow-xl text-white font-bold text-[10px] whitespace-nowrap">
-              <span>🐟</span>
-              <span>PFZ #${zone.rank}</span>
-              <span class="font-mono text-[9px] ${isHigh ? 'text-emerald-200' : 'text-amber-200'}">(${zone.score}%)</span>
+    // 2. Render PFZ Intercept Zones and Pins
+    if (pfzZones && pfzZones.length > 0) {
+      pfzZones.forEach((zone: any) => {
+        const isHigh = zone.suitability === 'HIGH';
+        const isMod = zone.suitability === 'MODERATE';
+        const isRestricted = zone.geofenceStatus === 'RESTRICTED';
+
+        const strokeColor = isRestricted ? '#f43f5e' : isHigh ? '#10b981' : isMod ? '#f59e0b' : '#3b82f6';
+        const fillColor = isRestricted ? '#9f1239' : isHigh ? '#059669' : isMod ? '#d97706' : '#1d4ed8';
+
+        // Front Intercept Concentric Convergence Circle
+        const circle = L.circle([zone.latitude, zone.longitude], {
+          radius: isHigh ? 3500 : 2500,
+          color: strokeColor,
+          weight: isHigh ? 2.5 : 1.5,
+          opacity: 0.85,
+          fillColor: fillColor,
+          fillOpacity: isHigh ? 0.25 : 0.15,
+          dashArray: isRestricted ? '5, 5' : undefined
+        });
+
+        // Custom Glowing Fish Icon Pin
+        const fishIcon = L.divIcon({
+          className: 'custom-pfz-marker-icon',
+          html: `
+            <div class="relative flex items-center justify-center cursor-pointer">
+              <div class="absolute w-8 h-8 rounded-full ${isHigh ? 'bg-emerald-500/40 animate-ping' : 'bg-amber-500/30'}"></div>
+              <div class="px-2 py-0.5 rounded-full ${isRestricted ? 'bg-rose-700 border-rose-400' : isHigh ? 'bg-emerald-600 border-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.5)]' : 'bg-amber-600 border-amber-300'} border flex items-center gap-1 shadow-xl text-white font-bold text-[10px] whitespace-nowrap">
+                <span>🐟</span>
+                <span>INCOIS #${zone.rank}</span>
+                <span class="font-mono text-[9px] ${isHigh ? 'text-emerald-200' : 'text-amber-200'}">(${zone.score}%)</span>
+              </div>
             </div>
-          </div>
-        `,
-        iconSize: [85, 26],
-        iconAnchor: [42, 13]
-      });
+          `,
+          iconSize: [95, 26],
+          iconAnchor: [47, 13]
+        });
 
-      const marker = L.marker([zone.latitude, zone.longitude], { icon: fishIcon });
+        const marker = L.marker([zone.latitude, zone.longitude], { icon: fishIcon });
 
-      const popupContent = `
-        <div class="p-2.5 space-y-2 max-w-[260px] bg-slate-900 text-slate-100 rounded-lg">
-          <div class="flex items-center justify-between border-b border-slate-700/80 pb-1.5">
-            <div class="flex items-center gap-1.5 font-bold text-xs text-emerald-400">
-              <span>🐟 ${zone.id}</span>
-              <span class="text-[10px] text-slate-300 font-mono">(Rank #${zone.rank})</span>
-            </div>
-            <span class="px-1.5 py-0.5 rounded text-[9px] font-black tracking-wider uppercase ${
-              isRestricted ? 'bg-rose-600 text-white' :
-              isHigh ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' :
-              'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-            }">
-              ${zone.suitability} SUITABILITY
-            </span>
-          </div>
-
-          <div class="text-[11px] font-mono space-y-1 bg-slate-950/80 p-2 rounded border border-slate-800">
-            <div class="flex justify-between">
-              <span class="text-slate-400">Fishing Score:</span>
-              <span class="font-bold text-cyan-300">${zone.score}/100</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-slate-400">Chlorophyll-a:</span>
-              <span class="${zone.chlorophyllMgM3 !== undefined ? 'text-emerald-400 font-bold' : 'text-slate-400 font-semibold'}">
-                ${zone.chlorophyllMgM3 !== undefined ? `${zone.chlorophyllMgM3.toFixed(2)} mg/m³` : 'Cloud Masked (NOAA)'}
+        const popupContent = `
+          <div class="p-2.5 space-y-2 max-w-[280px] bg-slate-900 text-slate-100 rounded-lg">
+            <div class="flex items-center justify-between border-b border-slate-700/80 pb-1.5">
+              <div class="flex items-center gap-1.5 font-bold text-xs text-emerald-400">
+                <span>🐟 ${zone.id}</span>
+                <span class="text-[10px] text-cyan-300 font-mono">UID: ${zone.incoisUid || 'INCOIS'}</span>
+              </div>
+              <span class="px-1.5 py-0.5 rounded text-[9px] font-black tracking-wider uppercase ${
+                isRestricted ? 'bg-rose-600 text-white' :
+                isHigh ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' :
+                'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+              }">
+                ${zone.suitability}
               </span>
             </div>
-            ${zone.sstC !== undefined ? `
+
+            <div class="text-[11px] font-mono space-y-1 bg-slate-950/80 p-2 rounded border border-slate-800">
               <div class="flex justify-between">
-                <span class="text-slate-400">Sea Surface Temp:</span>
-                <span class="text-amber-400 font-bold">${zone.sstC.toFixed(1)}°C</span>
+                <span class="text-slate-400">Fishing Score:</span>
+                <span class="font-bold text-cyan-300">${zone.score}/100</span>
               </div>
-            ` : ''}
-            ${zone.sstAnomalyC !== undefined ? `
               <div class="flex justify-between">
-                <span class="text-slate-400">SST Anomaly:</span>
-                <span class="text-cyan-400 font-bold">${zone.sstAnomalyC >= 0 ? '+' : ''}${zone.sstAnomalyC.toFixed(2)}°C</span>
+                <span class="text-slate-400">Distance from Port:</span>
+                <span class="text-emerald-400 font-bold">${zone.distanceNm ?? '—'} NM (${zone.distanceKm ?? '—'} km)</span>
               </div>
-            ` : ''}
-            <div class="flex justify-between border-t border-slate-800 pt-1">
-              <span class="text-slate-400">Geofence Clearance:</span>
-              <span class="font-bold ${
-                zone.geofenceStatus === 'CLEAR' ? 'text-emerald-400' :
-                zone.geofenceStatus === 'CAUTION' ? 'text-amber-400' : 'text-red-400'
-              }">${zone.geofenceStatus}</span>
+              <div class="flex justify-between">
+                <span class="text-slate-400">Compass Bearing:</span>
+                <span class="text-amber-300 font-bold">${zone.bearingDeg ?? '—'}°</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-slate-400">Front Length:</span>
+                <span class="text-cyan-300 font-bold">${zone.frontLengthKm ?? '—'} km</span>
+              </div>
+              ${zone.sstC !== undefined ? `
+                <div class="flex justify-between">
+                  <span class="text-slate-400">SST at Front:</span>
+                  <span class="text-amber-400 font-bold">${zone.sstC.toFixed(1)}°C</span>
+                </div>
+              ` : ''}
+              <div class="flex justify-between border-t border-slate-800 pt-1">
+                <span class="text-slate-400">Geofence Status:</span>
+                <span class="font-bold ${
+                  zone.geofenceStatus === 'CLEAR' ? 'text-emerald-400' :
+                  zone.geofenceStatus === 'CAUTION' ? 'text-amber-400' : 'text-red-400'
+                }">${zone.geofenceStatus}</span>
+              </div>
             </div>
-          </div>
 
-          ${zone.explanations?.[0] ? `
-            <p class="text-[10px] text-slate-300 leading-tight italic bg-emerald-950/30 p-1.5 rounded border border-emerald-800/40">
-              💡 ${zone.explanations[0]}
-            </p>
-          ` : ''}
+            ${zone.explanations?.[0] ? `
+              <p class="text-[10px] text-slate-300 leading-tight italic bg-emerald-950/30 p-1.5 rounded border border-emerald-800/40">
+                💡 ${zone.explanations[0]}
+              </p>
+            ` : ''}
 
-          ${zone.sources?.length ? `
             <div class="text-[9px] text-slate-400 font-mono flex flex-wrap gap-1">
-              <span class="text-slate-500">Feeds:</span>
-              ${zone.sources.map((s: string) => `<span class="bg-slate-800 px-1 rounded text-cyan-300">${s.split(' ')[0]}</span>`).join('')}
+              <span class="text-slate-500">Source:</span>
+              <span class="bg-slate-800 px-1 rounded text-cyan-300">INCOIS GeoServer WFS</span>
+              <span class="bg-slate-800 px-1 rounded text-emerald-300">Daily Statutory</span>
             </div>
-          ` : ''}
 
-          <div class="grid grid-cols-2 gap-1 pt-1">
-            <button
-              onclick="window.__orcaSetBoatLocation && window.__orcaSetBoatLocation(${zone.latitude}, ${zone.longitude})"
-              class="py-1 px-1.5 bg-cyan-700 hover:bg-cyan-600 text-white font-bold text-[10px] rounded transition-all text-center flex items-center justify-center gap-1 shadow cursor-pointer"
-            >
-              ⚓ Move Boat Here
-            </button>
-            <button
-              onclick="window.__orcaPlotRouteTo && window.__orcaPlotRouteTo(${zone.latitude}, ${zone.longitude}, 'PFZ Zone #${zone.rank}')"
-              class="py-1 px-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] rounded transition-all text-center flex items-center justify-center gap-1 shadow cursor-pointer"
-            >
-              🧭 Safe Route
-            </button>
+            <div class="grid grid-cols-2 gap-1.5 pt-1">
+              <button
+                onclick="window.__orcaSetBoatLocation && window.__orcaSetBoatLocation(${zone.latitude}, ${zone.longitude})"
+                class="py-1 px-1.5 bg-cyan-700 hover:bg-cyan-600 text-white font-bold text-[10px] rounded transition-all text-center flex items-center justify-center gap-1 shadow cursor-pointer"
+              >
+                ⚓ Move Boat Here
+              </button>
+              <button
+                onclick="window.__orcaPlotRouteTo && window.__orcaPlotRouteTo(${zone.latitude}, ${zone.longitude}, 'INCOIS Front #${zone.rank}')"
+                class="py-1 px-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-[10px] rounded transition-all text-center flex items-center justify-center gap-1 shadow cursor-pointer"
+              >
+                🧭 Compute Safe Route Here
+              </button>
+            </div>
           </div>
-        </div>
-      `;
+        `;
 
-      circle.bindPopup(popupContent);
-      marker.bindPopup(popupContent);
+        circle.bindPopup(popupContent);
+        marker.bindPopup(popupContent);
 
-      circle.addTo(layerGroup);
-      marker.addTo(layerGroup);
-    });
+        circle.addTo(layerGroup);
+        marker.addTo(layerGroup);
+      });
+    }
 
     layerGroup.addTo(map);
     pfzLayerGroupRef.current = layerGroup;
-  }, [showPfz, pfzZones]);
+  }, [showPfz, pfzZones, pfzFrontlines]);
 
   // Render Dynamic Safe Navigation Polyline & Waypoint Markers
   useEffect(() => {
@@ -755,26 +916,75 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
     const waypoints = safeRouteResult.waypoints;
     const latLngs = waypoints.map((wp: any) => [wp.latitude, wp.longitude]);
 
-    // 1. Safe Navigation Polyline (Emerald Glowing Dashed Line)
+    // 1a. Route Base Glow Halo (Contrasting Outer Shadow / Corridor Casing)
+    const haloPolyline = L.polyline(latLngs, {
+      color: '#064e3b',
+      weight: 8,
+      opacity: 0.75,
+      lineCap: 'round',
+      lineJoin: 'round'
+    });
+    haloPolyline.addTo(layerGroup);
+
+    // 1b. Safe Navigation Polyline (Vibrant Emerald Glowing Dashed Passage)
     const polyline = L.polyline(latLngs, {
       color: '#10b981',
       weight: 4.5,
-      opacity: 0.9,
-      dashArray: '8, 8'
+      opacity: 0.95,
+      dashArray: '8, 8',
+      lineCap: 'round',
+      lineJoin: 'round'
     });
 
-    // 2. Waypoint Markers along the route
+    const routeDistanceNm = ((safeRouteResult.distanceKm || 0) / 1.852).toFixed(1);
+    const routeDirectNm = ((safeRouteResult.directDistanceKm || 0) / 1.852).toFixed(1);
+
+    polyline.bindPopup(`
+      <div class="p-2.5 space-y-2 max-w-[280px] bg-slate-900 text-slate-100 rounded-xl font-mono text-xs shadow-2xl border border-emerald-500/50">
+        <div class="flex items-center justify-between border-b border-slate-700/80 pb-1.5 font-bold text-emerald-400">
+          <span class="flex items-center gap-1.5">🧭 Safe Navigation Route</span>
+          <span class="text-[9px] bg-emerald-950 text-emerald-300 px-1.5 py-0.5 rounded border border-emerald-700 font-black">ACTIVE</span>
+        </div>
+        <div class="space-y-1 text-[11px] bg-slate-950/80 p-2 rounded border border-slate-800">
+          <div class="flex justify-between"><span class="text-slate-400">Total Route:</span> <span class="text-emerald-300 font-bold">${routeDistanceNm} NM (${safeRouteResult.distanceKm} km)</span></div>
+          <div class="flex justify-between"><span class="text-slate-400">Direct Distance:</span> <span class="text-cyan-300">${routeDirectNm} NM</span></div>
+          <div class="flex justify-between"><span class="text-slate-400">Sequenced Waypoints:</span> <span class="text-white font-bold">${waypoints.length} points</span></div>
+          ${safeRouteResult.routeEfficiencyPct ? `<div class="flex justify-between"><span class="text-slate-400">Passage Efficiency:</span> <span class="text-amber-300 font-bold">${safeRouteResult.routeEfficiencyPct}%</span></div>` : ''}
+          <div class="flex justify-between"><span class="text-slate-400">Geofence Status:</span> <span class="text-emerald-400 font-bold">VERIFIED CLEAR</span></div>
+        </div>
+        ${safeRouteResult.avoidedConstraints?.length > 0 ? `
+          <div class="text-[10px] text-amber-300 bg-amber-950/40 p-1.5 rounded border border-amber-800/40 space-y-0.5">
+            <span class="font-bold text-amber-400">Avoided Constraints:</span>
+            <div class="text-slate-200">${safeRouteResult.avoidedConstraints.join(', ')}</div>
+          </div>
+        ` : ''}
+        ${safeRouteResult.rationale ? `
+          <p class="text-[10px] text-slate-300 italic bg-emerald-950/30 p-1.5 rounded border border-emerald-900/40">
+            💡 ${safeRouteResult.rationale}
+          </p>
+        ` : ''}
+      </div>
+    `);
+
+    // 2. Waypoint Markers along the route with sequenced bearing and distance tags
     waypoints.forEach((wp: any, idx: number) => {
       const isStart = idx === 0;
       const isEnd = idx === waypoints.length - 1;
-      if (!isStart && !isEnd && idx % 2 !== 0 && waypoints.length > 8) return;
+      // Keep density balanced for long routes, but always include key inflection nodes
+      if (!isStart && !isEnd && idx % 2 !== 0 && waypoints.length > 10) return;
+
+      const cumDistNm = ((wp.cumulativeDistanceKm || 0) / 1.852).toFixed(1);
+      const bearingStr = wp.bearingDeg !== undefined ? `${wp.bearingDeg}°` : '—';
 
       const wpIcon = L.divIcon({
         className: 'custom-wp-marker-icon',
         html: `
-          <div class="relative flex items-center justify-center cursor-pointer">
-            <div class="w-6 h-6 rounded-full ${isStart ? 'bg-cyan-600 border-2 border-white' : isEnd ? 'bg-emerald-600 border-2 border-white animate-pulse' : 'bg-slate-800 border border-emerald-400'} shadow-lg flex items-center justify-center text-[10px] text-white font-bold font-mono">
+          <div class="relative flex items-center justify-center cursor-pointer group">
+            <div class="w-6 h-6 rounded-full ${isStart ? 'bg-cyan-600 border-2 border-white shadow-[0_0_12px_rgba(6,182,212,0.8)]' : isEnd ? 'bg-emerald-600 border-2 border-white animate-pulse shadow-[0_0_12px_rgba(16,185,129,0.8)]' : 'bg-slate-800 border-2 border-emerald-400'} shadow-lg flex items-center justify-center text-[10px] text-white font-bold font-mono">
               ${isStart ? '⚓' : isEnd ? '🏁' : idx}
+            </div>
+            <div class="absolute -bottom-4 hidden group-hover:flex bg-slate-950/90 text-cyan-300 text-[9px] font-mono px-1 rounded border border-cyan-700 whitespace-nowrap shadow-md z-30">
+              ${cumDistNm} NM
             </div>
           </div>
         `,
@@ -784,24 +994,49 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
 
       const marker = L.marker([wp.latitude, wp.longitude], { icon: wpIcon });
 
+      // Hover tooltip showing sequence number, distance, and bearing tag
+      marker.bindTooltip(
+        isStart 
+          ? '⚓ Route Origin (Boat)' 
+          : isEnd 
+            ? `🏁 Destination • ${cumDistNm} NM` 
+            : `WP #${idx} • ${cumDistNm} NM • ${bearingStr}`,
+        {
+          direction: 'top',
+          offset: [0, -12],
+          className: 'orca-route-tooltip'
+        }
+      );
+
       const popupContent = `
-        <div class="p-2 space-y-1 bg-slate-900 text-slate-100 rounded-lg text-xs font-mono">
-          <div class="font-bold text-emerald-400 border-b border-slate-700 pb-1 flex items-center gap-1">
+        <div class="p-2.5 space-y-2 bg-slate-900 text-slate-100 rounded-xl text-xs font-mono max-w-[250px] shadow-2xl border border-slate-700">
+          <div class="font-bold text-emerald-400 border-b border-slate-700 pb-1.5 flex items-center justify-between">
             <span>${isStart ? '⚓ Route Origin (Boat)' : isEnd ? '🏁 Safe Destination' : `Waypoint #${idx}`}</span>
+            <span class="text-[10px] text-cyan-300">${wp.latitude.toFixed(3)}°N, ${wp.longitude.toFixed(3)}°E</span>
           </div>
-          <div class="flex justify-between text-[11px]">
-            <span class="text-slate-400">Cumulative:</span>
-            <span class="font-bold text-cyan-300">${((wp.cumulativeDistanceKm || 0) / 1.852).toFixed(1)} NM (${(wp.cumulativeDistanceKm || 0).toFixed(1)} KM)</span>
-          </div>
-          ${wp.bearingDeg !== undefined ? `
-            <div class="flex justify-between text-[11px]">
-              <span class="text-slate-400">Compass Bearing:</span>
-              <span class="font-bold text-amber-300">${wp.bearingDeg}°</span>
+          <div class="space-y-1 text-[11px] bg-slate-950/80 p-2 rounded border border-slate-800">
+            <div class="flex justify-between">
+              <span class="text-slate-400">Cumulative Distance:</span>
+              <span class="font-bold text-cyan-300">${cumDistNm} NM (${(wp.cumulativeDistanceKm || 0).toFixed(1)} km)</span>
             </div>
-          ` : ''}
-          <div class="flex justify-between text-[11px]">
-            <span class="text-slate-400">Geofence Status:</span>
-            <span class="font-bold ${wp.geofenceStatus === 'CLEAR' ? 'text-emerald-400' : 'text-amber-400'}">${wp.geofenceStatus}</span>
+            ${wp.bearingDeg !== undefined ? `
+              <div class="flex justify-between">
+                <span class="text-slate-400">Compass Bearing:</span>
+                <span class="font-bold text-amber-300">${wp.bearingDeg}°</span>
+              </div>
+            ` : ''}
+            <div class="flex justify-between border-t border-slate-800 pt-1">
+              <span class="text-slate-400">Geofence Status:</span>
+              <span class="font-bold ${wp.geofenceStatus === 'CLEAR' ? 'text-emerald-400' : 'text-amber-400'}">${wp.geofenceStatus}</span>
+            </div>
+          </div>
+          <div class="pt-1">
+            <button
+              onclick="window.__orcaSetBoatLocation && window.__orcaSetBoatLocation(${wp.latitude}, ${wp.longitude})"
+              class="w-full py-1 px-2 rounded bg-cyan-700 hover:bg-cyan-600 text-white font-bold text-[10px] flex items-center justify-center gap-1 shadow cursor-pointer transition-all"
+            >
+              ⚓ Set Boat Position Here
+            </button>
           </div>
         </div>
       `;
@@ -813,7 +1048,22 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
     polyline.addTo(layerGroup);
     layerGroup.addTo(map);
     routeLayerGroupRef.current = layerGroup;
-  }, [showSafeRouteLayer, safeRouteResult]);
+
+    // 3. Auto-centering Camera on Origin and Destination Bounds
+    if (latLngs.length > 0) {
+      try {
+        const bounds = L.latLngBounds(latLngs);
+        map.fitBounds(bounds, {
+          padding: [60, 60],
+          maxZoom: 13,
+          animate: !reducedMotion,
+          duration: 0.8
+        });
+      } catch (err) {
+        console.warn('Could not auto-fit map bounds to safe route:', err);
+      }
+    }
+  }, [showSafeRouteLayer, safeRouteResult, reducedMotion]);
 
   // Render Real-Time AIS & Sentinel-1 SAR Dark Vessel Layer
   useEffect(() => {
@@ -831,10 +1081,20 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
 
     vesselsData.targetVessels.forEach((vessel: VesselTarget) => {
       const isDark = vessel.isDarkVessel;
+      const isBuoy = vessel.type === 'OCEANOGRAPHIC_BUOY';
 
-      const icon = L.divIcon({
-        className: 'custom-vessel-marker-icon',
-        html: `
+      const iconHtml = isBuoy
+        ? `
+          <div class="relative flex items-center justify-center cursor-pointer">
+            <div class="absolute w-8 h-8 rounded-full bg-amber-400/25 animate-ping"></div>
+            <div class="px-2 py-0.5 rounded-full bg-slate-950 border border-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.6)] flex items-center gap-1 shadow-xl text-white font-bold text-[10px] whitespace-nowrap">
+              <span>📡</span>
+              <span class="font-mono text-[9px] text-amber-300 font-black">${vessel.buoyStationId || vessel.name.split(' ')[0]}</span>
+              <span class="font-mono text-[8px] text-cyan-300">${vessel.waveHeightM !== undefined ? `${vessel.waveHeightM}m` : ''}</span>
+            </div>
+          </div>
+        `
+        : `
           <div class="relative flex items-center justify-center cursor-pointer">
             <div class="absolute w-9 h-9 rounded-full ${isDark ? 'bg-red-600/40 animate-ping' : 'bg-cyan-500/20'}"></div>
             <div class="px-2 py-0.5 rounded-full ${isDark ? 'bg-red-700 border-red-300 shadow-[0_0_15px_rgba(239,68,68,0.8)]' : 'bg-slate-900 border-cyan-400'} border flex items-center gap-1 shadow-xl text-white font-bold text-[10px] whitespace-nowrap">
@@ -843,14 +1103,73 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
               <span class="font-mono text-[8px] opacity-75">(${vessel.speedKts}kts)</span>
             </div>
           </div>
-        `,
-        iconSize: [95, 26],
-        iconAnchor: [47, 13]
+        `;
+
+      const icon = L.divIcon({
+        className: 'custom-vessel-marker-icon',
+        html: iconHtml,
+        iconSize: [100, 26],
+        iconAnchor: [50, 13]
       });
 
       const marker = L.marker([vessel.latitude, vessel.longitude], { icon });
 
-      const popupContent = `
+      const popupContent = isBuoy ? `
+        <div class="p-2.5 space-y-2 max-w-[290px] bg-slate-900 text-slate-100 rounded-lg">
+          <div class="flex items-center justify-between border-b border-slate-700/80 pb-1.5">
+            <div class="flex items-center gap-1.5 font-bold text-xs text-amber-300">
+              <span>📡 INCOIS MOORED BUOY STATION</span>
+            </div>
+            <span class="px-1.5 py-0.5 rounded text-[8.5px] font-black font-mono bg-amber-500/20 text-amber-300 border border-amber-500/40">
+              ${vessel.buoyStationId || 'MOES'}
+            </span>
+          </div>
+
+          <div class="text-[11px] font-mono space-y-1 bg-slate-950/90 p-2 rounded border border-slate-800">
+            <div class="flex justify-between">
+              <span class="text-slate-400">Station Name:</span>
+              <span class="font-bold text-slate-100">${vessel.name.replace('📡 ', '')}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-400">Authority:</span>
+              <span class="text-slate-300">${vessel.flagState}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-400">Coordinates:</span>
+              <span class="text-slate-200 font-bold">${vessel.latitude.toFixed(4)}°N, ${vessel.longitude.toFixed(4)}°E</span>
+            </div>
+            <div class="flex justify-between border-t border-slate-800/80 pt-1">
+              <span class="text-slate-400">Wave Height (Hs):</span>
+              <span class="text-cyan-300 font-bold">${vessel.waveHeightM ?? 'N/A'} m</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-400">Sea Surface Temp:</span>
+              <span class="text-amber-300 font-bold">${vessel.seaSurfaceTempC ?? 'N/A'} °C</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-400">Surface Pressure:</span>
+              <span class="text-emerald-300 font-bold">${vessel.pressureHpa ?? 'N/A'} hPa</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-400">Wind Speed:</span>
+              <span class="text-slate-100 font-bold">${vessel.windSpeedKts ?? 'N/A'} kts</span>
+            </div>
+            <div class="flex justify-between border-t border-slate-800/80 pt-1 text-[10px]">
+              <span class="text-slate-400">Distance from Base:</span>
+              <span class="text-cyan-400 font-bold">${vessel.distanceFromBoatNm} NM (${vessel.distanceFromBoatKm} km)</span>
+            </div>
+          </div>
+
+          <div class="pt-1">
+            <button
+              onclick="window.__orcaSetBoatLocation && window.__orcaSetBoatLocation(${vessel.latitude}, ${vessel.longitude})"
+              class="w-full py-1.5 px-2 bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold text-[10px] rounded transition-all text-center flex items-center justify-center gap-1 shadow cursor-pointer"
+            >
+              ⚓ Center Radar at Buoy Station
+            </button>
+          </div>
+        </div>
+      ` : `
         <div class="p-2.5 space-y-2 max-w-[280px] bg-slate-900 text-slate-100 rounded-lg">
           <div class="flex items-center justify-between border-b border-slate-700/80 pb-1.5">
             <div class="flex items-center gap-1.5 font-bold text-xs ${isDark ? 'text-red-400' : 'text-cyan-300'}">
@@ -863,7 +1182,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
 
           <div class="text-[11px] font-mono space-y-1 bg-slate-950/90 p-2 rounded border ${isDark ? 'border-red-800/80' : 'border-slate-800'}">
             <div class="flex justify-between">
-              <span class="text-slate-400">Vessel Name:</span>
+              <span class="text-slate-400">Target ID:</span>
               <span class="font-bold ${isDark ? 'text-red-300' : 'text-slate-100'}">${vessel.name}</span>
             </div>
             <div class="flex justify-between">
@@ -908,9 +1227,96 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       marker.addTo(layerGroup);
     });
 
+
     layerGroup.addTo(map);
     vesselLayerGroupRef.current = layerGroup;
   }, [showVessels, vesselsData]);
+
+  // Render Real-Time Satellite Oil Spill Slicks & Hazards Layer
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+
+    if (oilSpillLayerGroupRef.current) {
+      map.removeLayer(oilSpillLayerGroupRef.current);
+      oilSpillLayerGroupRef.current = null;
+    }
+
+    if (!showOilSpills || !oilSpillsData?.events || oilSpillsData.events.length === 0) return;
+
+    const layerGroup = L.layerGroup();
+
+    oilSpillsData.events.forEach((spill: OilSpillEvent) => {
+      if (spill.polygon && Array.isArray(spill.polygon) && spill.polygon.length > 0) {
+        // Convert [lon, lat] pairs to Leaflet [lat, lon]
+        const latLngs = spill.polygon.map(pt => [pt[1], pt[0]] as [number, number]);
+
+        const poly = L.polygon(latLngs, {
+          color: '#c084fc',
+          weight: 2.5,
+          opacity: 0.9,
+          fillColor: '#581c87',
+          fillOpacity: 0.35,
+          dashArray: '6, 4'
+        });
+
+        const spillIcon = L.divIcon({
+          className: 'custom-oil-spill-icon',
+          html: `
+            <div class="relative flex items-center justify-center cursor-pointer">
+              <div class="absolute w-9 h-9 rounded-full bg-purple-600/40 animate-ping"></div>
+              <div class="px-2 py-0.5 rounded-full bg-purple-950 border border-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.8)] flex items-center gap-1 shadow-xl text-white font-bold text-[10px] whitespace-nowrap">
+                <span>🛢️</span>
+                <span class="font-mono text-[9px] text-purple-200 font-black">OIL SLICK</span>
+                <span class="font-mono text-[8px] text-amber-300">(${spill.distanceNm ?? '—'} NM)</span>
+              </div>
+            </div>
+          `,
+          iconSize: [95, 26],
+          iconAnchor: [47, 13]
+        });
+
+        const marker = L.marker([spill.latitude, spill.longitude], { icon: spillIcon });
+
+        const popupContent = `
+          <div class="p-2.5 space-y-2 max-w-[290px] bg-slate-900 text-slate-100 rounded-xl font-mono text-xs shadow-2xl border border-purple-500/60">
+            <div class="flex items-center justify-between border-b border-purple-800/80 pb-1.5 font-bold text-purple-300">
+              <span class="flex items-center gap-1.5">🛢️ ${spill.title}</span>
+              <span class="text-[9px] bg-purple-950 text-purple-200 px-1.5 py-0.5 rounded border border-purple-700 font-black">SATELLITE</span>
+            </div>
+
+            <div class="space-y-1 text-[11px] bg-slate-950/90 p-2 rounded border border-slate-800">
+              <div class="flex justify-between"><span class="text-slate-400">Authority:</span> <span class="text-purple-300 font-bold">${spill.sourceAuthority}</span></div>
+              <div class="flex justify-between"><span class="text-slate-400">Position:</span> <span class="text-slate-200">${spill.latitude.toFixed(4)}°N, ${spill.longitude.toFixed(4)}°E</span></div>
+              <div class="flex justify-between"><span class="text-slate-400">Distance:</span> <span class="text-amber-300 font-bold">${spill.distanceNm} NM (${spill.distanceKm} km)</span></div>
+              <div class="flex justify-between"><span class="text-slate-400">Est. Slick Area:</span> <span class="text-cyan-300 font-bold">${spill.areaKm2} km²</span></div>
+              <div class="flex justify-between border-t border-slate-800 pt-1"><span class="text-slate-400">Drift Vector:</span> <span class="text-emerald-400 font-bold">${spill.driftSpeedKts} kts @ ${spill.driftDirectionDeg}°</span></div>
+            </div>
+
+            <p class="text-[10px] text-purple-200 bg-purple-950/50 p-1.5 rounded border border-purple-900/60 italic leading-tight">
+              ⚠️ MARPOL Annex I Hazard Zone. Safe navigation routing will automatically steer vessels around this slick.
+            </p>
+
+            <button
+              onclick="window.__orcaPlotRouteTo && window.__orcaPlotRouteTo(${spill.latitude + 0.08}, ${spill.longitude + 0.08}, 'Bypass Point for ${spill.id}')"
+              class="w-full py-1.5 px-2 bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-600 hover:to-indigo-600 text-white font-bold text-[10px] rounded transition-all text-center flex items-center justify-center gap-1 shadow cursor-pointer"
+            >
+              🧭 Plot Safe Route Bypass Around Slick
+            </button>
+          </div>
+        `;
+
+        poly.bindPopup(popupContent);
+        marker.bindPopup(popupContent);
+
+        poly.addTo(layerGroup);
+        marker.addTo(layerGroup);
+      }
+    });
+
+    layerGroup.addTo(map);
+    oilSpillLayerGroupRef.current = layerGroup;
+  }, [showOilSpills, oilSpillsData]);
 
   return (
     <div 
@@ -996,10 +1402,10 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
             onClick={() => setShowBuoys(!showBuoys)}
             title="Toggle Ocean Buoys"
             className={`px-2 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1 transition-all whitespace-nowrap ${
-              showBuoys ? 'bg-purple-950/70 text-purple-300 border border-purple-700/50 shadow-[0_0_10px_rgba(168,85,247,0.25)]' : 'text-slate-400 hover:bg-slate-800/60'
+              showBuoys ? 'bg-amber-950/70 text-amber-300 border border-amber-600/60 shadow-[0_0_10px_rgba(245,158,11,0.25)]' : 'text-slate-400 hover:bg-slate-800/60'
             }`}
           >
-            <Radio className="h-3 w-3 text-purple-400" />
+            <Radio className="h-3 w-3 text-amber-400" />
             <span className="hidden md:inline">{dict.buoys}</span>
           </button>
 
@@ -1027,13 +1433,24 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
 
           <button
             onClick={() => setShowPfz(!showPfz)}
-            title="Toggle Potential Fishing Zones (PFZ) Satellite Layer"
+            title="Toggle Statutory INCOIS Daily Potential Fishing Zones (PFZ) & Satellite Frontlines"
             className={`px-2 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1 transition-all whitespace-nowrap ${
               showPfz ? 'bg-emerald-950/90 text-emerald-200 border border-emerald-500/80 shadow-[0_0_12px_rgba(16,185,129,0.4)] font-bold' : 'text-slate-400 hover:bg-slate-800/60'
             }`}
           >
             <span>🐟</span>
-            <span className="hidden sm:inline">PFZ Hotspots</span>
+            <span className="hidden sm:inline">INCOIS PFZ (Live WFS)</span>
+          </button>
+
+          <button
+            onClick={() => setIsSatelliteView(!isSatelliteView)}
+            title="Toggle Real High-Resolution Optical Satellite Imagery Base Layer (Esri World Imagery + OpenSeaMap)"
+            className={`px-2 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1 transition-all whitespace-nowrap ${
+              isSatelliteView ? 'bg-cyan-950/90 text-cyan-200 border border-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.4)] font-bold' : 'text-slate-400 hover:bg-slate-800/60'
+            }`}
+          >
+            <span>🛰️</span>
+            <span className="hidden sm:inline">{isSatelliteView ? 'Satellite Map (Live)' : 'Satellite View'}</span>
           </button>
 
           <button
@@ -1062,21 +1479,30 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
 
           <button
             onClick={() => setShowVessels(!showVessels)}
-            title="Toggle Live AIS Telemetry & Sentinel-1 SAR Dark Vessel Detection"
+            title="Toggle Live INCOIS Moored Ocean Buoy Stations (NDBP/NIOT Telemetry)"
             className={`px-2 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1 transition-all whitespace-nowrap ${
               showVessels
-                ? 'bg-red-950/90 text-red-200 border border-red-500/80 shadow-[0_0_12px_rgba(239,68,68,0.5)] font-bold'
+                ? 'bg-amber-950/90 text-amber-200 border border-amber-500/80 shadow-[0_0_12px_rgba(245,158,11,0.5)] font-bold'
                 : 'text-slate-400 hover:bg-slate-800/60'
             }`}
           >
-            <span>🚢</span>
-            <span className="hidden sm:inline">Dark Vessels & AIS</span>
-            {vesselsData?.darkVesselCount ? (
-              <span className="ml-0.5 px-1.5 py-0.2 rounded-full bg-red-600 text-white text-[9px] font-black font-mono animate-pulse">
-                {vesselsData.darkVesselCount}
-              </span>
-            ) : null}
+            <span>📡</span>
+            <span className="hidden sm:inline">INCOIS Buoys (Live)</span>
           </button>
+
+          <button
+            onClick={() => setShowOilSpills(!showOilSpills)}
+            title="Toggle Live Satellite Oil Spill Slicks & Hazards (NASA EONET / Copernicus STAC)"
+            className={`px-2 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1 transition-all whitespace-nowrap ${
+              showOilSpills
+                ? 'bg-purple-950/90 text-purple-200 border border-purple-500/80 shadow-[0_0_12px_rgba(168,85,247,0.5)] font-bold'
+                : 'text-slate-400 hover:bg-slate-800/60'
+            }`}
+          >
+            <span>🛢️</span>
+            <span className="hidden sm:inline">Oil Slicks (Live NASA)</span>
+          </button>
+
         </div>
 
       </div>
@@ -1262,16 +1688,33 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
               <Navigation className={`h-3.5 w-3.5 ${isCalculatingRoute ? 'animate-spin text-cyan-400' : 'text-emerald-400'}`} />
               <span>Safe Route Navigation</span>
             </span>
-            <button
-              onClick={() => {
-                setRouteDestination(null);
-                setSafeRouteResult(null);
-              }}
-              className="text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 px-1.5 py-0.5 rounded text-[10px] font-bold"
-              title="Clear Active Navigation Route"
-            >
-              ✕ Clear
-            </button>
+            <div className="flex items-center gap-1.5">
+              {safeRouteResult?.waypoints && safeRouteResult.waypoints.length > 0 && (
+                <button
+                  onClick={() => {
+                    const map = mapInstanceRef.current;
+                    if (map && safeRouteResult?.waypoints) {
+                      const bounds = L.latLngBounds(safeRouteResult.waypoints.map((w: any) => [w.latitude, w.longitude]));
+                      map.fitBounds(bounds, { padding: [60, 60], maxZoom: 13, animate: true, duration: 0.6 });
+                    }
+                  }}
+                  className="text-cyan-300 hover:text-white bg-slate-800 hover:bg-slate-700 px-1.5 py-0.5 rounded text-[10px] font-bold flex items-center gap-1"
+                  title="Frame Camera to Full Safe Route"
+                >
+                  🎯 Frame
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  setRouteDestination(null);
+                  setSafeRouteResult(null);
+                }}
+                className="text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 px-1.5 py-0.5 rounded text-[10px] font-bold"
+                title="Clear Active Navigation Route"
+              >
+                ✕ Clear
+              </button>
+            </div>
           </div>
 
           {isCalculatingRoute ? (
@@ -1334,44 +1777,36 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         </div>
         <div className="space-y-1 text-[11px]">
           <div className="flex items-center space-x-2">
+            <span className="w-3.5 h-3.5 rounded-full bg-cyan-500 border border-white shadow-[0_0_8px_rgba(6,182,212,0.8)] flex items-center justify-center text-[8px] text-white">⚓</span>
+            <span className="text-cyan-200 font-semibold">My Boat / Base Port</span>
+          </div>
+          <div className="flex items-center space-x-2">
             <span className="w-3.5 h-0.5 bg-rose-500 border border-rose-500 border-dashed"></span>
-            <span className="text-slate-300 font-semibold">IMBL Border (1974/PCA)</span>
+            <span className="text-rose-300 font-semibold">IMBL Border (1974/PCA)</span>
           </div>
           <div className="flex items-center space-x-2">
-            <span className="w-3 h-3 rounded bg-emerald-500/30 border border-emerald-500"></span>
-            <span className="text-slate-300 font-semibold">Marine Protected Area</span>
+            <span className="w-3 h-3 rounded bg-emerald-500/25 border border-emerald-400 border-dashed"></span>
+            <span className="text-emerald-300 font-semibold">Marine Protected Area</span>
           </div>
           <div className="flex items-center space-x-2">
-            <span className="w-3 h-3 rounded bg-red-500/40 border border-red-500"></span>
-            <span className="text-slate-300">{dict.offshoreHazard}</span>
+            <span className="w-3 h-3 rounded bg-amber-500/30 border border-amber-400 border-dashed"></span>
+            <span className="text-amber-300 font-semibold">{dict.offshoreHazard || 'Offshore Hazard Sector'}</span>
           </div>
           <div className="flex items-center space-x-2">
-            <span className="w-3 h-3 rounded bg-blue-500/30 border border-blue-400"></span>
-            <span className="text-slate-300">{dict.inshoreBuffer}</span>
+            <span className="w-3.5 h-0.5 bg-cyan-400 border border-cyan-400 border-dashed"></span>
+            <span className="text-cyan-300 font-semibold">INCOIS Frontline (WFS)</span>
           </div>
           <div className="flex items-center space-x-2">
-            <span className="w-3 h-0.5 bg-emerald-400 border border-emerald-400 border-dashed"></span>
-            <span className="text-slate-300">{dict.fairwayChannel}</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-purple-500 border border-white"></span>
-            <span className="text-slate-300">{dict.buoyStation}</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 border border-emerald-200 shadow-[0_0_8px_rgba(16,185,129,0.8)]"></span>
-            <span className="text-emerald-300 font-semibold">PFZ Hotspot (NOAA/ISRO)</span>
+            <span className="w-3.5 h-3.5 rounded-full bg-emerald-600 border border-emerald-300 shadow-[0_0_8px_rgba(16,185,129,0.8)] flex items-center justify-center text-[9px] text-white">🐟</span>
+            <span className="text-emerald-300 font-semibold">PFZ Hotspot (INCOIS/ISRO)</span>
           </div>
           <div className="flex items-center space-x-2">
             <span className="w-3.5 h-0.5 bg-emerald-400 border border-emerald-300 border-dashed"></span>
-            <span className="text-cyan-300 font-semibold">Safe Route Polyline</span>
+            <span className="text-emerald-300 font-semibold">Safe Route Polyline (A*)</span>
           </div>
           <div className="flex items-center space-x-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-red-600 border border-red-300 shadow-[0_0_8px_rgba(239,68,68,0.9)] animate-pulse"></span>
-            <span className="text-red-400 font-bold">🚨 Dark Vessel (SAR Match)</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 border border-white"></span>
-            <span className="text-cyan-200">🚢 AIS Broadcast Vessel</span>
+            <span className="w-3.5 h-3.5 rounded-full bg-slate-950 border border-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.8)] flex items-center justify-center text-[8px] text-amber-300">📡</span>
+            <span className="text-amber-300 font-semibold">{dict.buoyStation || 'INCOIS MoES Buoy'}</span>
           </div>
         </div>
         <div className="text-[10px] text-cyan-300/90 pt-0.5 font-mono">

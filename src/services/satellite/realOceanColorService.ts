@@ -4,7 +4,9 @@
  * 100% REAL-WORLD, PEER-REVIEWED SCIENTIFIC SATELLITE FEEDS (ZERO MOCK / ZERO HARDCODED VALUES).
  */
 
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
+import { existsSync, mkdirSync } from 'node:fs';
+import path from 'node:path';
 
 export interface RealOceanMetrics {
   chlorophyllConcentrationMgM3?: number;
@@ -23,8 +25,36 @@ export interface RealOceanMetrics {
   sourcesUsed: string[];
 }
 
-const CACHE_TTL_MS = 15 * 60 * 1000;
+const CACHE_TTL_MS = 30 * 60 * 1000;
+const DISK_CACHE_FILE = path.resolve(process.cwd(), 'data/realtime/ocean_color_cache.json');
 const oceanMetricsCache = new Map<string, { expiresAt: number; data: RealOceanMetrics }>();
+
+let diskCacheLoaded = false;
+const diskCacheData: Record<string, RealOceanMetrics> = {};
+
+async function loadDiskCache(): Promise<void> {
+  if (diskCacheLoaded) return;
+  try {
+    if (existsSync(DISK_CACHE_FILE)) {
+      const raw = await readFile(DISK_CACHE_FILE, 'utf-8');
+      const parsed = JSON.parse(raw);
+      Object.assign(diskCacheData, parsed);
+    }
+  } catch {
+    // Ignore cache read errors
+  }
+  diskCacheLoaded = true;
+}
+
+async function saveDiskCache(): Promise<void> {
+  try {
+    const dir = path.dirname(DISK_CACHE_FILE);
+    if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+    await writeFile(DISK_CACHE_FILE, JSON.stringify(diskCacheData, null, 2), 'utf-8');
+  } catch {
+    // Ignore cache save errors
+  }
+}
 
 type ValueResult = { value?: number; observedAt?: string; source?: string };
 type SstResult = { sstC?: number; observedAt?: string; source?: string };
@@ -52,7 +82,7 @@ async function fetchRealChlorophyll(lat: number, lon: number): Promise<ValueResu
   for (const probe of getMarineProbes(lat, lon)) {
     try {
       const url = `https://coastwatch.pfeg.noaa.gov/erddap/griddap/nesdisVHNSQchlaMonthly.json?chlor_a[(last)][(0.0)][(${probe.lat})][(${probe.lon})]`;
-      const res = await fetch(url, { headers: { 'User-Agent': 'ORCA-X/1.0' }, signal: AbortSignal.timeout(4000) });
+      const res = await fetch(url, { headers: { 'User-Agent': 'ORCA-X/1.0' }, signal: AbortSignal.timeout(7500) });
       if (!res.ok) continue;
       const json = await res.json() as ErddapResponse;
       const row = json.table?.rows?.[0];
@@ -64,6 +94,15 @@ async function fetchRealChlorophyll(lat: number, lon: number): Promise<ValueResu
       // Try the next offshore probe.
     }
   }
+  await loadDiskCache();
+  const cached = diskCacheData[cacheKey(lat, lon)];
+  if (cached?.chlorophyllConcentrationMgM3 !== undefined) {
+    return {
+      value: cached.chlorophyllConcentrationMgM3,
+      observedAt: cached.chlorophyllObservedAt,
+      source: cached.chlorophyllSource ? `${cached.chlorophyllSource} (Cached)` : 'NOAA VIIRS Chlorophyll-a (Cached)',
+    };
+  }
   return {};
 }
 
@@ -71,7 +110,7 @@ async function fetchRealTurbidity(lat: number, lon: number): Promise<ValueResult
   for (const probe of getMarineProbes(lat, lon)) {
     try {
       const url = `https://coastwatch.pfeg.noaa.gov/erddap/griddap/nesdisVHNSQkd490Monthly.json?kd_490[(last)][(0.0)][(${probe.lat})][(${probe.lon})]`;
-      const res = await fetch(url, { headers: { 'User-Agent': 'ORCA-X/1.0' }, signal: AbortSignal.timeout(4000) });
+      const res = await fetch(url, { headers: { 'User-Agent': 'ORCA-X/1.0' }, signal: AbortSignal.timeout(7500) });
       if (!res.ok) continue;
       const json = await res.json() as ErddapResponse;
       const row = json.table?.rows?.[0];
@@ -83,6 +122,14 @@ async function fetchRealTurbidity(lat: number, lon: number): Promise<ValueResult
       // Try the next offshore probe.
     }
   }
+  await loadDiskCache();
+  const cached = diskCacheData[cacheKey(lat, lon)];
+  if (cached?.turbidityNTU !== undefined) {
+    return {
+      value: cached.turbidityNTU,
+      source: cached.turbiditySource ? `${cached.turbiditySource} (Cached)` : 'NOAA VIIRS Kd(490) (Cached)',
+    };
+  }
   return {};
 }
 
@@ -90,7 +137,7 @@ async function fetchRealSstAnomaly(lat: number, lon: number): Promise<ValueResul
   for (const probe of getMarineProbes(lat, lon)) {
     try {
       const url = `https://coastwatch.pfeg.noaa.gov/erddap/griddap/jplMURSST41anom1day.json?sstAnom[(last)][(${probe.lat})][(${probe.lon})]`;
-      const res = await fetch(url, { headers: { 'User-Agent': 'ORCA-X/1.0' }, signal: AbortSignal.timeout(4000) });
+      const res = await fetch(url, { headers: { 'User-Agent': 'ORCA-X/1.0' }, signal: AbortSignal.timeout(7500) });
       if (!res.ok) continue;
       const json = await res.json() as ErddapResponse;
       const row = json.table?.rows?.[0];
@@ -101,6 +148,15 @@ async function fetchRealSstAnomaly(lat: number, lon: number): Promise<ValueResul
     } catch {
       // Try the next offshore probe.
     }
+  }
+  await loadDiskCache();
+  const cached = diskCacheData[cacheKey(lat, lon)];
+  if (cached?.sstAnomalyC !== undefined) {
+    return {
+      value: cached.sstAnomalyC,
+      observedAt: cached.sstObservedAt,
+      source: cached.sstSource ? `${cached.sstSource} (Cached)` : 'NASA JPL MUR SST Anomaly (Cached)',
+    };
   }
   return {};
 }
@@ -203,6 +259,10 @@ export async function fetchRealOceanMetrics(lat: number, lon: number): Promise<R
     sourcesUsed,
   };
   oceanMetricsCache.set(key, { expiresAt: now + CACHE_TTL_MS, data });
+  if (data.chlorophyllConcentrationMgM3 !== undefined || data.sstAnomalyC !== undefined || data.turbidityNTU !== undefined) {
+    diskCacheData[key] = { ...diskCacheData[key], ...data };
+    saveDiskCache().catch(() => {});
+  }
   return data;
 }
 

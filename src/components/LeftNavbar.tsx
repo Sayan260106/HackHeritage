@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import { LanguageCode } from '../types';
 import { MULTILINGUAL_DICTIONARY } from '../data/coastalData';
+import { OrcaWaveLogo } from './ui/OrcaWaveLogo';
+import { OrcaWordmark } from './ui/OrcaWordmark';
 
 type TabId = 'dashboard' | 'analysis' | 'satellite' | 'evidence' | 'simulator';
 
@@ -84,23 +86,13 @@ const navItems: {
 /** ORCA-X wordmark: a sounding mark struck over a contour. */
 const Wordmark: React.FC<{ compact?: boolean }> = ({ compact = false }) => (
   <div className="flex items-center gap-3">
-    <span className="flex h-9 w-9 shrink-0 items-center justify-center border border-shoal/35 bg-shoal/10">
-      <Waves className="h-4 w-4 text-shoal" />
-    </span>
-    <div className="min-w-0">
-      <div className="flex items-baseline gap-2">
-        <span className="font-display text-lg font-bold tracking-tight text-chartpaper">
-          ORCA&#8209;X
-        </span>
-        <span className="font-mono text-[9px] tracking-[0.16em] text-buoy/85">
-          v2.4
-        </span>
-      </div>
-      {!compact && (
-        <p className="mt-0.5 truncate font-mono text-[9.5px] tracking-[0.14em] text-fathom">
-          OCEAN REASONING AI
-        </p>
-      )}
+    <OrcaWaveLogo size="md" variant="sidebar" className="shrink-0" />
+    <div className="min-w-0 flex-1">
+      <OrcaWordmark
+        size="md"
+        badge="v2.4"
+        subtitle={compact ? undefined : "OCEAN REASONING AI"}
+      />
     </div>
   </div>
 );

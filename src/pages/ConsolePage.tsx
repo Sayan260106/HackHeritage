@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { AlertCircle, ArrowLeft, RefreshCw } from "lucide-react";
+import { AlertCircle, ArrowLeft, RefreshCw, MessageSquare, Activity } from "lucide-react";
 import { LeftNavbar } from "../components/LeftNavbar";
 import { InteractiveMap } from "../components/InteractiveMap";
 import { QueryPanel } from "../components/QueryPanel";
@@ -11,8 +11,11 @@ import { GroundedEvidenceDrawer } from "../components/GroundedEvidenceDrawer";
 import { SatelliteAnalysisView } from "../components/SatelliteAnalysisView";
 import { WhatIfSimulator } from "../components/WhatIfSimulator";
 import { AudioAlertController } from "../components/AudioAlertController";
-import { OrcaAnalysisResponse, LanguageCode } from "../types";
+import { MarineChatDrawer } from "../components/MarineChatDrawer";
+import { SystemHealthModal } from "../components/SystemHealthModal";
+import { OrcaAnalysisResponse, LanguageCode, ConversationTurn } from "../types";
 import { COASTAL_LOCATIONS, MULTILINGUAL_DICTIONARY } from "../data/coastalData";
+import { detectQueryLanguage } from "../utils/languageDetector";
 
 interface ConsolePageProps {
   onExit: () => void;
@@ -27,6 +30,10 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [analysisData, setAnalysisData] =
     useState<OrcaAnalysisResponse | null>(null);
+  const [sessionId, setSessionId] = useState<string>(() => `session-${Date.now()}`);
+  const [chatTurns, setChatTurns] = useState<ConversationTurn[]>([]);
+  const [isChatDrawerOpen, setIsChatDrawerOpen] = useState<boolean>(false);
+  const [isHealthModalOpen, setIsHealthModalOpen] = useState<boolean>(false);
 
   const fetchAnalysis = async (
     queryText: string,
@@ -41,6 +48,13 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
       setErrorMessage(null);
     }
 
+    // Auto-detect regional script from query (e.g. Bengali, Hindi, Tamil)
+    const detected = detectQueryLanguage(queryText, responseLanguage);
+    const effectiveLang = (responseLanguage && responseLanguage !== 'en') ? responseLanguage : detected.language;
+    if (effectiveLang !== language) {
+      setLanguage(effectiveLang);
+    }
+
     try {
       const response = await fetch("/api/orca/query", {
         method: "POST",
@@ -49,7 +63,8 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
           query: queryText,
           locationOverride: locOverride,
           timeOverride,
-          language: responseLanguage,
+          language: effectiveLang,
+          sessionId,
         }),
       });
 
@@ -66,7 +81,28 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
         );
       }
 
-      setAnalysisData(payload as OrcaAnalysisResponse);
+      const responsePayload = payload as OrcaAnalysisResponse;
+      setAnalysisData(responsePayload);
+
+      const turn: ConversationTurn = {
+        turnId: `turn-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        query: queryText,
+        timestamp: new Date().toISOString(),
+        language: effectiveLang,
+        detectedIntent: responsePayload.detectedIntent,
+        locationName: responsePayload.location.name,
+        responseSummary: responsePayload.groundedSummary,
+        responseAnalysis: responsePayload,
+      };
+
+      setChatTurns((prev) => {
+        const last = prev[prev.length - 1];
+        if (last && last.query === queryText && last.locationName === turn.locationName) {
+          return [...prev.slice(0, -1), turn];
+        }
+        return [...prev, turn];
+      });
+
       setErrorMessage(null);
       setIsLoading(false);
     } catch (err) {
@@ -169,6 +205,15 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
                 </button>
               );
             })}
+
+            <button
+              onClick={() => setIsHealthModalOpen(true)}
+              title="Inspect multi-service connectivity & fallback health"
+              className="ml-auto shrink-0 flex items-center gap-1.5 rounded-xl border border-cyan-500/30 bg-slate-950/80 px-3 py-2 text-xs font-mono text-cyan-300 hover:bg-slate-900 hover:text-white hover:border-cyan-400 transition-all active:scale-95"
+            >
+              <Activity className="h-3.5 w-3.5 text-emerald-400 animate-pulse" />
+              <span className="hidden sm:inline">System Diagnostics</span>
+            </button>
           </div>
 
           {/* Maritime Audio Siren & Multi-lingual Warning Voice Controller */}
@@ -215,9 +260,10 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
                   <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
                     <div className="space-y-4 lg:col-span-5">
                       <QueryPanel
-                        onSearch={(q, loc, time) => fetchAnalysis(q, loc, time)}
+                        onSearch={(q, loc, time, detectedLang) => fetchAnalysis(q, loc, time, detectedLang || language)}
                         isLoading={isLoading}
                         language={language}
+                        onOpenChat={() => setIsChatDrawerOpen(true)}
                       />
                       <MarineTelemetry
                         weather={analysisData.weather}
@@ -242,6 +288,7 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
                         ocean={analysisData.ocean}
                         riskLevel={analysisData.risk.riskLevel}
                         risk={analysisData.risk}
+                        safeRoute={analysisData.safeRoute}
                         onSelectLocation={handleLocationSelect}
                         onCoordinateClick={handleMapCoordinateClick}
                         language={language}
@@ -304,6 +351,7 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
                     ocean={analysisData.ocean}
                     riskLevel={analysisData.risk.riskLevel}
                     risk={analysisData.risk}
+                    safeRoute={analysisData.safeRoute}
                     onSelectLocation={handleLocationSelect}
                     onCoordinateClick={handleMapCoordinateClick}
                     language={language}
@@ -342,6 +390,7 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
                     ocean={analysisData.ocean}
                     riskLevel={analysisData.risk.riskLevel}
                     risk={analysisData.risk}
+                    safeRoute={analysisData.safeRoute}
                     onSelectLocation={handleLocationSelect}
                     onCoordinateClick={handleMapCoordinateClick}
                     language={language}
@@ -376,6 +425,52 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
             </div>
           )}
         </main>
+
+        <SystemHealthModal
+          isOpen={isHealthModalOpen}
+          onClose={() => setIsHealthModalOpen(false)}
+          language={language}
+        />
+
+        {/* Floating Multi-Turn Marine Chat Drawer Button */}
+        <button
+          onClick={() => setIsChatDrawerOpen(true)}
+          className="fixed bottom-6 right-6 z-40 flex items-center gap-2.5 rounded-2xl border border-cyan-400/50 bg-slate-900/95 px-4 py-3 text-xs font-bold font-mono text-cyan-300 shadow-2xl shadow-cyan-500/25 backdrop-blur-md hover:bg-slate-800 hover:text-white hover:scale-105 active:scale-95 transition-all group"
+        >
+          <div className="relative">
+            <MessageSquare className="h-4 w-4 text-cyan-400 group-hover:animate-bounce" />
+            {chatTurns.length > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-cyan-400 text-[9px] font-black text-slate-950 shadow-sm">
+                {chatTurns.length}
+              </span>
+            )}
+          </div>
+          <span>Multi-Turn Chat</span>
+          <span className="rounded bg-cyan-950 px-1.5 py-0.5 text-[9px] text-cyan-300 border border-cyan-800 font-semibold">
+            {chatTurns.length > 0 ? `${chatTurns.length} Turns` : 'AI Session'}
+          </span>
+        </button>
+
+        {/* Multi-Turn Contextual Chat Drawer */}
+        <MarineChatDrawer
+          isOpen={isChatDrawerOpen}
+          onClose={() => setIsChatDrawerOpen(false)}
+          sessionId={sessionId}
+          onNewSession={() => {
+            const nextSessionId = `session-${Date.now()}`;
+            setSessionId(nextSessionId);
+            setChatTurns([]);
+          }}
+          turns={chatTurns}
+          isLoading={isLoading}
+          onSendMessage={(query) => fetchAnalysis(query)}
+          language={language}
+          onSelectLocation={handleLocationSelect}
+          onSelectTurnData={(turnAnalysis) => {
+            setAnalysisData(turnAnalysis);
+            setIsChatDrawerOpen(false);
+          }}
+        />
 
         <footer className="mt-8 border-t border-shoal/12 bg-abyssal py-4">
           <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-4 text-xs text-fathom sm:flex-row sm:px-6 lg:px-8">

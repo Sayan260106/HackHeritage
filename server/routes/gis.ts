@@ -36,4 +36,22 @@ router.post('/analyze', async (req, res, next) => {
   }
 });
 
+import { fetchLiveOilSpillAnalysis } from '../services/realtime/oilSpillService.ts';
+
+router.post('/oil-spills', async (req, res, next) => {
+  try {
+    const lat = Number(req.body?.latitude);
+    const lon = Number(req.body?.longitude);
+
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+      return res.status(400).json({ error: 'Valid latitude and longitude are required.' });
+    }
+
+    const analysis = await fetchLiveOilSpillAnalysis(lat, lon);
+    res.json(analysis);
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;

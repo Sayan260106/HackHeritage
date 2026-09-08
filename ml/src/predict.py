@@ -3,15 +3,31 @@ from __future__ import annotations
 
 import json
 from datetime import datetime, timezone
+import sys
+
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 import pandas as pd
+# pyrefly: ignore [missing-import]
 import xgboost as xgb
 
-from config import FEATURE_COLUMNS, MODELS_DIR, RISK_CLASS_NAMES
-from ood import check_input_domain
+ML_SRC = Path(__file__).resolve().parent
+if str(ML_SRC) not in sys.path:
+    sys.path.insert(0, str(ML_SRC))
+
+try:
+    from ml.src.config import FEATURE_COLUMNS, MODELS_DIR, RISK_CLASS_NAMES
+    from ml.src.ood import check_input_domain
+except ImportError:
+    try:
+        from config import FEATURE_COLUMNS, MODELS_DIR, RISK_CLASS_NAMES
+        from ood import check_input_domain
+    except ImportError:
+        from .config import FEATURE_COLUMNS, MODELS_DIR, RISK_CLASS_NAMES  # type: ignore
+        from .ood import check_input_domain  # type: ignore
+
 
 MODEL_PATH = MODELS_DIR / "orca_xgb_risk.json"
 METADATA_PATH = MODELS_DIR / "orca_xgb_risk_metadata.json"
@@ -25,6 +41,7 @@ LEGACY_FEATURE_COLUMNS = [
 ]
 
 
+
 def _as_float(value: Any) -> float | None:
     if value is None or value == "":
         return None
@@ -36,14 +53,35 @@ def _as_float(value: Any) -> float | None:
 
 
 def _observed_hour(features: dict[str, Any]) -> int:
+    explicit_hour = features.get("hour")
+    if explicit_hour is not None:
+        try:
+            h = int(explicit_hour)
+            if 0 <= h <= 23:
+                return h
+        except (ValueError, TypeError):
+            pass
+
     observed_at = features.get("observed_at") or features.get("observedAt")
     if observed_at:
         try:
-            text = str(observed_at).replace("Z", "+00:00")
-            return datetime.fromisoformat(text).astimezone(timezone.utc).hour
+            text = str(observed_at).strip()
+            # If naive ISO string (e.g. 2026-09-08T14:00) without timezone indicator, extract hour directly
+            if "T" in text and len(text) >= 13 and not text.endswith("Z") and "+" not in text[10:] and "-" not in text[10:]:
+                hour_str = text.split("T")[1][:2]
+                if hour_str.isdigit():
+                    h = int(hour_str)
+                    if 0 <= h <= 23:
+                        return h
+            iso_text = text.replace("Z", "+00:00")
+            dt = datetime.fromisoformat(iso_text)
+            if dt.tzinfo is not None:
+                return dt.astimezone(timezone.utc).hour
+            return dt.hour
         except ValueError:
             pass
     return datetime.now(timezone.utc).hour
+
 
 
 def build_inference_features(features: dict[str, Any], feature_columns: list[str]) -> dict[str, float]:
@@ -146,37 +184,52 @@ class OrcaXRiskPredictor:
         )
         self.allows_native_missing = any(name.endswith("_missing") for name in self.feature_columns)
 
-    def predict_one(self, features: dict[str, Any]) -> dict:
-        model_features = build_inference_features(features, self.feature_columns)
-        domain = check_input_domain(model_features, self.feature_columns)
-        if domain.invalid_features:
-            raise ValueError(f"Invalid model inputs: {', '.join(domain.invalid_features)}")
+    def predict_batch(self, features_list: list[dict[str, Any]]) -> list[dict]:
+        if not features_list:
+            return []
 
-        row = pd.DataFrame([model_features], columns=self.feature_columns).apply(pd.to_numeric, errors="coerce")
-        if row.isna().any().any() and not self.allows_native_missing:
-            missing = row.columns[row.isna().any()].tolist()
+        model_features_list = []
+        domain_validations = []
+        for features in features_list:
+            model_features = build_inference_features(features, self.feature_columns)
+            domain = check_input_domain(model_features, self.feature_columns)
+            if domain.invalid_features:
+                raise ValueError(f"Invalid model inputs: {', '.join(domain.invalid_features)}")
+            model_features_list.append(model_features)
+            domain_validations.append(domain.as_dict())
+
+        df = pd.DataFrame(model_features_list, columns=self.feature_columns).apply(pd.to_numeric, errors="coerce")
+        if df.isna().any().any() and not self.allows_native_missing:
+            missing = df.columns[df.isna().any()].tolist()
             raise ValueError(f"Model inputs became non-numeric: {', '.join(missing)}")
         if self.allows_native_missing:
-            finite_values = row.to_numpy(dtype=float)
+            finite_values = df.to_numpy(dtype=float)
             if not np.isfinite(finite_values[~np.isnan(finite_values)]).all():
                 raise ValueError("Model inputs contain non-finite values.")
-        elif not np.isfinite(row.to_numpy(dtype=float)).all():
+        elif not np.isfinite(df.to_numpy(dtype=float)).all():
             raise ValueError("Model inputs contain non-finite values.")
 
-        probabilities = np.asarray(self.model.predict_proba(row)[0], dtype=float)
-        if len(probabilities) != 4 or not np.isfinite(probabilities).all() or (probabilities < 0).any():
-            raise RuntimeError("Model returned invalid class probabilities.")
-        if not np.isclose(float(probabilities.sum()), 1.0, atol=1e-6):
-            raise RuntimeError("Model returned probabilities that do not sum to 1.")
+        probabilities_all = np.asarray(self.model.predict_proba(df), dtype=float)
+        results = []
+        for idx, probabilities in enumerate(probabilities_all):
+            if len(probabilities) != 4 or not np.isfinite(probabilities).all() or (probabilities < 0).any():
+                raise RuntimeError(f"Model returned invalid class probabilities at index {idx}.")
+            if not np.isclose(float(probabilities.sum()), 1.0, atol=1e-6):
+                raise RuntimeError(f"Model returned probabilities that do not sum to 1 at index {idx}.")
 
-        predicted_class = int(np.argmax(probabilities))
-        probability_map = {RISK_CLASS_NAMES[i]: round(float(probabilities[i]), 6) for i in range(4)}
-        return {
-            "risk_class": predicted_class,
-            "risk_label": RISK_CLASS_NAMES[predicted_class],
-            "confidence": max(probability_map.values()),
-            "probabilities": probability_map,
-            "domain_validation": domain.as_dict(),
-            "model_version": self.model_version,
-            "feature_contract": self.feature_columns,
-        }
+            predicted_class = int(np.argmax(probabilities))
+            probability_map = {RISK_CLASS_NAMES[i]: round(float(probabilities[i]), 6) for i in range(4)}
+            results.append({
+                "risk_class": predicted_class,
+                "risk_label": RISK_CLASS_NAMES[predicted_class],
+                "confidence": max(probability_map.values()),
+                "probabilities": probability_map,
+                "domain_validation": domain_validations[idx],
+                "model_version": self.model_version,
+                "feature_contract": self.feature_columns,
+            })
+        return results
+
+    def predict_one(self, features: dict[str, Any]) -> dict:
+        return self.predict_batch([features])[0]
+

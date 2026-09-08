@@ -4,6 +4,7 @@ import {
 } from '../../src/types.ts';
 import { COASTAL_LOCATIONS } from '../../src/data/coastalData.ts';
 import { fetchRealtimeMarineObservation, RealtimeMarineObservation } from './realtime/realtimeObservationService.ts';
+import { fetchOpenMeteoForecast } from './realtime/openMeteoProvider.ts';
 
 export function resolveLocation(query: string, locationOverride?: any): LocationInfo {
   // If locationOverride is an object containing lat/lon
@@ -123,6 +124,21 @@ export function resolveTimeWindow(query: string, timeOverride?: any): TimeWindow
     end = new Date(start.getTime() + 24 * 3600 * 1000);
     requestedText = 'Upcoming Weekend Window';
     isForecast = true;
+  } else if (q.includes('next week') || q.includes('পরের সপ্তাহ') || q.includes('अगले हफ्ते')) {
+    start = new Date(now.getTime() + 7 * 24 * 3600 * 1000);
+    end = new Date(start.getTime() + 12 * 3600 * 1000);
+    requestedText = 'Next Week Forecast Window';
+    isForecast = true;
+  } else if (q.includes('day after tomorrow') || q.includes('2 days') || q.includes('পরশু')) {
+    start = new Date(now.getTime() + 48 * 3600 * 1000);
+    end = new Date(start.getTime() + 12 * 3600 * 1000);
+    requestedText = 'Day After Tomorrow Window';
+    isForecast = true;
+  } else if (q.includes('next 3 days') || q.includes('3 days') || q.includes('আগামী ৩ দিন')) {
+    start = new Date(now.getTime() + 72 * 3600 * 1000);
+    end = new Date(start.getTime() + 12 * 3600 * 1000);
+    requestedText = 'Next 3 Days Forecast';
+    isForecast = true;
   }
 
   return {
@@ -160,6 +176,40 @@ export function resolveSatelliteObservationWindow(timeWindow: TimeWindow) {
   };
 }
 
-export async function fetchMarineAndWeatherData(lat: number, lon: number): Promise<RealtimeMarineObservation> {
+export async function fetchMarineAndWeatherData(
+  lat: number,
+  lon: number,
+  timeWindow?: TimeWindow,
+): Promise<RealtimeMarineObservation> {
+  // If the query is about a future time, use the hourly forecast API so
+  // wave height, wind and risk numbers actually reflect that future slot.
+  if (timeWindow?.isForecast) {
+    try {
+      const targetIso = timeWindow.resolvedStartTime;
+      const forecast = await fetchOpenMeteoForecast(lat, lon, targetIso);
+      const warnings = [
+        `Forecast data for ${timeWindow.requestedText} (${new Date(targetIso).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}).`,
+        'Forecast accuracy decreases beyond 3 days; always verify with INCOIS OSF before sailing.',
+      ];
+      return {
+        weather: forecast.weather,
+        ocean: forecast.ocean,
+        normalizedSources: [],
+        metadata: {
+          retrievedAt: forecast.retrievedAt,
+          providers: ['Open-Meteo 7-Day Hourly Forecast'],
+          dataQuality: 'LIVE',
+          warnings,
+          selectedSources: { primary: 'OPEN_METEO' } as any,
+          featureSources: {},
+          sourceScores: { OPEN_METEO: 1 } as any,
+        },
+        degraded: false,
+      };
+    } catch (err) {
+      // Fall through to current observation if forecast fetch fails
+      console.warn('[MarineService] Forecast fetch failed, falling back to current:', err instanceof Error ? err.message : String(err));
+    }
+  }
   return fetchRealtimeMarineObservation(lat, lon);
 }

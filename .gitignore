@@ -5,6 +5,10 @@ build/
 coverage/
 *.log
 
+# Public assets & video/scrolly frame sequences
+# /public/
+# public/
+
 # Python
 __pycache__/
 *.py[cod]
