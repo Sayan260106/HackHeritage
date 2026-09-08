@@ -137,6 +137,12 @@ jobs:
           cat /tmp/orca-server.log
           exit 1
 
+      - name: Full ORCA-X validation release gate
+        run: npm run test:final-validation
+
+      - name: Agentic API workflow integration test
+        run: npm run test:agentic-workflow
+
       - name: End-to-end Refinement 3 smoke test
         run: npm run smoke
 
