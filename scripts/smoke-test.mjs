@@ -40,7 +40,7 @@ const ragSearch = await request(`${ragUrl}/search`, {
   method: 'POST', headers: { 'content-type': 'application/json' },
   body: JSON.stringify({ query: 'Is it safe for small fishing boats near Digha right now?', top_k: 5 }),
 });
-assert(ragSearch.retrieval === 'qdrant_dense_cosine', 'RAG search did not use Qdrant dense cosine retrieval');
+assert(ragSearch.retrieval === 'hybrid_rrf_bge_m3', 'RAG search did not use BGE-M3 hybrid RRF retrieval');
 assert(ragSearch.embedding_model === 'BAAI/bge-m3', 'RAG search did not use BGE-M3');
 assert(Array.isArray(ragSearch.results) && ragSearch.results.length > 0, 'RAG search returned no results');
 

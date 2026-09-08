@@ -324,8 +324,8 @@ export const SynopsisPage: React.FC<SynopsisPageProps> = ({ onEnterConsole }) =>
       {/* ---- Top rail (Unboxed, transparent floating header) ------------- */}
       <header className="sticky top-0 z-40 bg-transparent">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-4 sm:px-8">
-          <div className="flex items-center gap-3">
-            <OrcaWaveLogo size="sm" variant="home" className="shrink-0" />
+          <div className="flex items-center gap-3.5">
+            <OrcaWaveLogo size="md" variant="home" className="shrink-0 self-center" />
             <OrcaWordmark
               size="sm"
               badge="SIH v2.4"

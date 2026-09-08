@@ -94,7 +94,7 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Logo & Identity */}
           <div className="flex items-center space-x-3">
-            <OrcaWaveLogo size="lg" variant="console" className="shrink-0" />
+            <OrcaWaveLogo size="md" variant="console" className="shrink-0" />
             <OrcaWordmark
               size="lg"
               badge="v2.4 SIH"
