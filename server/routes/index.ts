@@ -10,6 +10,7 @@ import {
   orcaQuery,
   satelliteAnalysis,
   gisSpatialAnalysis,
+  evidenceLiveIngest,
   getConversation,
   listConversations,
   deleteConversation,
@@ -34,6 +35,7 @@ router.get('/marine/telemetry/analysis', marineTelemetryAnalysis);
 router.post('/marine/risk', marineRisk);
 router.post('/satellite/analysis', satelliteAnalysis);
 router.post('/evidence/search', evidenceSearch);
+router.post('/evidence/live-ingest', evidenceLiveIngest);
 router.get('/gis/spatial-analysis', gisSpatialAnalysis);
 router.post('/gis/spatial-analysis', gisSpatialAnalysis);
 router.get('/vessels/live', async (req, res, next) => {

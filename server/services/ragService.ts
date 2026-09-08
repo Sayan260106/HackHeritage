@@ -5,7 +5,7 @@ export interface RagRetrievalResult {
   evidence: EvidenceItem[];
   provider: 'bge-m3-qdrant' | 'lexical-fallback';
   model: string;
-  retrieval: 'qdrant_dense_cosine' | 'lexical_fallback';
+  retrieval: 'hybrid_rrf_bge_m3' | 'qdrant_dense_cosine' | 'lexical_fallback';
   degraded: boolean;
   error?: string;
 }
@@ -48,7 +48,7 @@ function mapQdrantEvidence(payload: {
     documentType: normalizeDocumentType(item.documentType),
     publicationDate: String(item.publicationDate || ''),
     excerpt: String(item.excerpt || ''),
-    relevanceScore: Number(item.score || 0),
+    relevanceScore: Number(item.relevanceScore || item.score || 0),
     officialUrl: String(item.officialUrl || ''),
     complianceRule: String(item.complianceRule || ''),
   }));
@@ -66,12 +66,12 @@ export async function retrieveRagEvidence(
   try {
     const response = await withTimeout(fetch(`${ragApiUrl}/search`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json', accept: 'application/json' },
+      headers: { 'content-type': 'application/json', accept: 'application/json', Connection: 'keep-alive' },
       body: JSON.stringify({ query, top_k: topK }),
     }), timeoutMs);
 
     const rawBody = await response.text();
-    let payload: { results?: Array<Record<string, unknown>>; embedding_model?: string; detail?: string } = {};
+    let payload: { results?: Array<Record<string, unknown>>; embedding_model?: string; detail?: string; retrieval?: string } = {};
     try {
       payload = JSON.parse(rawBody) as typeof payload;
     } catch {
@@ -83,11 +83,13 @@ export async function retrieveRagEvidence(
     const evidence = mapQdrantEvidence(payload);
     if (!evidence.length) throw new Error('Qdrant returned no evidence');
 
+    const retrievalType = payload.retrieval === 'hybrid_rrf_bge_m3' ? 'hybrid_rrf_bge_m3' : 'qdrant_dense_cosine';
+
     return {
       evidence,
       provider: 'bge-m3-qdrant',
       model: payload.embedding_model || 'BAAI/bge-m3',
-      retrieval: 'qdrant_dense_cosine',
+      retrieval: retrievalType,
       degraded: false,
     };
   } catch (error) {
@@ -103,3 +105,30 @@ export async function retrieveRagEvidence(
     };
   }
 }
+
+export async function liveIngestEvidence(document: {
+  title: string;
+  excerpt: string;
+  sourceAuthority: string;
+  documentType?: string;
+  publicationDate?: string;
+  complianceRule?: string;
+  officialUrl?: string;
+  id?: string;
+}): Promise<{ success: boolean; document_id: string; points_count: number; message: string }> {
+  const ragApiUrl = (process.env.ORCA_RAG_API_URL || 'http://127.0.0.1:8001').replace(/\/$/, '');
+  const timeoutMs = 8000;
+
+  const response = await withTimeout(fetch(`${ragApiUrl}/live-ingest`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', accept: 'application/json' },
+    body: JSON.stringify(document),
+  }), timeoutMs);
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => '');
+    throw new Error(`Live ingest failed (${response.status}): ${text.slice(0, 200)}`);
+  }
+  return response.json();
+}
+
