@@ -34,6 +34,10 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
   const [chatTurns, setChatTurns] = useState<ConversationTurn[]>([]);
   const [isChatDrawerOpen, setIsChatDrawerOpen] = useState<boolean>(false);
   const [isHealthModalOpen, setIsHealthModalOpen] = useState<boolean>(false);
+  // Seventeen ports at equal weight is a wall. Show the few that are in
+  // play and keep the rest one click away.
+  const [showAllPorts, setShowAllPorts] = useState<boolean>(false);
+  const PORTS_SHOWN = 5;
 
   const fetchAnalysis = async (
     queryText: string,
@@ -183,10 +187,22 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
           {/* Multi-Port Coastal Hubs Live Status Bar (Section 2C: Touch-Snap Carousel) */}
           <div className="flex items-center space-x-2 horizontal-snap-carousel overflow-x-auto py-2.5 px-4 orca-glass-panel rounded-xl text-xs font-mono shadow-lg scrollbar-thin scrollbar-thumb-slate-700">
             <span className="text-[11px] text-cyan-400 font-bold uppercase tracking-wider shrink-0 flex items-center gap-1.5 px-1 pr-2 border-r border-slate-800">
-              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span className="h-2 w-2 rounded-full bg-emerald-400"></span>
               <span>Coastal Ports:</span>
             </span>
-            {Object.keys(COASTAL_LOCATIONS).map((key) => {
+            {(() => {
+              // The selected port is always shown, wherever it sits in the
+              // list — collapsing it away would hide the one that matters.
+              const allKeys = Object.keys(COASTAL_LOCATIONS);
+              const selectedKey = allKeys.find((k) => {
+                const l = COASTAL_LOCATIONS[k];
+                const name = analysisData?.location.name?.toLowerCase() ?? '';
+                return l && (name.includes(l.name.toLowerCase()) || name.includes(k));
+              });
+              const head = allKeys.slice(0, PORTS_SHOWN);
+              if (selectedKey && !head.includes(selectedKey)) head[PORTS_SHOWN - 1] = selectedKey;
+              return showAllPorts ? allKeys : head;
+            })().map((key) => {
               const loc = COASTAL_LOCATIONS[key];
               if (!loc) return null;
               const isSelected = analysisData?.location.name.toLowerCase().includes(loc.name.toLowerCase()) || analysisData?.location.name.toLowerCase().includes(key);
@@ -194,24 +210,34 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
                 <button
                   key={key}
                   onClick={() => handleLocationSelect(key)}
-                  className={`min-h-[38px] px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center space-x-1.5 active:scale-95 shrink-0 ${
-                    isSelected
-                      ? 'bg-cyan-400 text-slate-950 shadow-md shadow-cyan-400/30 font-black border border-cyan-300'
-                      : 'bg-slate-900 text-slate-200 hover:text-white hover:bg-slate-800 border border-slate-700'
-                  }`}
+                  className={`min-h-[38px] px-3 py-1.5 rounded-xl text-xs whitespace-nowrap transition-colors flex items-center gap-1.5 active:scale-95 shrink-0 ${isSelected
+                      ? 'bg-cyan-400 text-slate-950 font-bold border border-cyan-300'
+                      : 'bg-transparent text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 border border-slate-800'
+                    }`}
                 >
                   <span>{loc.name.split('/')[0].split(' ')[0]}</span>
-                  <span className="text-[10px] opacity-80 font-mono">({loc.latitude.toFixed(1)}°N)</span>
+                  <span className="text-[10px] font-mono opacity-60">{loc.latitude.toFixed(1)}°N</span>
                 </button>
               );
             })}
+
+            {Object.keys(COASTAL_LOCATIONS).length > PORTS_SHOWN && (
+              <button
+                onClick={() => setShowAllPorts((v) => !v)}
+                className="min-h-[38px] shrink-0 rounded-xl border border-slate-700 px-3 py-1.5 text-xs font-semibold text-slate-400 transition-colors hover:border-slate-500 hover:text-slate-200"
+              >
+                {showAllPorts
+                  ? 'Show fewer'
+                  : `+${Object.keys(COASTAL_LOCATIONS).length - PORTS_SHOWN} more ports`}
+              </button>
+            )}
 
             <button
               onClick={() => setIsHealthModalOpen(true)}
               title="Inspect multi-service connectivity & fallback health"
               className="ml-auto shrink-0 flex items-center gap-1.5 rounded-xl border border-cyan-500/30 bg-slate-950/80 px-3 py-2 text-xs font-mono text-cyan-300 hover:bg-slate-900 hover:text-white hover:border-cyan-400 transition-all active:scale-95"
             >
-              <Activity className="h-3.5 w-3.5 text-emerald-400 animate-pulse" />
+              <Activity className="h-3.5 w-3.5 text-emerald-400" />
               <span className="hidden sm:inline">System Diagnostics</span>
             </button>
           </div>
@@ -498,3 +524,4 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
 };
 
 export default ConsolePage;
+

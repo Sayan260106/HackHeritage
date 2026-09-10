@@ -254,16 +254,12 @@
 
 /* Fine graticule, as printed under a chart's soundings. */
 @utility graticule {
-  background-image: linear-gradient(
-      to right,
+  background-image: linear-gradient(to right,
       color-mix(in oklab, var(--color-shoal) 6%, transparent) 1px,
-      transparent 1px
-    ),
-    linear-gradient(
-      to bottom,
+      transparent 1px),
+    linear-gradient(to bottom,
       color-mix(in oklab, var(--color-shoal) 6%, transparent) 1px,
-      transparent 1px
-    );
+      transparent 1px);
   background-size: 48px 48px;
 }
 
@@ -272,11 +268,9 @@
    sort after the `bg-*` and `border-*` families, so a resetting shorthand here
    would silently swallow any override a caller passes in via className. */
 @utility plate {
-  background-image: linear-gradient(
-    160deg,
-    color-mix(in oklab, var(--color-shelf) 72%, transparent),
-    color-mix(in oklab, var(--color-abyssal) 88%, transparent)
-  );
+  background-image: linear-gradient(160deg,
+      color-mix(in oklab, var(--color-shelf) 72%, transparent),
+      color-mix(in oklab, var(--color-abyssal) 88%, transparent));
   border-width: 1px;
   border-style: solid;
   border-color: color-mix(in oklab, var(--color-shoal) 14%, transparent);
@@ -291,9 +285,11 @@
   0% {
     transform: translate3d(0, 0, 0);
   }
+
   50% {
     transform: translate3d(-1.5%, 1%, 0);
   }
+
   100% {
     transform: translate3d(0, 0, 0);
   }
@@ -303,16 +299,19 @@
   0% {
     transform: translateX(-120%);
   }
+
   100% {
     transform: translateX(220%);
   }
 }
 
 @keyframes orca-breathe {
+
   0%,
   100% {
     opacity: 0.35;
   }
+
   50% {
     opacity: 0.85;
   }
@@ -323,6 +322,7 @@
     opacity: 0;
     transform: translateY(14px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -335,6 +335,7 @@
   from {
     transform: translateX(0);
   }
+
   to {
     transform: translateX(-50%);
   }
@@ -345,6 +346,7 @@
   0% {
     background-position: 120% 50%;
   }
+
   100% {
     background-position: -120% 50%;
   }
@@ -361,12 +363,10 @@
     content: "";
     position: absolute;
     inset: 0;
-    background-image: linear-gradient(
-      100deg,
-      transparent 30%,
-      color-mix(in oklab, var(--color-chartpaper) 38%, transparent) 50%,
-      transparent 70%
-    );
+    background-image: linear-gradient(100deg,
+        transparent 30%,
+        color-mix(in oklab, var(--color-chartpaper) 38%, transparent) 50%,
+        transparent 70%);
     transform: translateX(-120%);
     pointer-events: none;
   }
@@ -484,8 +484,15 @@
 }
 
 @keyframes orcaFrameBreathe {
-  0%, 100% { box-shadow: inset 0 0 0 1px rgba(127, 212, 193, 0.05), 0 0 5px rgba(34, 211, 238, 0.02); }
-  50% { box-shadow: inset 0 0 0 1px rgba(127, 212, 193, 0.1), 0 0 15px rgba(34, 211, 238, 0.05); }
+
+  0%,
+  100% {
+    box-shadow: inset 0 0 0 1px rgba(127, 212, 193, 0.05), 0 0 5px rgba(34, 211, 238, 0.02);
+  }
+
+  50% {
+    box-shadow: inset 0 0 0 1px rgba(127, 212, 193, 0.1), 0 0 15px rgba(34, 211, 238, 0.05);
+  }
 }
 
 /* Corner brackets — HUD / tactical chart styling */
@@ -497,59 +504,130 @@
   border-color: rgba(127, 212, 193, 0.55);
   opacity: 0.85;
 }
-.orca-corner-tl { top: 10px; left: 10px; border-top: 2px solid; border-left: 2px solid; border-radius: 4px 0 0 0; }
-.orca-corner-tr { top: 10px; right: 10px; border-top: 2px solid; border-right: 2px solid; border-radius: 0 4px 0 0; }
-.orca-corner-bl { bottom: 10px; left: 10px; border-bottom: 2px solid; border-left: 2px solid; border-radius: 0 0 0 4px; }
-.orca-corner-br { bottom: 10px; right: 10px; border-bottom: 2px solid; border-right: 2px solid; border-radius: 0 0 4px 0; }
 
-/* Cyber-Marine Glassmorphism (Multi-layered translucency + hairline highlights) */
+.orca-corner-tl {
+  top: 10px;
+  left: 10px;
+  border-top: 2px solid;
+  border-left: 2px solid;
+  border-radius: 4px 0 0 0;
+}
+
+.orca-corner-tr {
+  top: 10px;
+  right: 10px;
+  border-top: 2px solid;
+  border-right: 2px solid;
+  border-radius: 0 4px 0 0;
+}
+
+.orca-corner-bl {
+  bottom: 10px;
+  left: 10px;
+  border-bottom: 2px solid;
+  border-left: 2px solid;
+  border-radius: 0 0 0 4px;
+}
+
+.orca-corner-br {
+  bottom: 10px;
+  right: 10px;
+  border-bottom: 2px solid;
+  border-right: 2px solid;
+  border-radius: 0 0 4px 0;
+}
+
+/* -- Surfaces --------------------------------------------------------------
+ *
+ * Three levels, so a page can say which of its parts matters. Everything used
+ * to share one treatment — a glowing teal border, 16px blur, a 32px shadow and
+ * a lift on hover — which made every panel the brightest thing on screen and
+ * left the eye nowhere to rest.
+ *
+ * The rule: depth is meaning, not decoration. A raised surface is raised
+ * because it holds the answer; a sunken one is sunken because it holds a
+ * reading you glance at.
+ */
+
+.orca-surface {
+  background: rgba(12, 24, 34, 0.72);
+  border: 1px solid rgba(127, 212, 193, 0.09);
+  border-radius: 14px;
+}
+
+.orca-surface-raised {
+  background: rgba(16, 32, 44, 0.92);
+  border: 1px solid rgba(127, 212, 193, 0.2);
+  border-radius: 14px;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.3);
+}
+
+.orca-surface-sunken {
+  background: rgba(6, 13, 20, 0.6);
+  border: 1px solid rgba(127, 212, 193, 0.06);
+  border-radius: 12px;
+}
+
+/* Kept for the handful of places that use it deliberately, minus the glow, most
+   of the blur, and the hover lift — motion on hover should mean "this does
+   something", and it was on panels that do nothing when clicked. */
 .orca-glass-panel,
 .glass-panel {
-  background: linear-gradient(135deg, rgba(14, 30, 44, 0.75) 0%, rgba(8, 18, 28, 0.85) 100%);
-  backdrop-filter: blur(16px) saturate(150%);
-  -webkit-backdrop-filter: blur(16px) saturate(150%);
-  border: 1px solid rgba(127, 212, 193, 0.2);
-  border-radius: 16px;
-  box-shadow:
-    0 8px 32px 0 rgba(0, 0, 0, 0.42),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
-  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
-              border-color 0.25s cubic-bezier(0.16, 1, 0.3, 1),
-              box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  background: rgba(14, 30, 44, 0.8);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(127, 212, 193, 0.12);
+  border-radius: 14px;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.3);
+  transition: border-color 0.2s ease;
 }
 
 .orca-glass-panel-hover:hover,
 .glass-panel-hover:hover {
-  border-color: rgba(127, 212, 193, 0.45);
-  box-shadow:
-    0 12px 40px 0 rgba(0, 0, 0, 0.55),
-    0 0 20px 0 rgba(127, 212, 193, 0.15),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.14);
-  transform: translateY(-2px);
+  border-color: rgba(127, 212, 193, 0.3);
 }
+
+/* -- Type scale ------------------------------------------------------------
+ *
+ * Twenty-six distinct text sizes were in use. These five cover the console, and
+ * naming them by role rather than by pixels is what stops a sixth appearing the
+ * next time somebody needs something "a bit smaller".
+ */
+
+.orca-t-verdict { font-size: 1.75rem; line-height: 1.15; font-weight: 700; letter-spacing: -0.02em; }
+.orca-t-figure  { font-size: 1.375rem; line-height: 1.2; font-weight: 600; font-variant-numeric: tabular-nums; }
+.orca-t-body    { font-size: 0.875rem; line-height: 1.5; font-weight: 400; }
+.orca-t-meta    { font-size: 0.75rem; line-height: 1.45; font-weight: 400; color: var(--color-fathom); }
+.orca-t-label   { font-size: 0.6875rem; line-height: 1.3; font-weight: 600; letter-spacing: 0.06em;
+                  text-transform: uppercase; color: var(--color-fathom); }
 
 /* Color-Coded Minimalist Risk Badges */
 .badge-neon-low {
   background: rgba(16, 185, 129, 0.1);
-  color: #34d399; /* emerald-400 */
+  color: #34d399;
+  /* emerald-400 */
   border: 1px solid rgba(16, 185, 129, 0.2);
 }
 
 .badge-neon-moderate {
   background: rgba(245, 158, 11, 0.1);
-  color: #fbbf24; /* amber-400 */
+  color: #fbbf24;
+  /* amber-400 */
   border: 1px solid rgba(245, 158, 11, 0.2);
 }
 
 .badge-neon-high {
   background: rgba(249, 115, 22, 0.1);
-  color: #fb923c; /* orange-400 */
+  color: #fb923c;
+  /* orange-400 */
   border: 1px solid rgba(249, 115, 22, 0.25);
 }
 
 .badge-neon-extreme {
-  background: rgba(225, 29, 72, 0.15); /* rose-600 */
-  color: #fb7185; /* rose-400 */
+  background: rgba(225, 29, 72, 0.15);
+  /* rose-600 */
+  color: #fb7185;
+  /* rose-400 */
   border: 1px solid rgba(225, 29, 72, 0.3);
 }
 
@@ -558,8 +636,8 @@
 /* Micro-Interaction Button Feedback */
 .btn-micro-interactive {
   transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1),
-              box-shadow 0.15s cubic-bezier(0.16, 1, 0.3, 1),
-              border-color 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow 0.15s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.15s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .btn-micro-interactive:active {
@@ -572,15 +650,18 @@
   overflow-x: auto;
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE/Edge */
+  scrollbar-width: none;
+  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE/Edge */
 }
 
 .horizontal-snap-carousel::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Opera */
+  display: none;
+  /* Chrome, Safari, Opera */
 }
 
-.horizontal-snap-carousel > * {
+.horizontal-snap-carousel>* {
   scroll-snap-align: start;
   flex-shrink: 0;
 }
@@ -594,9 +675,19 @@
   box-shadow: 0 0 6px rgba(34, 211, 238, 0.9);
   animation: orcaLivePulse 1.8s ease-in-out infinite;
 }
+
 @keyframes orcaLivePulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.4; transform: scale(0.7); }
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.4;
+    transform: scale(0.7);
+  }
 }
 
 /* Subtle animated scanline sweep — decorative, pointer-events disabled */
@@ -607,21 +698,26 @@
   left: -50%;
   width: 200%;
   height: 200%;
-  background: conic-gradient(
-    from 0deg,
-    transparent 0deg,
-    rgba(34, 211, 238, 0.05) 8deg,
-    transparent 16deg,
-    transparent 360deg
-  );
+  background: conic-gradient(from 0deg,
+      transparent 0deg,
+      rgba(34, 211, 238, 0.05) 8deg,
+      transparent 16deg,
+      transparent 360deg);
   animation: orcaScanRotate 8s linear infinite;
 }
+
 @keyframes orcaScanRotate {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   .orca-frame-glow,
   .orca-live-dot,
   .orca-scanline::before {
@@ -630,18 +726,23 @@
 }
 
 /* Lenis smooth scrolling rules */
-html.lenis, html.lenis body {
+html.lenis,
+html.lenis body {
   height: auto;
 }
+
 .lenis.lenis-smooth {
   scroll-behavior: auto !important;
 }
+
 .lenis.lenis-smooth [data-lenis-prevent] {
   overscroll-behavior: contain;
 }
+
 .lenis.lenis-stopped {
   overflow: hidden;
 }
+
 .lenis.lenis-smooth iframe {
   pointer-events: none;
 }
@@ -655,6 +756,7 @@ html.lenis, html.lenis body {
   0% {
     transform: translateX(-24px);
   }
+
   100% {
     transform: translateX(0px);
   }
@@ -699,16 +801,14 @@ html.lenis, html.lenis body {
   display: inline-flex;
   align-items: baseline;
   cursor: pointer;
-  background: linear-gradient(
-    105deg,
-    #f1f5f9 0%,
-    #f1f5f9 35%,
-    #38bdf8 48%,
-    #5eead4 53%,
-    #ffffff 58%,
-    #94a3b8 68%,
-    #f1f5f9 100%
-  );
+  background: linear-gradient(105deg,
+      #f1f5f9 0%,
+      #f1f5f9 35%,
+      #38bdf8 48%,
+      #5eead4 53%,
+      #ffffff 58%,
+      #94a3b8 68%,
+      #f1f5f9 100%);
   background-size: 260% 100%;
   background-position: 100% 0;
   -webkit-background-clip: text;
@@ -740,6 +840,7 @@ html.lenis, html.lenis body {
   0% {
     clip-path: inset(0 100% 0 0);
   }
+
   100% {
     clip-path: inset(0 0% 0 0);
   }
@@ -756,12 +857,15 @@ html.lenis, html.lenis body {
     left: -32px;
     opacity: 0;
   }
+
   3% {
     opacity: 1;
   }
+
   95% {
     opacity: 1;
   }
+
   100% {
     left: calc(100% + 28px);
     opacity: 0;
@@ -793,6 +897,7 @@ html.lenis, html.lenis body {
     opacity: 0.3;
     filter: none;
   }
+
   100% {
     opacity: 1;
     filter: drop-shadow(0 0 4px #4ade80);
@@ -806,14 +911,12 @@ html.lenis, html.lenis body {
   bottom: 0;
   left: -2px;
   right: -2px;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.95) 0%,
-    rgba(56, 189, 248, 0.85) 20%,
-    rgba(45, 212, 191, 0.45) 55%,
-    rgba(2, 132, 199, 0.12) 85%,
-    transparent 100%
-  );
+  background: linear-gradient(180deg,
+      rgba(255, 255, 255, 0.95) 0%,
+      rgba(56, 189, 248, 0.85) 20%,
+      rgba(45, 212, 191, 0.45) 55%,
+      rgba(2, 132, 199, 0.12) 85%,
+      transparent 100%);
   clip-path: polygon(45% 0%, 55% 0%, 100% 100%, 0% 100%);
   filter: drop-shadow(0 0 14px #38bdf8) drop-shadow(0 0 26px #2dd4bf);
   overflow: hidden;
@@ -833,6 +936,7 @@ html.lenis, html.lenis body {
 .orca-sar-line-1 {
   animation: orca-sar-ripple 0.8s ease-in-out infinite;
 }
+
 .orca-sar-line-2 {
   animation: orca-sar-ripple 0.8s ease-in-out 0.4s infinite;
 }
@@ -843,9 +947,11 @@ html.lenis, html.lenis body {
     opacity: 0;
     transform: scaleX(0.2);
   }
+
   30% {
     opacity: 0.9;
   }
+
   100% {
     top: 95%;
     opacity: 0;
@@ -878,6 +984,7 @@ html.lenis, html.lenis body {
   0% {
     box-shadow: 0 0 0px 0px rgba(56, 189, 248, 0.95);
   }
+
   100% {
     box-shadow: 0 0 10px 7px rgba(56, 189, 248, 0);
   }
@@ -908,6 +1015,7 @@ html.lenis, html.lenis body {
   from {
     transform: translate(-50%, -50%) rotate(0deg);
   }
+
   to {
     transform: translate(-50%, -50%) rotate(360deg);
   }
@@ -950,14 +1058,12 @@ html.lenis, html.lenis body {
 .orca-hydrophone-wave-track {
   position: absolute;
   inset: 0;
-  background: repeating-linear-gradient(
-    90deg,
-    rgba(2, 132, 199, 0.25) 0px,
-    rgba(56, 189, 248, 0.6) 4px,
-    rgba(45, 212, 191, 0.9) 8px,
-    rgba(14, 116, 144, 0.35) 12px,
-    transparent 16px
-  );
+  background: repeating-linear-gradient(90deg,
+      rgba(2, 132, 199, 0.25) 0px,
+      rgba(56, 189, 248, 0.6) 4px,
+      rgba(45, 212, 191, 0.9) 8px,
+      rgba(14, 116, 144, 0.35) 12px,
+      transparent 16px);
   background-size: 32px 100%;
   animation: orca-hydrophone-scroll 2.8s linear infinite;
   opacity: 0.7;
@@ -973,6 +1079,7 @@ html.lenis, html.lenis body {
   0% {
     background-position: 0 0;
   }
+
   100% {
     background-position: 32px 0;
   }
@@ -984,12 +1091,10 @@ html.lenis, html.lenis body {
   top: 0;
   bottom: 0;
   width: 18px;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(45, 212, 191, 0.85) 60%,
-    #ffffff 100%
-  );
+  background: linear-gradient(90deg,
+      transparent 0%,
+      rgba(45, 212, 191, 0.85) 60%,
+      #ffffff 100%);
   border-radius: 9999px;
   filter: drop-shadow(0 0 6px #2dd4bf);
   animation: orca-ping-travel 2.6s ease-in-out infinite;
@@ -1004,12 +1109,15 @@ html.lenis, html.lenis body {
     left: -18px;
     opacity: 0;
   }
+
   15% {
     opacity: 1;
   }
+
   85% {
     opacity: 1;
   }
+
   100% {
     left: 100%;
     opacity: 0;
@@ -1031,9 +1139,11 @@ html.lenis, html.lenis body {
 .orca-cav-1 {
   left: 20%;
 }
+
 .orca-cav-2 {
   left: 55%;
 }
+
 .orca-cav-3 {
   left: 80%;
 }
@@ -1041,9 +1151,11 @@ html.lenis, html.lenis body {
 .orca-wordmark-wrapper:hover .orca-cav-1 {
   animation: orca-cavitation-rise 1.5s ease-out 0.2s infinite;
 }
+
 .orca-wordmark-wrapper:hover .orca-cav-2 {
   animation: orca-cavitation-rise 1.7s ease-out 0.6s infinite;
 }
+
 .orca-wordmark-wrapper:hover .orca-cav-3 {
   animation: orca-cavitation-rise 1.4s ease-out 1.0s infinite;
 }
@@ -1053,10 +1165,12 @@ html.lenis, html.lenis body {
     transform: translateY(0) scale(0.6);
     opacity: 0;
   }
+
   50% {
     opacity: 0.95;
     box-shadow: 0 0 6px #5eead4;
   }
+
   100% {
     transform: translateY(-18px) scale(1.1);
     opacity: 0;
@@ -1064,6 +1178,7 @@ html.lenis, html.lenis body {
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   .orca-wave-stream-1,
   .orca-wave-stream-2,
   .orca-wave-stream-3,
@@ -1091,7 +1206,7 @@ html.lenis, html.lenis body {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6) !important;
   padding: 3px 7px !important;
 }
+
 .orca-route-tooltip::before {
   border-top-color: rgba(10, 22, 32, 0.95) !important;
 }
-
