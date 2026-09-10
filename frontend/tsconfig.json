@@ -17,5 +17,13 @@
     "noImplicitAny": false,
     "strictNullChecks": false,
     "noEmit": true
-  }
+  
+  },
+  "include": ["src", "vite.config.ts", "index.html"],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "venv-ml",
+    "legacy"
+  ]
 }
