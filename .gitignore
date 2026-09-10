@@ -14,6 +14,8 @@ __pycache__/
 *.py[cod]
 .venv/
 venv/
+venv-ml/
+venv*/
 env/
 .pytest_cache/
 .mypy_cache/
@@ -30,23 +32,26 @@ Thumbs.db
 .vscode/
 .idea/
 
-# ML-generated local artifacts
-ml/data/raw/
-ml/data/processed/*.csv
-ml/data/processed/*.parquet
-ml/evaluations/realtime_source_evidence_gate.json
+# ML-generated local artifacts. These patterns are anchored to the repository
+# root, so they stopped matching the moment ml/ and data/ moved under legacy/.
+# They are repointed rather than deleted: the retired daemons still write here
+# if anyone runs them, and a 4 MB cache file is not a source file.
+legacy/ml-service/ml/data/raw/
+legacy/ml-service/ml/data/processed/*.csv
+legacy/ml-service/ml/data/processed/*.parquet
+legacy/ml-service/ml/evaluations/realtime_source_evidence_gate.json
 
 # Runtime telemetry and normalized satellite snapshots — persist on deployment storage, never commit live observations
-/data/realtime/*.jsonl
-/data/realtime/*.json
-/data/realtime/*.h5
-/data/realtime/*.hdf5
+legacy/data/data/realtime/*.jsonl
+legacy/data/data/realtime/*.json
+legacy/data/data/realtime/*.h5
+legacy/data/data/realtime/*.hdf5
 
 # Kaggle-generated user-specific metadata / local credentials
-ml/kaggle/kernel-metadata.json
+legacy/ml-service/ml/kaggle/kernel-metadata.json
 **/kaggle.json
 
 # Keep the checked-in manifest and trained model artifacts
-!ml/data/processed/dataset_manifest.json
-!ml/models/orca_xgb_risk.json
-!ml/models/orca_xgb_risk_metadata.json
+!legacy/ml-service/ml/data/processed/dataset_manifest.json
+!legacy/ml-service/ml/models/orca_xgb_risk.json
+!legacy/ml-service/ml/models/orca_xgb_risk_metadata.json
