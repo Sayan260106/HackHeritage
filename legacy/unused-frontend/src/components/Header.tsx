@@ -214,7 +214,7 @@ export const Header: React.FC<HeaderProps> = ({
             >
               {isAudioActive ? (
                 <>
-                  <Volume2 className="h-4 w-4 text-cyan-400 animate-pulse" />
+                  <Volume2 className="h-4 w-4 text-cyan-400" />
                   <span className="text-[11px] font-mono hidden xl:inline text-cyan-300">
                     HYDROPHONE ON
                   </span>
