@@ -45,7 +45,7 @@ export const IndianCoastalMap: React.FC<IndianCoastalMapProps> = ({ onSelectPort
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-800 pb-4 mb-6">
         <div>
           <div className="flex items-center space-x-2">
-            <span className="h-2 w-2 rounded-full bg-cyan-400 animate-pulse" />
+            <span className="h-2 w-2 rounded-full bg-cyan-400" />
             <h3 className="text-sm font-bold uppercase tracking-wider font-mono text-cyan-300">
               Interactive Indian Ocean & Coastal Hub Surveillance
             </h3>
@@ -174,7 +174,7 @@ export const IndianCoastalMap: React.FC<IndianCoastalMapProps> = ({ onSelectPort
             <div className="bg-slate-950 p-2.5 rounded-lg border border-slate-800">
               <span className="text-[10px] text-slate-400 block">Live Data Status</span>
               <strong className="text-emerald-400 text-sm flex items-center gap-1">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
                 ONLINE
               </strong>
             </div>

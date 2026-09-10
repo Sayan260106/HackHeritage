@@ -119,24 +119,22 @@ export const AudioAlertController: React.FC<AudioAlertControllerProps> = ({
   return (
     <>
       <div
-        className={`flex flex-wrap items-center justify-between gap-3 px-3.5 py-2 rounded-xl bg-slate-950/90 border transition-all ${
-          isAudioActive
+        className={`flex flex-wrap items-center justify-between gap-3 px-3.5 py-2 rounded-xl bg-slate-950/90 border transition-all ${isAudioActive
             ? 'border-rose-500/60 shadow-lg shadow-rose-500/20 ring-1 ring-rose-500/40'
             : 'border-slate-800 shadow-md'
-        } ${className}`}
+          } ${className}`}
       >
         {/* Left: Audio Status & Controls */}
         <div className="flex items-center space-x-2.5 min-w-0">
           <button
             onClick={handleToggleMute}
             title={isMuted ? 'Unmute Maritime Audio Alerts' : 'Mute Maritime Audio Alerts'}
-            className={`p-2 rounded-lg transition-all flex items-center justify-center ${
-              isMuted
+            className={`p-2 rounded-lg transition-all flex items-center justify-center ${isMuted
                 ? 'bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-slate-200 border border-slate-700'
                 : isAudioActive
-                ? 'bg-rose-500 text-slate-950 shadow-md shadow-rose-500/40 animate-pulse font-bold'
-                : 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 hover:bg-cyan-500/30'
-            }`}
+                  ? 'bg-rose-500 text-slate-950 shadow-md shadow-rose-500/40 animate-pulse font-bold'
+                  : 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 hover:bg-cyan-500/30'
+              }`}
           >
             {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
           </button>
@@ -148,13 +146,12 @@ export const AudioAlertController: React.FC<AudioAlertControllerProps> = ({
                 <span>MARITIME AUDIO:</span>
               </span>
               <span
-                className={`text-[10px] font-mono font-bold px-1.5 py-0.2 rounded border ${
-                  isMuted
+                className={`text-[10px] font-mono font-bold px-1.5 py-0.2 rounded border ${isMuted
                     ? 'bg-slate-900 text-slate-400 border-slate-700'
                     : isAudioActive
-                    ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 animate-pulse'
-                    : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
-                }`}
+                      ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
+                      : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                  }`}
               >
                 {isMuted ? 'MUTED' : isAudioActive ? (isPlayingSiren ? 'SIREN ACTIVE' : 'VOICE ACTIVE') : 'ARMED'}
               </span>
@@ -188,7 +185,7 @@ export const AudioAlertController: React.FC<AudioAlertControllerProps> = ({
           className="hidden sm:flex items-center gap-1.5 px-2 py-1 rounded-md bg-slate-900 hover:bg-slate-800/80 border border-slate-700/60 hover:border-cyan-500/50 text-[10px] font-mono text-cyan-300 transition-all cursor-pointer"
           title="Configure Bhashini & Sarvam Indic AI Gateway"
         >
-          <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-pulse" />
+          <span className="h-1.5 w-1.5 rounded-full bg-cyan-400" />
           <span>Indic AI: {config.preferredEngine.toUpperCase()}</span>
           <Settings className="h-3 w-3 text-slate-400 ml-0.5" />
         </button>
@@ -240,7 +237,7 @@ export const AudioAlertController: React.FC<AudioAlertControllerProps> = ({
             <div className="p-3 rounded-lg bg-emerald-950/60 border border-emerald-500/40 flex items-start gap-2.5">
               <CheckCircle className="h-4 w-4 text-emerald-400 mt-0.5 shrink-0" />
               <div className="text-xs space-y-0.5">
-                <div className="text-emerald-300 font-bold font-mono">✅ Voice System is Active & Working</div>
+                <div className="text-emerald-300 font-bold font-mono">Voice System is Active & Working</div>
                 <div className="text-slate-400">
                   All 10 languages (Bengali, Tamil, Telugu, Odia, Malayalam, Gujarati, Marathi, Kannada, Hindi, English) are generating real audio via the built-in Indic TTS engine.
                 </div>
@@ -279,7 +276,7 @@ export const AudioAlertController: React.FC<AudioAlertControllerProps> = ({
                 </summary>
                 <div className="mt-2 space-y-2 pl-3 border-l border-slate-700">
                   <p className="text-[10px] text-amber-400/80">
-                    ⚠️ Only fill these if you have a Sarvam AI or Bhashini account. The system works perfectly without them.
+                    Only fill these if you have a Sarvam AI or Bhashini account. The system works perfectly without them.
                   </p>
                   <div>
                     <label className="block text-slate-400 font-mono mb-1">Sarvam AI API Key <span className="text-slate-600">(optional)</span></label>

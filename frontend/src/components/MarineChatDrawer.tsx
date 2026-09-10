@@ -67,14 +67,14 @@ export const MarineChatDrawer: React.FC<MarineChatDrawerProps> = ({
 
   // All 8 canonical ISRO Problem Statement 26176 scenario recommendations
   const scenarioSuggestions = [
-    { label: '🎣 Q1: Nearest PFZ Today', query: 'Where is the nearest Potential Fishing Zone today?' },
-    { label: '⚓ Q2: Venture Safety Tomorrow', query: 'Is it safe to venture into the sea tomorrow morning?' },
-    { label: '🌊 Q3: Tide & Sea Conditions', query: 'What are the tide, weather, and sea conditions near my fishing location?' },
-    { label: '⚡ Q4: Cyclone & Lightning Alerts', query: 'Are there any lightning or cyclone alerts in my area?' },
-    { label: '🛰️ Q5: Chlorophyll & SST Fronts', query: 'Which regions show high chlorophyll concentration and favourable sea surface temperature?' },
-    { label: '🧭 Q6: Safest Navigation Route', query: 'What is the safest route for a fishing vessel considering weather and sea-state conditions?' },
-    { label: '🔬 Q7: Fish Productivity Decline', query: 'Why has fish productivity declined in a particular coastal region?' },
-    { label: '🛑 Q8: Restricted Geofence Zones', query: 'Which fishing zones should be avoided due to hazardous marine conditions or geofencing restrictions?' },
+    { label: 'Q1: Nearest PFZ Today', query: 'Where is the nearest Potential Fishing Zone today?' },
+    { label: 'Q2: Venture Safety Tomorrow', query: 'Is it safe to venture into the sea tomorrow morning?' },
+    { label: 'Q3: Tide & Sea Conditions', query: 'What are the tide, weather, and sea conditions near my fishing location?' },
+    { label: 'Q4: Cyclone & Lightning Alerts', query: 'Are there any lightning or cyclone alerts in my area?' },
+    { label: 'Q5: Chlorophyll & SST Fronts', query: 'Which regions show high chlorophyll concentration and favourable sea surface temperature?' },
+    { label: 'Q6: Safest Navigation Route', query: 'What is the safest route for a fishing vessel considering weather and sea-state conditions?' },
+    { label: 'Q7: Fish Productivity Decline', query: 'Why has fish productivity declined in a particular coastal region?' },
+    { label: 'Q8: Restricted Geofence Zones', query: 'Which fishing zones should be avoided due to hazardous marine conditions or geofencing restrictions?' },
   ];
 
   const handleSend = (e?: React.FormEvent) => {
@@ -211,7 +211,7 @@ export const MarineChatDrawer: React.FC<MarineChatDrawerProps> = ({
         {turns.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center px-4 py-12">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-500/10 text-cyan-400 mb-3 border border-cyan-500/20">
-              <Sparkles className="h-6 w-6 animate-pulse" />
+              <Sparkles className="h-6 w-6" />
             </div>
             <h3 className="text-sm font-bold text-white mb-1">
               Contextual Marine Decision Support
@@ -262,13 +262,13 @@ export const MarineChatDrawer: React.FC<MarineChatDrawerProps> = ({
                     {/* Status Header */}
                     <div className="flex items-center justify-between gap-2 border-b border-slate-800/80 pb-2">
                       <div className="flex items-center space-x-1.5">
-                        <span className="flex h-2 w-2 rounded-full bg-cyan-400 animate-pulse" />
+                        <span className="flex h-2 w-2 rounded-full bg-cyan-400" />
                         <span className="font-mono text-[10px] uppercase font-bold text-cyan-400 tracking-wider">
                           ORCA-X Agent
                         </span>
                         {turn.locationName && (
                           <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[10px] text-slate-300 font-mono">
-                            📍 {turn.locationName.split(' ')[0]}
+                            {turn.locationName.split(' ')[0]}
                           </span>
                         )}
                       </div>
@@ -292,7 +292,7 @@ export const MarineChatDrawer: React.FC<MarineChatDrawerProps> = ({
                           title="Read out response"
                           className={`rounded-md p-1 transition-colors ${
                             speakingTurnId === turn.turnId
-                              ? 'bg-cyan-500 text-slate-950 animate-pulse'
+                              ? 'bg-cyan-500 text-slate-950'
                               : 'text-slate-400 hover:bg-slate-800 hover:text-white'
                           }`}
                         >
@@ -360,7 +360,7 @@ export const MarineChatDrawer: React.FC<MarineChatDrawerProps> = ({
                           }}
                           className="px-2 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg text-[10px] transition-all flex items-center gap-1 shadow cursor-pointer shrink-0"
                         >
-                          🧭 View on Map
+                          View on Map
                         </button>
                       </div>
                     )}
@@ -429,7 +429,7 @@ export const MarineChatDrawer: React.FC<MarineChatDrawerProps> = ({
               title={isListening ? 'Stop listening' : 'Voice input'}
               className={`rounded-lg p-1.5 transition-all ${
                 isListening
-                  ? 'bg-rose-500 text-white animate-pulse'
+                  ? 'bg-rose-500 text-white'
                   : 'text-slate-400 hover:bg-slate-800 hover:text-white'
               }`}
             >

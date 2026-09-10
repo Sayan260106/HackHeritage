@@ -345,7 +345,7 @@ export const SynopsisPage: React.FC<SynopsisPageProps> = ({ onEnterConsole }) =>
             >
               {isAudioActive ? (
                 <>
-                  <Volume2 className="h-3.5 w-3.5 text-cyan-400 animate-pulse" />
+                  <Volume2 className="h-3.5 w-3.5 text-cyan-400" />
                   <span>Hydrophone On</span>
                 </>
               ) : (
