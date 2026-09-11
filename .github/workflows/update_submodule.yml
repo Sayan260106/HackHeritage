@@ -1,0 +1,55 @@
+name: Auto Update ORCA Submodule
+
+# Moves the `orca` submodule to the tip of Ankan0503/ORCA's main and commits the
+# new pointer. A submodule records one exact commit and never follows a branch
+# by itself.
+#
+# Started by ORCA's notify_parent workflow on every push to ORCA's main, or by
+# hand from the Actions tab. repository_dispatch only reaches workflows on the
+# default branch, so this file has to be on main to receive it.
+#
+# Runs on the default GITHUB_TOKEN: pushing here is all it does, both
+# repositories are public so the submodule fetch needs no credentials, and a
+# GITHUB_TOKEN push does not set off this repository's other workflows.
+
+on:
+  repository_dispatch:
+    types: [update-orca-submodule]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# Two ORCA pushes close together queue here rather than race to push.
+concurrency:
+  group: update-orca-submodule
+  cancel-in-progress: false
+
+jobs:
+  update-submodule:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout HackHeritage
+        uses: actions/checkout@v5
+        with:
+          # The branch rather than the commit that queued this run, so a run
+          # that waited behind another starts from the pointer that one pushed.
+          ref: main
+
+      - name: Update ORCA submodule
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # Lowercase `orca`: the path recorded in .gitmodules.
+          git submodule update --init --remote --depth 1 orca
+
+          # Commit and push only if the pointer actually moved.
+          if git diff --quiet -- orca; then
+            echo "Submodule is already up to date."
+          else
+            sha="$(git -C orca rev-parse --short HEAD)"
+            git add orca
+            git commit -m "chore(submodule): auto-update ORCA pointer to ${sha}"
+            git push
+          fi
