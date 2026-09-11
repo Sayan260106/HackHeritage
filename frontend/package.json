@@ -5,7 +5,7 @@
   "description": "ORCA-X marine intelligence platform — HackHeritage",
   "type": "module",
   "scripts": {
-    "dev": "tsx server/app.ts",
+    "dev": "vite --port 3001 --host 0.0.0.0",
     "dev:all": "node scripts/dev-all.mjs",
     "health": "node scripts/system-health.mjs",
     "dev:ml": "uvicorn ml.api:app --reload --host 0.0.0.0 --port 8000",
@@ -20,7 +20,7 @@
     "daemon:mosdac": "python scripts/mosdac-daemon.py",
     "evaluate:realtime-ml": "python ml/src/evaluate_live_candidate.py",
     "verify:realtime": "node scripts/verify-marine-sources.mjs",
-    "build": "vite build && esbuild server/app.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
+    "build": "vite build",
     "start": "node -e \"process.env.ORCA_PRODUCTION='true'; require('./dist/server.cjs')\"",
     "start:ml": "uvicorn ml.api:app --host 0.0.0.0 --port 8000",
     "start:rag": "uvicorn ml.rag_api:app --host 0.0.0.0 --port 8001",
