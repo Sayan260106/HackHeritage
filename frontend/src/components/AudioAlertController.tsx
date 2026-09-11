@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Volume2, VolumeX, Radio, Sparkles, Square, Settings, X, CheckCircle, ShieldAlert, RotateCcw } from 'lucide-react';
-import { LanguageCode, GeofenceSpatialAnalysis, RiskPrediction, AudioAlertPayload } from '../types';
+import { LanguageCode, GeofenceSpatialAnalysis, RiskPrediction, AudioAlertPayload, selectPriorityGeofenceAlert } from '../types';
 import { maritimeSiren } from '../services/audio/maritimeSirenService';
 import { voiceWarning } from '../services/audio/voiceWarningService';
 import { indicVoiceGateway, IndicVoiceConfig } from '../services/audio/indicVoiceService';
@@ -78,18 +78,18 @@ export const AudioAlertController: React.FC<AudioAlertControllerProps> = ({
   useEffect(() => {
     if (isMuted) return;
 
-    // Find any critical breach alert (from activeAlerts first, then status-based fallback)
+    // Find any critical breach alert (from activeAlerts first, then priority geofence)
     const criticalAlert =
-      geofenceAnalysis?.activeAlerts?.find((a) => a.severity === 'CRITICAL_BREACH') ||
+      geofenceAnalysis?.activeAlerts?.find((a) => a.severity === 'CRITICAL_BREACH' || a.isInside) ||
       (geofenceAnalysis?.status === 'RESTRICTED_BREACH'
-        ? geofenceAnalysis.nearestImbl || geofenceAnalysis.nearestMpa
+        ? selectPriorityGeofenceAlert(geofenceAnalysis)
         : undefined);
 
     // Find any proximity warning alert
     const warningAlert =
       geofenceAnalysis?.activeAlerts?.find((a) => a.severity === 'PROXIMITY_WARNING') ||
       (geofenceAnalysis?.status === 'CAUTION'
-        ? geofenceAnalysis.nearestImbl || geofenceAnalysis.nearestMpa
+        ? selectPriorityGeofenceAlert(geofenceAnalysis)
         : undefined);
 
     if (criticalAlert) {

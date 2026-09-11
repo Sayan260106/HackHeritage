@@ -7,13 +7,14 @@ interface ScrollyCanvasBackgroundProps {
   initialFrame?: number;
 }
 
-const TOTAL_FRAMES = 1076;
-const DISK_FRAMES = 301;
+// The sequence currently shipped in public/bg contains 301 AVIF frames.
+// Keep this in sync with the checked-in asset set so the canvas does not
+// request nonexistent WebP frames.
+const TOTAL_FRAMES = 301;
 
 function getFrameUrl(index: number): string {
-  // Interpolate index (0 to 1075) smoothly across available disk files (frame_0001.avif to frame_0301.avif)
-  const normalizedIndex = Math.min(TOTAL_FRAMES - 1, Math.max(0, index));
-  const frameNum = Math.min(DISK_FRAMES, Math.floor((normalizedIndex / (TOTAL_FRAMES - 1)) * (DISK_FRAMES - 1)) + 1);
+  // index is 0-based; files in ./public/bg are 1-based AVIF frames.
+  const frameNum = Math.min(TOTAL_FRAMES, Math.max(1, index + 1));
   const padded = String(frameNum).padStart(4, "0");
   return `/bg/frame_${padded}.avif`;
 }

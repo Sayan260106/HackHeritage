@@ -308,64 +308,55 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
             <>
               {currentTab === "dashboard" && (
                 <div className="space-y-6">
-                  <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-                    <div className="space-y-4 lg:col-span-5">
-                      <QueryPanel
-                        onSearch={(q, loc, time, detectedLang) => fetchAnalysis(q, loc, time, detectedLang || language)}
-                        isLoading={isLoading}
-                        language={language}
-                        onOpenChat={() => setIsChatDrawerOpen(true)}
-                      />
-                      <MarineTelemetry
-                        weather={analysisData.weather}
-                        ocean={analysisData.ocean}
-                        satellite={analysisData.satellite}
-                        language={language}
-                      />
-                    </div>
-                    <div className="space-y-4 lg:col-span-7">
-                      <RiskCard
-                        risk={analysisData.risk}
-                        location={analysisData.location}
-                        timeWindow={analysisData.timeWindow}
-                        language={language}
-                        groundedSummary={analysisData.groundedSummary}
-                        geofenceAnalysis={analysisData.geofenceAnalysis || analysisData.gisLayers?.geofenceAnalysis}
-                      />
-                      <InteractiveMap
-                        location={analysisData.location}
-                        gisLayers={analysisData.gisLayers}
-                        geofenceAnalysis={analysisData.geofenceAnalysis || analysisData.gisLayers?.geofenceAnalysis}
-                        ocean={analysisData.ocean}
-                        riskLevel={analysisData.risk.riskLevel}
-                        risk={analysisData.risk}
-                        safeRoute={analysisData.safeRoute}
-                        vesselTraffic={analysisData.vesselTraffic}
-                        onSelectLocation={handleLocationSelect}
-                        onCoordinateClick={handleMapCoordinateClick}
-                        language={language}
-                      />
-                    </div>
+                  {/* Full-width Query Input Bar with single-line preset chips */}
+                  <QueryPanel
+                    onSearch={(q, loc, time, detectedLang) => fetchAnalysis(q, loc, time, detectedLang || language)}
+                    isLoading={isLoading}
+                    language={language}
+                    onOpenChat={() => setIsChatDrawerOpen(true)}
+                  />
+
+                  {/* Next Line: Official Sea Advisory (RiskCard) & Interactive Map */}
+                  <div className="space-y-6">
+                    <RiskCard
+                      risk={analysisData.risk}
+                      location={analysisData.location}
+                      timeWindow={analysisData.timeWindow}
+                      language={language}
+                      groundedSummary={analysisData.groundedSummary}
+                      geofenceAnalysis={analysisData.geofenceAnalysis || analysisData.gisLayers?.geofenceAnalysis}
+                    />
+                    <InteractiveMap
+                      location={analysisData.location}
+                      gisLayers={analysisData.gisLayers}
+                      geofenceAnalysis={analysisData.geofenceAnalysis || analysisData.gisLayers?.geofenceAnalysis}
+                      ocean={analysisData.ocean}
+                      riskLevel={analysisData.risk.riskLevel}
+                      risk={analysisData.risk}
+                      safeRoute={analysisData.safeRoute}
+                      vesselTraffic={analysisData.vesselTraffic}
+                      onSelectLocation={handleLocationSelect}
+                      onCoordinateClick={handleMapCoordinateClick}
+                      language={language}
+                    />
+
+                    {/* <MarineTelemetry
+                      weather={analysisData.weather}
+                      ocean={analysisData.ocean}
+                      satellite={analysisData.satellite}
+                      language={language}
+                    /> */}
                   </div>
 
-                  <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-                    <div className="lg:col-span-6">
-                      <FeatureContributions risk={analysisData.risk} language={language} />
-                    </div>
-                    <div className="lg:col-span-6">
-                      <AgentExecutionTimeline
-                        traces={analysisData.agentTraces}
-                        queryId={analysisData.queryId}
-                        language={language}
-                      />
-                    </div>
+                  {/* <div className="w-full">
+                    <FeatureContributions risk={analysisData.risk} language={language} />
                   </div>
 
                   <GroundedEvidenceDrawer
                     evidence={analysisData.evidence}
                     groundedSummary={analysisData.groundedSummary}
                     language={language}
-                  />
+                  /> */}
                 </div>
               )}
 

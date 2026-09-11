@@ -310,8 +310,8 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
               onClick={toggleListening}
               title={isListening ? 'Stop listening' : 'Start voice input'}
               className={`p-2 rounded-lg transition-all cursor-pointer ${isListening
-                  ? 'bg-rose-500 text-white animate-pulse shadow-lg shadow-rose-500/50'
-                  : 'bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white'
+                ? 'bg-rose-500 text-white animate-pulse shadow-lg shadow-rose-500/50'
+                : 'bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white'
                 }`}
             >
               {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
@@ -395,22 +395,20 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
             <button
               type="button"
               onClick={() => setActivePromptTab('isro')}
-              className={`text-[11px] font-mono font-semibold px-2.5 py-1 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
-                activePromptTab === 'isro'
+              className={`text-[11px] font-mono font-semibold px-2.5 py-1 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${activePromptTab === 'isro'
                   ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm'
                   : 'text-slate-400 hover:text-slate-200 border border-transparent'
-              }`}
+                }`}
             >
               <span>🚀 ISRO Benchmark Queries (1–8)</span>
             </button>
             <button
               type="button"
               onClick={() => setActivePromptTab('regional')}
-              className={`text-[11px] font-mono font-semibold px-2.5 py-1 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
-                activePromptTab === 'regional'
+              className={`text-[11px] font-mono font-semibold px-2.5 py-1 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${activePromptTab === 'regional'
                   ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm'
                   : 'text-slate-400 hover:text-slate-200 border border-transparent'
-              }`}
+                }`}
             >
               <span>🇮🇳 Regional Scenarios</span>
             </button>
@@ -421,43 +419,35 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
         </div>
 
         {activePromptTab === 'isro' ? (
-          <div className="horizontal-snap-carousel gap-2 py-1">
+          <div className="custom-scrollbar gap-2 py-1.5 overflow-x-auto whitespace-nowrap">
             {ISRO_BENCHMARK_QUERIES.map((q) => (
               <button
                 key={q.id}
                 id={`isro-query-${q.id}`}
                 onClick={() => handleSelectPreset(q.query, 'digha')}
-                className="px-3 py-2 rounded-xl bg-slate-950/90 hover:bg-slate-800 border border-cyan-900/50 hover:border-cyan-400/70 text-slate-200 hover:text-cyan-200 text-xs font-medium transition-all text-left flex flex-col gap-0.5 shrink-0 shadow-sm hover:shadow-cyan-950/50 min-w-[210px] cursor-pointer"
+                className="px-3 py-1.5 rounded-xl bg-slate-950/90 hover:bg-slate-800 border border-cyan-900/60 hover:border-cyan-400 text-slate-200 hover:text-cyan-200 text-xs font-mono font-semibold transition-all flex items-center space-x-2 shrink-0 shadow-sm hover:shadow-cyan-950/50 cursor-pointer whitespace-nowrap active:scale-95"
                 title={q.query}
               >
-                <div className="flex items-center justify-between w-full">
-                  <span className="text-[10px] font-mono font-bold text-cyan-400 bg-cyan-950/80 px-1.5 py-0.5 rounded border border-cyan-800/60">
-                    {q.id}
-                  </span>
-                  <span className="text-[9px] font-mono text-slate-400 uppercase">
-                    {q.category}
-                  </span>
-                </div>
-                <span className="font-semibold text-slate-100 text-xs truncate w-full mt-0.5">
-                  {q.short}
+                <span className="text-[10px] font-mono font-bold text-cyan-400 bg-cyan-950/90 px-1.5 py-0.5 rounded border border-cyan-800/80 shrink-0">
+                  {q.id}
                 </span>
-                <span className="text-[10px] text-slate-400 line-clamp-1">
-                  {q.query}
+                <span className="text-xs text-slate-100 font-semibold truncate max-w-[220px] sm:max-w-none">
+                  {q.short}
                 </span>
               </button>
             ))}
           </div>
         ) : (
-          <div className="horizontal-snap-carousel gap-2 py-1">
+          <div className="custom-scrollbar gap-2 py-1.5 overflow-x-auto whitespace-nowrap">
             {samplePrompts.map((p, idx) => (
               <button
                 key={idx}
                 id={`preset-btn-${idx}`}
                 onClick={() => handleSelectPreset(p.text, p.loc)}
-                className="px-3 py-2 rounded-xl bg-slate-950/80 hover:bg-slate-800 border border-slate-800 hover:border-cyan-500/50 text-slate-300 hover:text-cyan-300 text-xs font-medium transition-all text-left flex items-center space-x-2 shadow-sm shrink-0 cursor-pointer"
+                className="px-3 py-1.5 rounded-xl bg-slate-950/80 hover:bg-slate-800 border border-slate-800 hover:border-cyan-500/50 text-slate-300 hover:text-cyan-300 text-xs font-mono font-semibold transition-all flex items-center space-x-2 shadow-sm shrink-0 cursor-pointer whitespace-nowrap active:scale-95"
               >
                 <span className="h-2 w-2 rounded-full bg-cyan-400 shrink-0"></span>
-                <span className="whitespace-nowrap">{p.tag}</span>
+                <span>{p.tag}</span>
               </button>
             ))}
           </div>
