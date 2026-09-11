@@ -38,9 +38,15 @@ import urllib.request
 import zipfile
 from pathlib import Path
 
+# Automatically load .env if available
+try:
+    from dotenv import load_dotenv
+    load_dotenv(Path(__file__).resolve().parent.parent / ".env")
+except ImportError:
+    pass
 
 DEFAULT_CLIENT_URL = "https://www.mosdac.gov.in/software/mdapi.zip"
-DEFAULT_DATASET_ID = "3SIMG_L3B_SST"
+DEFAULT_DATASET_ID = "3SIMG_L2B_SST"
 DEFAULT_LATITUDE = 21.6266
 DEFAULT_LONGITUDE = 87.5074
 DEFAULT_BBOX = "87.20,21.40,87.80,21.90"
@@ -122,7 +128,11 @@ def build_config(
     error_log_path: Path,
 ) -> dict[str, object]:
     return {
-        "user_credentials": {"username": username, "password": password},
+        "user_credentials": {
+            "username/email": username,
+            "username": username,
+            "password": password,
+        },
         "search_parameters": {
             "datasetId": dataset_id,
             "startTime": start_date,
@@ -134,9 +144,9 @@ def build_config(
         "download_settings": {
             "download_path": str(download_path),
             "organize_by_date": False,
-            "skip_user_prompt": True,
-            "generate_error_log": True,
-            "error_log_path": str(error_log_path),
+            "skip_user_input": True,
+            "generate_error_logs": True,
+            "error_logs_dir": str(error_log_path),
         },
     }
 
@@ -157,7 +167,7 @@ def newest_hdf(download_path: Path, dataset_id: str) -> Path:
 def run_client(mdapi: Path, config: dict[str, object], work_root: Path) -> Path:
     config_path = mdapi.parent / "config.json"
     download_path = Path(str(config["download_settings"]["download_path"]))
-    error_log_path = Path(str(config["download_settings"]["error_log_path"]))
+    error_log_path = Path(str(config["download_settings"]["error_logs_dir"]))
     download_path.mkdir(parents=True, exist_ok=True)
     error_log_path.mkdir(parents=True, exist_ok=True)
     config_path.write_text(json.dumps(config, indent=2), encoding="utf-8")
@@ -166,17 +176,29 @@ def run_client(mdapi: Path, config: dict[str, object], work_root: Path) -> Path:
             [sys.executable, mdapi.name],
             cwd=mdapi.parent,
             stdin=subprocess.DEVNULL,
-            stdout=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
             timeout=15 * 60,
             check=False,
         )
         if result.returncode != 0:
-            raise RuntimeError(
-                "Official MOSDAC client failed with exit code "
-                f"{result.returncode}. Check the MOSDAC client error log under {error_log_path}."
+            log_contents = []
+            if error_log_path.exists():
+                for log_file in error_log_path.glob("*"):
+                    if log_file.is_file():
+                        try:
+                            log_contents.append(f"--- {log_file.name} ---\n" + log_file.read_text(encoding="utf-8", errors="replace"))
+                        except Exception:
+                            pass
+            logs_summary = "\n".join(log_contents) if log_contents else "No log files created."
+            err_details = (
+                f"MOSDAC mdapi client failed (exit code {result.returncode}):\n"
+                f"STDOUT:\n{result.stdout.strip() or '(empty)'}\n\n"
+                f"STDERR:\n{result.stderr.strip() or '(empty)'}\n\n"
+                f"CLIENT LOGS:\n{logs_summary}"
             )
+            raise RuntimeError(err_details)
         return newest_hdf(download_path, str(config["search_parameters"]["datasetId"]))
     finally:
         config_path.unlink(missing_ok=True)
@@ -196,7 +218,9 @@ def normalize(product: Path, output: Path, latitude: float, longitude: float, wo
         "--output",
         str(temp_output),
     ]
-    result = subprocess.run(command, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True, check=False)
+    result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=False)
+    if result.stdout:
+        print(result.stdout.strip())
     if result.returncode != 0:
         raise RuntimeError(f"MOSDAC normalization failed: {result.stderr.strip()[-500:]}")
 

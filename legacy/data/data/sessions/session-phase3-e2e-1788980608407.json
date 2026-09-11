@@ -1,0 +1,17 @@
+{
+  "sessionId": "session-phase3-e2e-1788980608407",
+  "createdAt": "2026-09-09T19:03:28.407Z",
+  "updatedAt": "2026-09-09T19:03:28.407Z",
+  "title": "Digha Coast Marine Advisory",
+  "turns": [],
+  "activeLocation": {
+    "name": "Digha Coast",
+    "state": "West Bengal",
+    "country": "India",
+    "latitude": 21.6266,
+    "longitude": 87.5074,
+    "regionType": "coastal_harbor",
+    "depthMeters": 14,
+    "nearestPort": "Digha Mohana Fishing Harbour"
+  }
+}

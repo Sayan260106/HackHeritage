@@ -74,6 +74,45 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({
     setSimVisibility(initialWeather.visibilityKm);
   };
 
+  const applyPreset = (preset: {
+    wave: number;
+    swell: number;
+    wind: number;
+    gust: number;
+    current: number;
+    visibility: number;
+  }) => {
+    setSimWaveHeight(preset.wave);
+    setSimSwellPeriod(preset.swell);
+    setSimWindSpeed(preset.wind);
+    setSimWindGust(preset.gust);
+    setSimCurrent(preset.current);
+    setSimVisibility(preset.visibility);
+  };
+
+  const PRESETS = [
+    {
+      label: '🌊 Monsoon Swell Surge',
+      desc: '3.8m waves • 28 kts wind',
+      values: { wave: 3.8, swell: 14, wind: 28, gust: 42, current: 2.1, visibility: 4.5 },
+    },
+    {
+      label: '🌪️ Cyclone Depression',
+      desc: '4.5m waves • 35 kts storm',
+      values: { wave: 4.5, swell: 16, wind: 35, gust: 55, current: 2.8, visibility: 2.0 },
+    },
+    {
+      label: '⚡ Severe Squall & Fog',
+      desc: '2.4m waves • 1.2 km fog',
+      values: { wave: 2.4, swell: 11, wind: 24, gust: 38, current: 1.4, visibility: 1.2 },
+    },
+    {
+      label: '☀️ Calm Trawling Window',
+      desc: '0.6m waves • 6 kts calm',
+      values: { wave: 0.6, swell: 7, wind: 6, gust: 9, current: 0.4, visibility: 12.0 },
+    },
+  ];
+
   // Theme for simulated risk
   const getTheme = (level: string) => {
     switch (level) {
@@ -104,7 +143,7 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({
         </div>
         <button
           onClick={resetToBaseline}
-          className="flex items-center space-x-1 text-xs font-semibold text-slate-400 hover:text-white bg-slate-950 px-2.5 py-1 rounded-lg border border-slate-800 hover:bg-slate-800 transition-all"
+          className="flex items-center space-x-1 text-xs font-semibold text-slate-400 hover:text-white bg-slate-950 px-2.5 py-1 rounded-lg border border-slate-800 hover:bg-slate-800 transition-all cursor-pointer"
         >
           <RotateCcw className="h-3 w-3" />
           <span>{dict.resetLiveFeed}</span>
@@ -112,8 +151,31 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({
       </div>
 
       <p className="text-xs text-slate-300">
-        Simulate severe weather onset or calm conditions. Adjust parameters below to observe real-time recalculation of the calibrated XGBoost marine risk score and vessel permissions.
+        Simulate severe weather onset or calm conditions. Adjust parameters below or pick a preset to observe real-time recalculation of the calibrated XGBoost marine risk score and vessel permissions.
       </p>
+
+      {/* Quick Scenario Presets */}
+      <div className="space-y-1.5">
+        <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold">
+          Quick Operational Presets:
+        </span>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          {PRESETS.map((p, idx) => (
+            <button
+              key={idx}
+              onClick={() => applyPreset(p.values)}
+              className="px-2.5 py-2 rounded-xl border border-slate-800 bg-slate-950/80 hover:bg-slate-800/80 hover:border-cyan-500/50 transition-all text-left group cursor-pointer"
+            >
+              <div className="text-xs font-bold text-slate-200 group-hover:text-cyan-300 transition-colors">
+                {p.label}
+              </div>
+              <div className="text-[10px] text-slate-400 font-mono mt-0.5">
+                {p.desc}
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
 
       {/* Grid: Sliders on Left, Live Outcome on Right */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">

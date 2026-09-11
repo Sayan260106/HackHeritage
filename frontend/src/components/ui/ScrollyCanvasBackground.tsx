@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useCallback } from "react";
 import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
-import { BG_FRAMES } from "../../data/bgFrames";
 
 interface ScrollyCanvasBackgroundProps {
   className?: string;
@@ -8,14 +7,13 @@ interface ScrollyCanvasBackgroundProps {
   initialFrame?: number;
 }
 
-// 301, not 1076. The other 775 files were byte-identical repeats of these --
-// see src/data/bgFrames.ts. Scroll maps onto the real frames instead of onto
-// repeats, so the animation is the same and nothing is fetched twice.
-const TOTAL_FRAMES = BG_FRAMES.length;
+const TOTAL_FRAMES = 1076;
 
 function getFrameUrl(index: number): string {
-  const i = Math.min(TOTAL_FRAMES - 1, Math.max(0, index));
-  return `/bg/${BG_FRAMES[i]}`;
+  // index is 0-based (0 to 1075); frame files in ./public/bg are 1-based (frame_0001.webp to frame_1076.webp)
+  const frameNum = Math.min(TOTAL_FRAMES, Math.max(1, index + 1));
+  const padded = String(frameNum).padStart(4, "0");
+  return `/bg/frame_${padded}.webp`;
 }
 
 export const ScrollyCanvasBackground: React.FC<ScrollyCanvasBackgroundProps> = ({
@@ -137,8 +135,8 @@ export const ScrollyCanvasBackground: React.FC<ScrollyCanvasBackgroundProps> = (
   );
 
   // Progressive image preloader:
-  // Phase 1: Hero batch (frames 0..13) loads immediately
-  // Phase 2: Skeleton keyframe sampling (every 4th frame across 301)
+  // Phase 1: Hero batch (frames 0..45) loads immediately
+  // Phase 2: Skeleton keyframe sampling (every 12th frame across 1076)
   // Phase 3: Fill in remaining frames in background chunks
   useEffect(() => {
     let isCancelled = false;
@@ -148,7 +146,7 @@ export const ScrollyCanvasBackground: React.FC<ScrollyCanvasBackgroundProps> = (
     async function preloadSequence() {
       // Phase 1: Eagerly load initial hero frames
       const heroBatch: Promise<HTMLImageElement>[] = [];
-      for (let i = 0; i < Math.min(13, totalFrames); i++) {
+      for (let i = 0; i < Math.min(45, totalFrames); i++) {
         heroBatch.push(loadSingleImage(i));
       }
       await Promise.allSettled(heroBatch);
@@ -157,18 +155,18 @@ export const ScrollyCanvasBackground: React.FC<ScrollyCanvasBackgroundProps> = (
       // Draw initial frame as soon as hero batch is ready
       drawFrame(0);
 
-      // Phase 2: Skeleton keyframes across entire sequence (every 4th frame)
+      // Phase 2: Skeleton keyframes across entire sequence (every 12th frame)
       // This provides instant full-page scrub responsiveness
       const skeletonBatch: Promise<HTMLImageElement>[] = [];
-      for (let i = 13; i < totalFrames; i += 4) {
+      for (let i = 45; i < totalFrames; i += 12) {
         skeletonBatch.push(loadSingleImage(i));
       }
       await Promise.allSettled(skeletonBatch);
       if (isCancelled) return;
 
       // Phase 3: Progressively stream all remaining frames in gentle chunks
-      const CHUNK_SIZE = 8;
-      for (let i = 13; i < totalFrames; i += CHUNK_SIZE) {
+      const CHUNK_SIZE = 20;
+      for (let i = 45; i < totalFrames; i += CHUNK_SIZE) {
         if (isCancelled) break;
         const chunk: Promise<HTMLImageElement>[] = [];
         for (let j = i; j < Math.min(i + CHUNK_SIZE, totalFrames); j++) {
@@ -205,7 +203,7 @@ export const ScrollyCanvasBackground: React.FC<ScrollyCanvasBackgroundProps> = (
       if (!imagesRef.current[target]) {
         loadSingleImage(target);
       }
-      for (let offset = 1; offset <= 4; offset++) {
+      for (let offset = 1; offset <= 12; offset++) {
         if (target + offset < totalFrames && !imagesRef.current[target + offset]) {
           loadSingleImage(target + offset);
         }
@@ -246,7 +244,7 @@ export const ScrollyCanvasBackground: React.FC<ScrollyCanvasBackgroundProps> = (
       const current = currentFrameFloatRef.current;
       const diff = target - current;
 
-      // Responsive, buttery-smooth momentum interpolation across the sequence
+      // Responsive, buttery-smooth momentum interpolation across 1076 frames
       if (Math.abs(diff) < 0.001) {
         currentFrameFloatRef.current = target;
       } else {

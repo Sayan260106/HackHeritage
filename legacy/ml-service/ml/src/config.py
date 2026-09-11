@@ -23,6 +23,14 @@ FEATURE_COLUMNS = [
     "month", "season",
 ]
 
+# 14-feature standard buoy baseline matching NOAA NDBC & deployed XGBoost artifact
+BUOY_BASELINE_FEATURE_COLUMNS = [
+    "wind_speed_kts", "wind_gust_kts", "wave_height_m", "wave_period_s",
+    "mean_wave_period_s", "wind_direction_deg", "wave_direction_deg",
+    "air_pressure_hpa", "air_temperature_c", "water_temperature_c",
+    "latitude", "longitude", "month", "hour",
+]
+
 HISTORICAL_LOCATIONS = [
     {"id": "digha_wb", "name": "Digha Coast", "region": "West Bengal", "latitude": 21.626, "longitude": 87.508},
     {"id": "paradip_od", "name": "Paradip Coast", "region": "Odisha", "latitude": 20.264, "longitude": 86.679},

@@ -3,7 +3,7 @@ import { COASTAL_LOCATIONS, MARINE_EVIDENCE_CORPUS } from '../../src/data/coasta
 import { calculateMarineRisk, generateGisLayers } from '../../src/utils/marineRiskEngine.ts';
 import { predictMarineRiskWithMl } from '../../src/services/ml/riskService.ts';
 import { fetchSatelliteData } from '../../src/services/satellite/satelliteService.ts';
-import { AgentStepTrace, AlertSummary, LanguageCode, OrcaAnalysisResponse, SatelliteData, RiskPrediction, LocationInfo, TimeWindow, GisLayerData, EvidenceItem, GeofenceSpatialAnalysis, OperationalDecision, SafeRouteSummary } from '../../src/types.ts';
+import { AgentStepTrace, AlertSummary, AudioAlertPayload, LanguageCode, OrcaAnalysisResponse, SatelliteData, RiskPrediction, LocationInfo, TimeWindow, GisLayerData, EvidenceItem, GeofenceSpatialAnalysis, OperationalDecision, SafeRouteSummary, DarkVesselAnalysis } from '../../src/types.ts';
 import { fetchMarineAndWeatherData, resolveLocation, resolveSatelliteObservationWindow, resolveTimeWindow } from './marineService.ts';
 import { retrieveRagEvidence } from './ragService.ts';
 import { buildLocalizedGroundedSummary, localizeRiskPrediction } from '../../src/utils/marineRiskLocalization.ts';
@@ -14,8 +14,10 @@ import { analyzePfz, type PfzAnalysis } from './pfzService.ts';
 import { fuseMarineDecision } from './decisionFusion.ts';
 import { runAgenticSafeRouting } from './agenticSafeRouting.ts';
 import { runAgenticAlertEvaluation } from './agenticAlertAgent.ts';
+import { analyzeVesselTrafficAsync } from './aisVesselService.ts';
 import { getSession, recordSessionTurn, resolveConversationalContext } from './conversationService.ts';
 import { generateLocalizedIntentBriefing } from './intentBriefingLocalization.ts';
+import { voiceWarning } from '../../src/services/audio/voiceWarningService.ts';
 
 let genAIClient: GoogleGenAI | null = null;
 function getGenAI(): GoogleGenAI | null {
@@ -24,6 +26,71 @@ function getGenAI(): GoogleGenAI | null {
 }
 function unavailableSatellite(location: LocationInfo): SatelliteData {
   return { status: 'UNAVAILABLE', satelliteName: 'No satellite source', processingTime: new Date().toISOString(), latitude: location.latitude, longitude: location.longitude, source: 'No satellite source', sourceUrl: '', observationType: 'NO_OBSERVATION', warnings: ['Satellite branch unavailable; no EO observation was supplied.'], observations: [] };
+}
+
+function generateAudioAlert(
+  location: LocationInfo,
+  risk: RiskPrediction,
+  geofenceAnalysis?: GeofenceSpatialAnalysis,
+  alertSummary?: AlertSummary,
+  language: LanguageCode = 'en'
+): AudioAlertPayload {
+  // 1. Critical Geofence Breach / IMBL Crossing
+  const criticalGeofence = geofenceAnalysis?.activeAlerts?.find(
+    a => a.severity === 'CRITICAL_BREACH' || Boolean(a.hasCrossedBorder) || (a.type === 'MPA' && Boolean(a.isInside))
+  );
+  if (criticalGeofence) {
+    const phrase = voiceWarning.generateGeofencePhrase(criticalGeofence, language);
+    return {
+      phrase,
+      cueType: 'SIREN_CRITICAL',
+      isCritical: true,
+      language,
+    };
+  }
+
+  // 2. Extreme Weather or Statutory Red Warning
+  if (risk.riskLevel === 'EXTREME' || alertSummary?.highestSeverity === 'CRITICAL') {
+    const weatherPhrase = voiceWarning.generateWeatherPhrase(risk, language);
+    return {
+      phrase: weatherPhrase,
+      cueType: 'SIREN_CRITICAL',
+      isCritical: true,
+      language,
+    };
+  }
+
+  // 3. Proximity Warning (<3 NM from Border or MPA Buffer)
+  const proximityGeofence = geofenceAnalysis?.activeAlerts?.find(a => a.severity === 'PROXIMITY_WARNING');
+  if (proximityGeofence) {
+    const phrase = voiceWarning.generateGeofencePhrase(proximityGeofence, language);
+    return {
+      phrase,
+      cueType: 'CHIME_WARNING',
+      isCritical: false,
+      language,
+    };
+  }
+
+  // 4. High Risk Alert
+  if (risk.riskLevel === 'HIGH' || alertSummary?.highestSeverity === 'WARNING') {
+    const weatherPhrase = voiceWarning.generateWeatherPhrase(risk, language);
+    return {
+      phrase: weatherPhrase,
+      cueType: 'CHIME_WARNING',
+      isCritical: false,
+      language,
+    };
+  }
+
+  // 5. Standard Spoken Marine Operational Briefing
+  const verdictPhrase = voiceWarning.generateRiskVerdictPhrase(location, risk, undefined, language);
+  return {
+    phrase: verdictPhrase,
+    cueType: 'VOICE_BRIEFING',
+    isCritical: false,
+    language,
+  };
 }
 
 export async function runOrcaAgentWorkflow(
@@ -59,6 +126,7 @@ export async function runOrcaAgentWorkflow(
   let safeRoute: SafeRouteSummary | undefined;
   let alertSummary: AlertSummary | undefined;
   let evidence: EvidenceItem[] = [];
+  let vesselTraffic: DarkVesselAnalysis | undefined;
   let ragProvider = 'not-run';
   let ragModel = 'not-run';
   let groundedSummary = '';
@@ -110,8 +178,19 @@ export async function runOrcaAgentWorkflow(
       const trace = startTrace('RiskEngine', 'Run XGBoost ML risk service with deterministic fallback', 'risk', plan.tasks.find(t => t.id === 'risk')?.dependsOn);
       const mlRisk = await predictMarineRiskWithMl(realtime.weather, realtime.ocean, satellite, location); const rawRisk = mlRisk || calculateMarineRisk(realtime.weather, realtime.ocean, satellite, location);
       risk = localizeRiskPrediction(rawRisk, realtime.weather, realtime.ocean, language);
-      if (mlRisk) { trace.logs.push(`XGBoost prediction received: ${mlRisk.riskLevel} (${mlRisk.confidenceScore}%).`); if (mlRisk.domainValidation) trace.logs.push(`ML deployment validation: ${mlRisk.domainValidation.deploymentValidationStatus}.`); } else trace.logs.push('ML API unavailable; deterministic fallback used.');
-      finishTrace(trace, `${risk.riskScore}/100 ${risk.riskLevel}`);
+      if (mlRisk) {
+        trace.logs.push(`XGBoost prediction received: ${mlRisk.riskLevel} (${mlRisk.confidenceScore}%).`);
+        if (mlRisk.domainValidation) trace.logs.push(`ML deployment validation: ${mlRisk.domainValidation.deploymentValidationStatus}.`);
+        if (mlRisk.auditProvenance) {
+          trace.logs.push(`Data Provenance: Pipeline=${mlRisk.auditProvenance.pipeline || 'dual-model'}, QualityScore=${mlRisk.auditProvenance.qualityScore ?? 'N/A'}, Degraded=${mlRisk.auditProvenance.degraded ? 'YES' : 'NO'}`);
+          if (mlRisk.auditProvenance.activeSources?.length) {
+            trace.logs.push(`Active Audited Sources: ${mlRisk.auditProvenance.activeSources.join(', ')}`);
+          }
+        }
+      } else {
+        trace.logs.push('⚠️ ML API unavailable; deterministic Douglas Sea State physics fallback used.');
+      }
+      finishTrace(trace, `${risk.riskScore}/100 ${risk.riskLevel}${mlRisk ? ' (Live ML)' : ' (Physics Fallback)'}`);
     },
     gis: async () => {
       if (!location || !realtime || !risk) throw new Error('Required context for GIS reasoning is unavailable.');
@@ -130,9 +209,11 @@ export async function runOrcaAgentWorkflow(
       finishTrace(trace, `${pfz.zones.length} candidate zones ranked; best=${pfz.bestZone?.id ?? 'none'}; status=${pfz.status}`);
     },
     safe_route: async (task) => {
-      if (!location || !risk || !pfz) throw new Error('Safe routing requires resolved location, risk and PFZ outputs.');
-      const trace = startTrace('SafeRoutingAgent', 'Fuse risk/PFZ/geofence decisions and compute a geofence-safe route to the selected PFZ', 'safe_route', task.dependsOn);
-      const routing = runAgenticSafeRouting({ origin: location, risk, geofence: geofenceAnalysis, pfz }); operationalDecision = routing.decision;
+      const activeSession = sessionId ? getSession(sessionId) : undefined;
+      const effectivePfz = pfz || activeSession?.activePfz;
+      if (!location || !risk) throw new Error('Safe routing requires resolved location and risk context.');
+      const trace = startTrace('SafeRoutingAgent', 'Fuse risk/PFZ/geofence decisions and compute a geofence-safe navigation route', 'safe_route', task.dependsOn);
+      const routing = runAgenticSafeRouting({ origin: location, risk, geofence: geofenceAnalysis, pfz: effectivePfz, query }); operationalDecision = routing.decision;
       const route = routing.route;
       safeRoute = {
         status: routing.status,
@@ -171,6 +252,16 @@ export async function runOrcaAgentWorkflow(
       trace.logs.push(`Retrieval provider: ${rag.provider}; retrieval: ${rag.retrieval}; embedding model: ${rag.model}.`); if (rag.degraded && rag.error) trace.logs.push(`Fallback reason: ${rag.error}`);
       finishTrace(trace, `${rag.evidence.length} evidence items retrieved via ${rag.provider}${rag.degraded ? ' (degraded)' : ''}.`);
     },
+    vessels: async () => {
+      if (!location) throw new Error('Location context is unavailable for vessel surveillance.');
+      const trace = startTrace('VesselSurveillanceAgent', `Surveil AIS targets and ocean buoys near ${location.name}`, 'vessels', ['resolve_location_time']);
+      vesselTraffic = await analyzeVesselTrafficAsync(location.latitude, location.longitude, location.name);
+      trace.logs.push(`Data Source: ${vesselTraffic.dataSource}`);
+      trace.logs.push(`Tracked Targets: ${vesselTraffic.totalTrackedVessels} (${vesselTraffic.activeAisVessels} active AIS buoys/ships, ${vesselTraffic.darkVesselCount} dark vessels).`);
+      trace.logs.push(`Sentinel-1 SAR Radar Pass: ${vesselTraffic.sentinel1PassTime}`);
+      for (const warning of vesselTraffic.warnings || []) trace.logs.push(`[VESSEL SURVEILLANCE] ${warning}`);
+      finishTrace(trace, `${vesselTraffic.totalTrackedVessels} targets detected | Active AIS: ${vesselTraffic.activeAisVessels} | Dark: ${vesselTraffic.darkVesselCount}`);
+    },
     synthesis: async (task) => {
       if (!location || !timeWindow || !realtime || !risk) throw new Error('Required execution outputs are unavailable for synthesis.');
       if (!operationalDecision && (pfz || geofenceAnalysis)) operationalDecision = fuseMarineDecision(risk, geofenceAnalysis, pfz);
@@ -181,13 +272,14 @@ export async function runOrcaAgentWorkflow(
         const pfzSummary = pfz ? `PFZ: status=${pfz.status}; best=${pfz.bestZone ? `${pfz.bestZone.id} score=${pfz.bestZone.score}/100 suitability=${pfz.bestZone.suitability} confidence=${pfz.bestZone.confidence}` : 'none'}; warnings=${pfz.warnings.join(' | ') || 'none'}.` : 'PFZ: not selected.';
         const decisionSummary = operationalDecision ? `DECISION: ${operationalDecision.decision}; score=${operationalDecision.score}/100; confidence=${operationalDecision.confidence}; rationale=${operationalDecision.rationale}.` : 'DECISION: not required.';
         const routeSummary = safeRoute ? `SAFE ROUTE: status=${safeRoute.status}; destination=${safeRoute.destinationLabel || 'none'}; distance=${safeRoute.distanceKm ?? 'N/A'} km; waypoints=${safeRoute.waypointCount}.` : 'SAFE ROUTE: not selected.';
+        const vesselSummary = vesselTraffic ? `VESSELS: tracked=${vesselTraffic.totalTrackedVessels}; activeAis=${vesselTraffic.activeAisVessels}; darkVessels=${vesselTraffic.darkVesselCount}; sentinel1RadarPass=${vesselTraffic.sentinel1PassTime}.` : 'VESSELS: not requested.';
         const activeSession = sessionId ? getSession(sessionId) : undefined;
         const recentTurnsText = activeSession && activeSession.turns.length > 0
           ? `CONVERSATION HISTORY:\n${activeSession.turns.slice(-3).map((t, idx) => `Turn ${idx + 1}: User asked: "${t.query}" | Response excerpt: "${t.responseSummary.slice(0, 160)}..."`).join('\n')}\n`
           : '';
-        const prompt = `You are ORCA-X, a grounded marine intelligence assistant. User query: "${query}". Location: ${location.name}, ${location.country}. Time: ${timeWindow.requestedText}. Intent: ${plan.intent}. ${recentTurnsText}LIVE weather source=${realtime.weather.source}, wind=${realtime.weather.windSpeedKts}kt, gust=${realtime.weather.windGustKts}kt, weatherCode=${realtime.weather.weatherCode}. LIVE marine source=${realtime.ocean.source}, wave=${realtime.ocean.waveHeightMeters}m, swell=${realtime.ocean.swellHeightMeters}m. Risk=${risk.riskScore}/100 ${risk.riskLevel}, confidence=${risk.confidenceScore}%. ${geofenceSummary} ${pfzSummary} ${decisionSummary} ${routeSummary} ${alertSummaryText} Evidence=${evidence.map(e => `${e.title} | ${e.sourceAuthority} | ${e.excerpt}`).join(' || ')}. Never invent measurements. Critical alerts and AVOID decisions must be treated as hard operational warnings. The cyclone signal is only a proxy unless authoritative IMD confirmation is present. State degraded data explicitly and do not imply that ORCA-X replaces IMD, INCOIS, MRCC, nautical charts or statutory warnings.`;
-        for (const model of ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-3.7-flash']) {
-          try { const response = await genAI.models.generateContent({ model, contents: prompt, config: { temperature: 0.2, topP: 0.85 } }); if (response.text) { groundedSummary = response.text; break; } } catch { trace.logs.push(`Model ${model} unavailable; trying next model.`); }        }
+        const prompt = `You are ORCA-X, a grounded marine intelligence assistant. User query: "${query}". Location: ${location.name}, ${location.country}. Time: ${timeWindow.requestedText}. Intent: ${plan.intent}. ${recentTurnsText}LIVE weather source=${realtime.weather.source}, wind=${realtime.weather.windSpeedKts}kt, gust=${realtime.weather.windGustKts}kt, weatherCode=${realtime.weather.weatherCode}. LIVE marine source=${realtime.ocean.source}, wave=${realtime.ocean.waveHeightMeters}m, swell=${realtime.ocean.swellHeightMeters}m. Risk=${risk.riskScore}/100 ${risk.riskLevel}, confidence=${risk.confidenceScore}%. ${geofenceSummary} ${pfzSummary} ${decisionSummary} ${routeSummary} ${vesselSummary} ${alertSummaryText} Evidence=${evidence.map(e => `${e.title} | ${e.sourceAuthority} | ${e.excerpt}`).join(' || ')}. Never invent measurements. Critical alerts and AVOID decisions must be treated as hard operational warnings. The cyclone signal is only a proxy unless authoritative IMD confirmation is present. State degraded data explicitly and do not imply that ORCA-X replaces IMD, INCOIS, MRCC, nautical charts or statutory warnings.`;
+        for (const model of ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash']) {
+          try { const response = await genAI.models.generateContent({ model, contents: prompt, config: { temperature: 0.2, topP: 0.85 } }); if (response.text) { groundedSummary = response.text; break; } } catch { trace.logs.push(`Model ${model} unavailable; trying next model.`); }        }
       }
 
       const buildIntentGroundedBriefing = (): string => {
@@ -204,6 +296,7 @@ export async function runOrcaAgentWorkflow(
           safeRoute,
           alertSummary,
           geofence: geofenceAnalysis,
+          vesselTraffic,
         });
 
         if (localized) return localized;
@@ -223,7 +316,7 @@ export async function runOrcaAgentWorkflow(
 
   for (const task of result.plan.tasks.filter(t => !t.enabled)) {
     if (traces.some(t => t.taskId === task.id) || task.id === 'synthesis') continue;
-    const agentName = task.id === 'satellite' ? 'SatelliteAgent' : task.id === 'gis' ? 'GisAgent' : task.id === 'pfz' ? 'PFZAgent' : task.id === 'safe_route' ? 'SafeRoutingAgent' : task.id === 'alerts' ? 'AlertAgent' : task.id === 'evidence' ? 'EvidenceRetrieval' : 'RiskEngine';
+    const agentName = task.id === 'satellite' ? 'SatelliteAgent' : task.id === 'gis' ? 'GisAgent' : task.id === 'pfz' ? 'PFZAgent' : task.id === 'safe_route' ? 'SafeRoutingAgent' : task.id === 'alerts' ? 'AlertAgent' : task.id === 'evidence' ? 'EvidenceRetrieval' : task.id === 'vessels' ? 'VesselSurveillanceAgent' : 'RiskEngine';
     traces.push({ agentName: agentName as AgentStepTrace['agentName'], status: 'skipped', startedAt: new Date().toISOString(), completedAt: new Date().toISOString(), durationMs: 0, inputSummary: task.label, outputSummary: task.reason, logs: [`Skipped by planner/replanner: ${task.reason}`], taskId: task.id, dependencies: task.dependsOn });
   }
   if (!location || !timeWindow || !realtime || !risk) { const failure = result.failures.map(f => `${f.taskId}: ${f.reason}`).join('; '); throw new Error(`ORCA-X agent execution could not complete required tasks.${failure ? ` ${failure}` : ''}`); }
@@ -240,6 +333,8 @@ export async function runOrcaAgentWorkflow(
   const routingDegraded = Boolean(routingTask?.enabled && (routingTask.status !== 'completed' || safeRoute?.status === 'ROUTE_UNAVAILABLE'));
   const alertTask = result.plan.tasks.find(t => t.id === 'alerts');
   const alertsDegraded = Boolean(alertTask?.enabled && alertTask.status !== 'completed');
+  const vesselsTask = result.plan.tasks.find(t => t.id === 'vessels');
+  const vesselsDegraded = Boolean(vesselsTask?.enabled && vesselsTask.status !== 'completed');
   const finalWarnings = [...realtime.metadata.warnings, ...satellite.warnings];
   if (operationalDecision?.warnings) finalWarnings.push(...operationalDecision.warnings);
   if (pfzDegraded) finalWarnings.push(pfz ? 'PFZ intelligence completed in degraded mode; candidate ranking should not be treated as a fish-catch guarantee.' : 'PFZ intelligence was selected but did not complete; no fishing-zone ranking is available.');
@@ -248,9 +343,12 @@ export async function runOrcaAgentWorkflow(
   if (routingDegraded) finalWarnings.push('Safe routing was selected but did not produce a confirmed route.');
   if (alertSummary?.alerts.some(alert => alert.severity === 'CRITICAL')) finalWarnings.push('Critical marine alert(s) are active; verify authoritative warnings before operating.');
   if (alertsDegraded) finalWarnings.push('Alert evaluation was selected but did not complete; the response may omit proactive warning signals.');
+  if (vesselsDegraded) finalWarnings.push('Maritime vessel surveillance was selected but could not acquire active radar passes.');
   if (geofenceAnalysis?.activeAlerts) for (const alert of geofenceAnalysis.activeAlerts) if (alert.severity === 'CRITICAL_BREACH' || alert.severity === 'PROXIMITY_WARNING') finalWarnings.push(alert.warningMessage);
   if (ragDegraded) finalWarnings.push('Evidence retrieval did not complete; response was synthesized with available grounded data.');
   if (result.replans > 0) finalWarnings.push(`Execution replanned ${result.replans} time${result.replans === 1 ? '' : 's'} after an optional branch failure.`);
+
+  const audioAlert = generateAudioAlert(location, risk, geofenceAnalysis, alertSummary, language);
 
   const response: OrcaAnalysisResponse = {
     queryId,
@@ -270,8 +368,10 @@ export async function runOrcaAgentWorkflow(
     safeRoute,
     alertSummary,
     evidence,
+    vesselTraffic,
     agentTraces: traces,
     groundedSummary,
+    audioAlert,
     executionPlan: {
       planId: result.plan.planId,
       intent: result.plan.intent,
@@ -279,7 +379,7 @@ export async function runOrcaAgentWorkflow(
       tasks: result.plan.tasks,
       generatedAt: result.plan.generatedAt
     },
-    isDataDegraded: realtime.degraded || satelliteDegraded || pfzDegraded || ragDegraded || routingDegraded || alertsDegraded || operationalDecision?.confidence === 'LOW',
+    isDataDegraded: realtime.degraded || satelliteDegraded || pfzDegraded || ragDegraded || routingDegraded || alertsDegraded || vesselsDegraded || operationalDecision?.confidence === 'LOW',
     warnings: [...new Set(finalWarnings)],
     freshnessTimestamp,
     officialDisclaimer: 'ORCA-X is an AI decision-support platform for marine intelligence. It does NOT supersede statutory warnings from INCOIS, IMD, or Maritime Rescue Coordination Centres (MRCC). Open-Meteo modelled marine currents/tides are advisory and do not replace nautical navigation information.',
@@ -288,6 +388,10 @@ export async function runOrcaAgentWorkflow(
 
   if (sessionId) {
     const updatedSession = recordSessionTurn(sessionId, query, response);
+    if (vesselTraffic) {
+      const activeSess = getSession(sessionId);
+      if (activeSess) activeSess.activeVesselTraffic = vesselTraffic;
+    }
     response.turnIndex = updatedSession.turns.length;
   }
 
