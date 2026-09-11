@@ -5,6 +5,7 @@
   "description": "ORCA-X marine intelligence platform — HackHeritage",
   "type": "module",
   "scripts": {
+    "dev": "vite --port 3001 --host 0.0.0.0",
     "dev:console": "vite --port 3001 --host 0.0.0.0",
     "build": "vite build",
     "preview": "vite preview",
