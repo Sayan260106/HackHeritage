@@ -17,7 +17,7 @@ import {
   ShieldCheck,
   AlertTriangle
 } from 'lucide-react';
-import { LocationInfo, GisLayerData, RiskLevel, RiskPrediction, OceanData, LanguageCode, GeofenceSpatialAnalysis, DarkVesselAnalysis, VesselTarget, OilSpillAnalysis, OilSpillEvent } from '../types';
+import { LocationInfo, GisLayerData, RiskLevel, RiskPrediction, OceanData, LanguageCode, GeofenceSpatialAnalysis, DarkVesselAnalysis, VesselTarget, OilSpillAnalysis, OilSpillEvent, selectPriorityGeofenceAlert } from '../types';
 import { COASTAL_LOCATIONS, MULTILINGUAL_DICTIONARY } from '../data/coastalData';
 import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion';
 import { maritimeSiren } from '../services/audio/maritimeSirenService';
@@ -98,6 +98,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   const vesselLayerGroupRef = useRef<L.LayerGroup | null>(null);
   const oilSpillLayerGroupRef = useRef<L.LayerGroup | null>(null);
   const imblLayerGroupRef = useRef<L.LayerGroup | null>(null);
+  const mpaLayerGroupRef = useRef<L.LayerGroup | null>(null);
   const targetMarkerRef = useRef<L.Marker | null>(null);
   const clickMarkerRef = useRef<L.Marker | null>(null);
   const onCoordinateClickRef = useRef(onCoordinateClick);
@@ -460,6 +461,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       geojsonLayerRef.current = null;
       targetMarkerRef.current = null;
       imblLayerGroupRef.current = null;
+      mpaLayerGroupRef.current = null;
     };
   }, []);
 
@@ -635,6 +637,84 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
     };
   }, [showImbl]);
 
+  // Render Marine Protected Areas (MPAs / Sanctuaries / National Parks) matching ORCA frontend
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+
+    if (mpaLayerGroupRef.current) {
+      map.removeLayer(mpaLayerGroupRef.current);
+      mpaLayerGroupRef.current = null;
+    }
+
+    if (!showMpas) return;
+
+    let cancelled = false;
+    const mpaGroup = L.layerGroup().addTo(map);
+    mpaLayerGroupRef.current = mpaGroup;
+
+    fetch('/geo/india_mpa.geojson')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((geojson) => {
+        if (cancelled || !geojson) return;
+        L.geoJSON(geojson, {
+          style: {
+            color: '#6D28D9',
+            weight: 1.5,
+            opacity: 0.9,
+            fillColor: '#7C3AED',
+            fillOpacity: 0.18,
+            dashArray: '5, 5',
+          },
+          interactive: true,
+          onEachFeature: (feature, lyr) => {
+            const p = (feature.properties ?? {}) as Record<string, any>;
+            const name = p.name ?? p.NAME ?? 'Marine Protected Area';
+            const desig = p.designation ?? p.DESIGNATION ?? p.iucnCategory ?? 'Wildlife Sanctuary / Reserve';
+            const area = p.marineAreaKm2 ? `${p.marineAreaKm2} km²` : p.area ? `${p.area} sq km` : undefined;
+
+            lyr.bindTooltip(`🌿 Protected Area — ${name} (${desig})`, { sticky: true });
+
+            lyr.on('click', (e: L.LeafletMouseEvent) => {
+              const clickLat = Number(e.latlng.lat.toFixed(4));
+              const clickLon = Number(e.latlng.lng.toFixed(4));
+              lyr.bindPopup(`
+                <div class="p-2.5 space-y-2 max-w-[290px] bg-slate-900 text-slate-100 rounded-lg">
+                  <div class="font-bold text-purple-400 text-xs border-b border-purple-800/80 pb-1 flex items-center justify-between">
+                    <span class="flex items-center gap-1">🌿 ${name}</span>
+                    <span class="text-[9px] bg-purple-950 text-purple-300 px-1.5 py-0.5 rounded border border-purple-700/60 font-black">MPA GEOFENCE</span>
+                  </div>
+                  <div class="text-[11px] font-mono space-y-1 bg-slate-950/80 p-2 rounded border border-slate-800">
+                    <div class="flex justify-between"><span class="text-slate-400">Designation:</span> <span class="text-purple-300 font-bold">${desig}</span></div>
+                    ${area ? `<div class="flex justify-between"><span class="text-slate-400">Protected Area:</span> <span class="text-emerald-400 font-semibold">${area}</span></div>` : ''}
+                    <div class="flex justify-between"><span class="text-slate-400">Authority:</span> <span class="text-slate-200">MoEFCC / State Forest Dept</span></div>
+                    <div class="flex justify-between"><span class="text-slate-400">Mechanized Fishing:</span> <span class="text-red-400 font-bold">STRICTLY PROHIBITED</span></div>
+                  </div>
+                  <p class="text-[10px] text-purple-200 italic bg-purple-950/40 p-1.5 rounded border border-purple-900/60 leading-tight">
+                    Statutory Conservation Geofence: Zero unauthorized mechanized trawling or anchoring permitted within Sanctuary boundaries.
+                  </p>
+                  <div class="pt-1 border-t border-slate-700/60 space-y-1">
+                    <div class="text-[10px] text-slate-400 font-mono">Tapped: ${clickLat}°N, ${clickLon}°E</div>
+                    <button 
+                      onclick="window.__orcaSetBoatLocation && window.__orcaSetBoatLocation(${clickLat}, ${clickLon})"
+                      class="w-full py-1.5 px-2 rounded bg-purple-700 hover:bg-purple-600 active:bg-purple-800 text-white font-bold text-[11px] flex items-center justify-center gap-1 shadow cursor-pointer transition-all"
+                    >
+                      ⚓ Set Boat Position Here & Check Sanctuary Warning
+                    </button>
+                  </div>
+                </div>
+              `).openPopup(e.latlng);
+            });
+          },
+        }).addTo(mpaGroup);
+      })
+      .catch((err) => console.error('Failed to load marine protected areas', err));
+
+    return () => {
+      cancelled = true;
+    };
+  }, [showMpas]);
+
   // Render GeoJSON layers & markers
   useEffect(() => {
     const map = mapInstanceRef.current;
@@ -703,11 +783,11 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           }
           if (cat === 'marine_protected_area') {
             return {
-              color: '#10b981',
-              weight: 2,
+              color: '#6D28D9',
+              weight: 1.5,
               opacity: 0.9,
-              fillColor: '#059669',
-              fillOpacity: 0.22,
+              fillColor: '#7C3AED',
+              fillOpacity: 0.18,
               dashArray: '5, 5'
             };
           }
@@ -1724,25 +1804,12 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
                   id="btn-geofence-audio-broadcast"
                   onClick={async () => {
                     await maritimeSiren.unlock();
-                    // Pick the most critical alert first (CRITICAL_BREACH > PROXIMITY_WARNING > ADVISORY)
-                    const criticalActiveAlert =
-                      geo.activeAlerts?.find((a) => a.severity === 'CRITICAL_BREACH') ||
-                      geo.activeAlerts?.find((a) => a.severity === 'PROXIMITY_WARNING') ||
-                      geo.activeAlerts?.[0];
-                    if (criticalActiveAlert) {
-                      const phrase = voiceWarning.generateGeofencePhrase(criticalActiveAlert, language);
-                      voiceWarning.speak(phrase, language, {
-                        playSirenFirst: true,
-                        isCritical: criticalActiveAlert.severity === 'CRITICAL_BREACH',
-                        force: true,
-                      });
-                    } else if (geo.nearestImbl || geo.nearestMpa) {
-                      // Nearest boundary: use status to determine severity
-                      const nearestAlert = geo.nearestImbl || geo.nearestMpa!;
-                      const isBreach = geo.status === 'RESTRICTED_BREACH';
-                      const isCaution = geo.status === 'CAUTION';
+                    const alertToBroadcast = selectPriorityGeofenceAlert(geo);
+                    if (alertToBroadcast) {
+                      const isBreach = geo.status === 'RESTRICTED_BREACH' || alertToBroadcast.isInside || alertToBroadcast.severity === 'CRITICAL_BREACH';
+                      const isCaution = geo.status === 'CAUTION' || alertToBroadcast.severity === 'PROXIMITY_WARNING';
                       const alertWithSeverity = {
-                        ...nearestAlert,
+                        ...alertToBroadcast,
                         severity: isBreach
                           ? ('CRITICAL_BREACH' as const)
                           : isCaution

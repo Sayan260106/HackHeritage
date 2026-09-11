@@ -64,6 +64,38 @@ export type GeofenceBreachSeverity = 'SAFE' | 'ADVISORY' | 'PROXIMITY_WARNING' |
 
 export interface GeofenceAlert { boundaryId: string; boundaryName: string; type: 'IMBL' | 'MPA' | 'RESTRICTED' | 'OIL_SPILL'; distanceNm: number; distanceKm: number; bearingDeg?: number; severity: GeofenceBreachSeverity; warningMessage: string; treatyOrAuthority: string; regulations?: string; enforcementNotice?: string; isInside?: boolean; insideDepthNm?: number; insideDepthKm?: number; escapeBearingDeg?: number; hasCrossedBorder?: boolean; }
 export interface GeofenceSpatialAnalysis { operatingCoordinates: { latitude: number; longitude: number }; nearestImbl?: GeofenceAlert; nearestMpa?: GeofenceAlert; activeAlerts: GeofenceAlert[]; inRestrictedWaters: boolean; status: 'CLEAR' | 'CAUTION' | 'RESTRICTED_BREACH'; timestamp: string; }
+
+export function selectPriorityGeofenceAlert(geo?: GeofenceSpatialAnalysis): GeofenceAlert | undefined {
+  if (!geo) return undefined;
+
+  // 1. Explicit critical breach active alert
+  const critical = geo.activeAlerts?.find((a) => a.severity === 'CRITICAL_BREACH' || a.isInside);
+  if (critical) return critical;
+
+  // 2. Check if nearestMpa is inside
+  if (geo.nearestMpa?.isInside || (geo.nearestMpa && geo.nearestMpa.distanceNm === 0)) {
+    return geo.nearestMpa;
+  }
+
+  // 3. Check if nearestImbl has crossed border
+  if (geo.nearestImbl?.hasCrossedBorder || (geo.nearestImbl && geo.nearestImbl.isInside)) {
+    return geo.nearestImbl;
+  }
+
+  // 4. Proximity warning active alert
+  const proximity = geo.activeAlerts?.find((a) => a.severity === 'PROXIMITY_WARNING');
+  if (proximity) return proximity;
+
+  // 5. Pick closest between nearestMpa and nearestImbl
+  const mpa = geo.nearestMpa;
+  const imbl = geo.nearestImbl;
+
+  if (mpa && imbl) {
+    return mpa.distanceNm <= imbl.distanceNm ? mpa : imbl;
+  }
+
+  return mpa || imbl || geo.activeAlerts?.[0];
+}
 export interface OilSpillEvent { id: string; title: string; category: string; latitude: number; longitude: number; areaKm2?: number; driftSpeedKts?: number; driftDirectionDeg?: number; sourceAuthority: string; detectedAt: string; linkUrl?: string; polygon?: [number, number][]; distanceKm?: number; distanceNm?: number; }
 export interface OilSpillAnalysis { status: 'ACTIVE_SPILLS_DETECTED' | 'NO_ACTIVE_SPILLS_DETECTED' | 'SERVICE_DEGRADED'; activeSpillsCount: number; events: OilSpillEvent[]; queriedAt: string; source: string; warnings: string[]; }
 export interface GisGeoJsonFeature { type: 'Feature'; geometry: { type: 'Polygon' | 'Point' | 'LineString'; coordinates: any }; properties: { name: string; category: 'restricted_zone' | 'hazard_zone' | 'precaution_zone' | 'fishing_zone' | 'port_buffer' | 'safe_corridor' | 'port_shelter' | 'buoy_station' | 'bathymetry' | 'international_boundary' | 'marine_protected_area' | 'oil_spill'; riskLevel?: RiskLevel; description: string; color: string; details?: Record<string, any>; }; }

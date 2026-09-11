@@ -15,7 +15,7 @@ import {
   FileText,
   Printer
 } from 'lucide-react';
-import { RiskPrediction, LanguageCode, LocationInfo, TimeWindow, GeofenceSpatialAnalysis } from '../types';
+import { RiskPrediction, LanguageCode, LocationInfo, TimeWindow, GeofenceSpatialAnalysis, selectPriorityGeofenceAlert } from '../types';
 import { MULTILINGUAL_DICTIONARY } from '../data/coastalData';
 import { maritimeSiren } from '../services/audio/maritimeSirenService';
 import { voiceWarning } from '../services/audio/voiceWarningService';
@@ -23,9 +23,9 @@ import { voiceWarning } from '../services/audio/voiceWarningService';
 interface RiskCardProps {
   risk: RiskPrediction;
   location: LocationInfo;
-  timeWindow: TimeWindow;
+  timeWindow?: TimeWindow;
   language: LanguageCode;
-  groundedSummary: string;
+  groundedSummary?: string;
   geofenceAnalysis?: GeofenceSpatialAnalysis;
 }
 
@@ -40,17 +40,21 @@ export const RiskCard: React.FC<RiskCardProps> = ({
   const [isPlayingAudio, setIsPlayingAudio] = useState<boolean>(false);
   const dict = MULTILINGUAL_DICTIONARY[language] || MULTILINGUAL_DICTIONARY.en;
 
+  const isHighRisk = risk.riskLevel === 'HIGH' || risk.riskLevel === 'EXTREME';
+  const isModerateRisk = risk.riskLevel === 'MODERATE';
+  const isLowRisk = risk.riskLevel === 'LOW';
+
   // Speak the verdict using browser SpeechSynthesis & Maritime Siren
   const handleToggleAudio = async () => {
     if (isPlayingAudio) {
-      voiceWarning.cancel();
       maritimeSiren.stop();
+      voiceWarning.cancel();
       setIsPlayingAudio(false);
       return;
     }
 
-    await maritimeSiren.unlock();
     setIsPlayingAudio(true);
+    await maritimeSiren.unlock();
 
     const isBreach =
       geofenceAnalysis?.inRestrictedWaters ||
@@ -63,12 +67,7 @@ export const RiskCard: React.FC<RiskCardProps> = ({
 
     // Prioritize geofence breach/proximity announcements
     if (isBreach) {
-      // Pick the most critical alert (CRITICAL_BREACH first, then by nearest distance)
-      const criticalAlert =
-        geofenceAnalysis?.activeAlerts?.find((a) => a.severity === 'CRITICAL_BREACH') ||
-        geofenceAnalysis?.activeAlerts?.[0];
-      const fallbackAlert = geofenceAnalysis?.nearestImbl || geofenceAnalysis?.nearestMpa;
-      const alert = criticalAlert || fallbackAlert;
+      const alert = selectPriorityGeofenceAlert(geofenceAnalysis);
       if (alert) {
         const alertWithSeverity = { ...alert, severity: 'CRITICAL_BREACH' as const };
         const phrase = voiceWarning.generateGeofencePhrase(alertWithSeverity, language);
@@ -79,11 +78,7 @@ export const RiskCard: React.FC<RiskCardProps> = ({
     }
 
     if (isCaution) {
-      const alert =
-        geofenceAnalysis?.activeAlerts?.find((a) => a.severity === 'PROXIMITY_WARNING') ||
-        geofenceAnalysis?.activeAlerts?.[0] ||
-        geofenceAnalysis?.nearestImbl ||
-        geofenceAnalysis?.nearestMpa;
+      const alert = selectPriorityGeofenceAlert(geofenceAnalysis);
       if (alert) {
         const alertWithSeverity = { ...alert, severity: 'PROXIMITY_WARNING' as const };
         const phrase = voiceWarning.generateGeofencePhrase(alertWithSeverity, language);
