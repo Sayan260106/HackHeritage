@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { Volume2, VolumeX, Radio, Sparkles, Square, Settings, X, CheckCircle, ShieldAlert } from 'lucide-react';
-import { LanguageCode, GeofenceSpatialAnalysis, RiskPrediction } from '../types';
+import React, { useEffect, useState, useRef } from 'react';
+import { Volume2, VolumeX, Radio, Sparkles, Square, Settings, X, CheckCircle, ShieldAlert, RotateCcw } from 'lucide-react';
+import { LanguageCode, GeofenceSpatialAnalysis, RiskPrediction, AudioAlertPayload } from '../types';
 import { maritimeSiren } from '../services/audio/maritimeSirenService';
 import { voiceWarning } from '../services/audio/voiceWarningService';
 import { indicVoiceGateway, IndicVoiceConfig } from '../services/audio/indicVoiceService';
@@ -9,6 +9,7 @@ interface AudioAlertControllerProps {
   language: LanguageCode;
   geofenceAnalysis?: GeofenceSpatialAnalysis;
   risk?: RiskPrediction;
+  audioAlert?: AudioAlertPayload;
   className?: string;
 }
 
@@ -16,6 +17,7 @@ export const AudioAlertController: React.FC<AudioAlertControllerProps> = ({
   language,
   geofenceAnalysis,
   risk,
+  audioAlert,
   className = '',
 }) => {
   const [isMuted, setIsMuted] = useState<boolean>(false);
@@ -23,6 +25,7 @@ export const AudioAlertController: React.FC<AudioAlertControllerProps> = ({
   const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
   const [lastActionText, setLastActionText] = useState<string>('Standing by for maritime alerts');
   const [showConfigModal, setShowConfigModal] = useState<boolean>(false);
+  const lastSpokenAlertPhraseRef = useRef<string | null>(null);
   const [config, setConfigState] = useState<IndicVoiceConfig>(indicVoiceGateway.getConfig());
   const [saveMessage, setSaveMessage] = useState<string>('');
 
@@ -105,6 +108,55 @@ export const AudioAlertController: React.FC<AudioAlertControllerProps> = ({
     }
   }, [geofenceAnalysis, risk, language, isMuted]);
 
+  // Agentic audio warning auto-trigger
+  useEffect(() => {
+    if (isMuted || !audioAlert || !audioAlert.phrase) return;
+    if (audioAlert.cueType === 'SILENT') return;
+    if (lastSpokenAlertPhraseRef.current === audioAlert.phrase) return;
+
+    lastSpokenAlertPhraseRef.current = audioAlert.phrase;
+
+    const playAlert = async () => {
+      setLastActionText(audioAlert.phrase);
+      if (audioAlert.cueType === 'SIREN_CRITICAL') {
+        await maritimeSiren.unlock();
+        await voiceWarning.speak(audioAlert.phrase, audioAlert.language || language, {
+          playSirenFirst: true,
+          isCritical: true,
+          force: true,
+        });
+      } else if (audioAlert.cueType === 'CHIME_WARNING') {
+        await maritimeSiren.unlock();
+        await voiceWarning.speak(audioAlert.phrase, audioAlert.language || language, {
+          playSirenFirst: true,
+          isCritical: false,
+          force: true,
+        });
+      } else if (audioAlert.cueType === 'VOICE_BRIEFING') {
+        await voiceWarning.speak(audioAlert.phrase, audioAlert.language || language, {
+          playSirenFirst: false,
+          isCritical: false,
+          force: true,
+        });
+      }
+    };
+
+    playAlert().catch((err) => console.error('Failed to trigger audio warning:', err));
+  }, [audioAlert, isMuted, language]);
+
+  const handleReplayBriefing = async () => {
+    const phrase = audioAlert?.phrase || lastSpokenAlertPhraseRef.current;
+    if (!phrase) return;
+    await maritimeSiren.unlock();
+    if (isMuted) await handleToggleMute();
+    setLastActionText(`Replaying: ${phrase}`);
+    await voiceWarning.speak(phrase, audioAlert?.language || language, {
+      playSirenFirst: audioAlert?.cueType === 'SIREN_CRITICAL',
+      isCritical: audioAlert?.isCritical || false,
+      force: true,
+    });
+  };
+
   const handleSaveConfig = () => {
     indicVoiceGateway.setConfig(config);
     setSaveMessage('Saved successfully! Gateway updated.');
@@ -119,22 +171,24 @@ export const AudioAlertController: React.FC<AudioAlertControllerProps> = ({
   return (
     <>
       <div
-        className={`flex flex-wrap items-center justify-between gap-3 px-3.5 py-2 rounded-xl bg-slate-950/90 border transition-all ${isAudioActive
+        className={`flex flex-wrap items-center justify-between gap-3 px-3.5 py-2 rounded-xl bg-slate-950/90 border transition-all ${
+          isAudioActive
             ? 'border-rose-500/60 shadow-lg shadow-rose-500/20 ring-1 ring-rose-500/40'
             : 'border-slate-800 shadow-md'
-          } ${className}`}
+        } ${className}`}
       >
         {/* Left: Audio Status & Controls */}
         <div className="flex items-center space-x-2.5 min-w-0">
           <button
             onClick={handleToggleMute}
             title={isMuted ? 'Unmute Maritime Audio Alerts' : 'Mute Maritime Audio Alerts'}
-            className={`p-2 rounded-lg transition-all flex items-center justify-center ${isMuted
+            className={`p-2 rounded-lg transition-all flex items-center justify-center ${
+              isMuted
                 ? 'bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-slate-200 border border-slate-700'
                 : isAudioActive
-                  ? 'bg-rose-500 text-slate-950 shadow-md shadow-rose-500/40 animate-pulse font-bold'
-                  : 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 hover:bg-cyan-500/30'
-              }`}
+                ? 'bg-rose-500 text-slate-950 shadow-md shadow-rose-500/40 animate-pulse font-bold'
+                : 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 hover:bg-cyan-500/30'
+            }`}
           >
             {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
           </button>
@@ -146,12 +200,13 @@ export const AudioAlertController: React.FC<AudioAlertControllerProps> = ({
                 <span>MARITIME AUDIO:</span>
               </span>
               <span
-                className={`text-[10px] font-mono font-bold px-1.5 py-0.2 rounded border ${isMuted
+                className={`text-[10px] font-mono font-bold px-1.5 py-0.2 rounded border ${
+                  isMuted
                     ? 'bg-slate-900 text-slate-400 border-slate-700'
                     : isAudioActive
-                      ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
-                      : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
-                  }`}
+                    ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 animate-pulse'
+                    : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                }`}
               >
                 {isMuted ? 'MUTED' : isAudioActive ? (isPlayingSiren ? 'SIREN ACTIVE' : 'VOICE ACTIVE') : 'ARMED'}
               </span>
@@ -185,13 +240,25 @@ export const AudioAlertController: React.FC<AudioAlertControllerProps> = ({
           className="hidden sm:flex items-center gap-1.5 px-2 py-1 rounded-md bg-slate-900 hover:bg-slate-800/80 border border-slate-700/60 hover:border-cyan-500/50 text-[10px] font-mono text-cyan-300 transition-all cursor-pointer"
           title="Configure Bhashini & Sarvam Indic AI Gateway"
         >
-          <span className="h-1.5 w-1.5 rounded-full bg-cyan-400" />
+          <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-pulse" />
           <span>Indic AI: {config.preferredEngine.toUpperCase()}</span>
           <Settings className="h-3 w-3 text-slate-400 ml-0.5" />
         </button>
 
         {/* Right: Controls (Test Button & Halt) */}
         <div className="flex items-center space-x-2">
+          {(audioAlert?.phrase || lastSpokenAlertPhraseRef.current) && (
+            <button
+              onClick={handleReplayBriefing}
+              disabled={isAudioActive}
+              className="px-2.5 py-1.5 rounded-lg text-xs font-bold font-mono text-emerald-300 bg-emerald-950/60 hover:bg-emerald-900/60 border border-emerald-700/50 hover:border-emerald-500 flex items-center space-x-1.5 transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+              title="Replay spoken regional voice alert"
+            >
+              <RotateCcw className="h-3 w-3 text-emerald-400" />
+              <span>Replay Voice Alert</span>
+            </button>
+          )}
+
           <button
             onClick={handleTestAlert}
             disabled={isAudioActive}
@@ -237,7 +304,7 @@ export const AudioAlertController: React.FC<AudioAlertControllerProps> = ({
             <div className="p-3 rounded-lg bg-emerald-950/60 border border-emerald-500/40 flex items-start gap-2.5">
               <CheckCircle className="h-4 w-4 text-emerald-400 mt-0.5 shrink-0" />
               <div className="text-xs space-y-0.5">
-                <div className="text-emerald-300 font-bold font-mono">Voice System is Active & Working</div>
+                <div className="text-emerald-300 font-bold font-mono">✅ Voice System is Active & Working</div>
                 <div className="text-slate-400">
                   All 10 languages (Bengali, Tamil, Telugu, Odia, Malayalam, Gujarati, Marathi, Kannada, Hindi, English) are generating real audio via the built-in Indic TTS engine.
                 </div>
@@ -276,7 +343,7 @@ export const AudioAlertController: React.FC<AudioAlertControllerProps> = ({
                 </summary>
                 <div className="mt-2 space-y-2 pl-3 border-l border-slate-700">
                   <p className="text-[10px] text-amber-400/80">
-                    Only fill these if you have a Sarvam AI or Bhashini account. The system works perfectly without them.
+                    ⚠️ Only fill these if you have a Sarvam AI or Bhashini account. The system works perfectly without them.
                   </p>
                   <div>
                     <label className="block text-slate-400 font-mono mb-1">Sarvam AI API Key <span className="text-slate-600">(optional)</span></label>

@@ -24,9 +24,6 @@ interface QueryPanelProps {
   isLoading: boolean;
   language: LanguageCode;
   onOpenChat?: () => void;
-  activeLocationName?: string;
-  activeLocationKey?: string;
-  activeQuery?: string;
 }
 
 export const ISRO_BENCHMARK_QUERIES = [
@@ -34,104 +31,73 @@ export const ISRO_BENCHMARK_QUERIES = [
     id: 'Q1',
     short: 'Nearest PFZ Today',
     query: 'Where is the nearest Potential Fishing Zone (PFZ) today?',
-    tag: 'Q1: Nearest PFZ',
+    tag: '🐟 Q1: Nearest PFZ',
     category: 'PFZ Discovery'
   },
   {
     id: 'Q2',
     short: 'Venture Safety Tomorrow',
     query: 'Is it safe to venture into the sea tomorrow morning?',
-    tag: 'Q2: Venture Safety',
+    tag: '⚓ Q2: Venture Safety',
     category: 'Operational Risk'
   },
   {
     id: 'Q3',
     short: 'Tide, Weather & Sea State',
     query: 'What are the tide, weather, and sea conditions near my fishing location?',
-    tag: 'Q3: Sea & Tide State',
+    tag: '🌊 Q3: Sea & Tide State',
     category: 'Ocean & Weather'
   },
   {
     id: 'Q4',
     short: 'Lightning & Cyclone Alerts',
     query: 'Are there any lightning or cyclone alerts in my area?',
-    tag: 'Q4: Cyclone & Lightning',
+    tag: '⚡ Q4: Cyclone & Lightning',
     category: 'Proactive Alerts'
   },
   {
     id: 'Q5',
     short: 'Chlorophyll & SST Fronts',
     query: 'Which regions show high chlorophyll concentration and favourable sea surface temperature?',
-    tag: 'Q5: Chlorophyll & SST',
+    tag: '🛰️ Q5: Chlorophyll & SST',
     category: 'Earth Observation'
   },
   {
     id: 'Q6',
     short: 'Safest Navigation Route',
     query: 'What is the safest route for a fishing vessel considering weather and sea-state conditions?',
-    tag: 'Q6: Safe Routing',
+    tag: '🧭 Q6: Safe Routing',
     category: 'Navigation'
   },
   {
     id: 'Q7',
     short: 'Fish Productivity Decline',
     query: 'Why has fish productivity declined in a particular coastal region?',
-    tag: 'Q7: Productivity Decline',
+    tag: '🔬 Q7: Productivity Decline',
     category: 'Scientific RAG'
   },
   {
     id: 'Q8',
     short: 'Avoidance & Geofencing',
     query: 'Which fishing zones should be avoided due to hazardous marine conditions or geofencing restrictions?',
-    tag: 'Q8: Geofence Avoidance',
+    tag: '🛑 Q8: Geofence Avoidance',
     category: 'UNCLOS Geofence'
   }
 ];
 
-/*
- * The eight benchmark queries demonstrate coverage against the problem
- * statement. That is something you open deliberately, not something that should
- * compete with today's verdict every time the console loads — so they start
- * collapsed, with the count on the toggle so nobody has to guess what is behind
- * it.
- */
 export const QueryPanel: React.FC<QueryPanelProps> = ({
   onSearch,
   isLoading,
   language,
-  onOpenChat,
-  activeLocationName,
-  activeLocationKey,
-  activeQuery
+  onOpenChat
 }) => {
   const [inputQuery, setInputQuery] = useState<string>('Is it safe to fish near Digha tomorrow morning?');
-  // Closed by default. These demonstrate coverage against the problem
-  // statement, which is something a reader opens on purpose — it should not
-  // be competing with today's verdict on every load.
-  const [showPrompts, setShowPrompts] = useState<boolean>(false);
   const [isListening, setIsListening] = useState<boolean>(false);
   const [speechError, setSpeechError] = useState<string | null>(null);
   const [recognitionInstance, setRecognitionInstance] = useState<any>(null);
   const [selectedLocation, setSelectedLocation] = useState<string>('');
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [activePromptTab, setActivePromptTab] = useState<'isro' | 'regional'>('isro');
-
-  // Sync selected location key when parent updates active location
-  useEffect(() => {
-    if (activeLocationKey) {
-      setSelectedLocation(activeLocationKey);
-    }
-  }, [activeLocationKey]);
-
-  // Sync query input text when active location or active query changes
-  useEffect(() => {
-    if (activeQuery) {
-      setInputQuery(activeQuery);
-    } else if (activeLocationName) {
-      const displayLoc = activeLocationName.split('/')[0].trim();
-      setInputQuery(`Is it safe to fish near ${displayLoc} tomorrow morning?`);
-    }
-  }, [activeLocationName, activeQuery]);
 
   const dict = MULTILINGUAL_DICTIONARY[language] || MULTILINGUAL_DICTIONARY.en;
   const detected = detectQueryLanguage(inputQuery, language);
@@ -140,7 +106,7 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
   const samplePrompts = [
     {
       text: 'Is it safe to go fishing near Digha right now?',
-      tag: 'Can I go fishing today?',
+      tag: '⚓ Can I go fishing today?',
       loc: 'digha'
     },
     {
@@ -160,27 +126,27 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
     },
     {
       text: 'How high are the waves and ocean swell near Puri?',
-      tag: 'How high are the waves?',
+      tag: '🌊 How high are the waves?',
       loc: 'puri'
     },
     {
       text: 'Visakhapatnam wind speed, gusts, and storm warning',
-      tag: 'Is wind speed dangerous?',
+      tag: '💨 Is wind speed dangerous?',
       loc: 'visakhapatnam'
     },
     {
       text: 'Kochi sea weather and small boat advisory',
-      tag: 'Any storm / rain warning?',
+      tag: '⛈️ Any storm / rain warning?',
       loc: 'kochi'
     },
     {
       text: 'Paradeep port swell surge and craft restrictions',
-      tag: 'Is port advisory active?',
+      tag: '🛑 Is port advisory active?',
       loc: 'paradeep'
     },
     {
       text: 'Why has fish productivity declined in this coastal region?',
-      tag: 'Why did fish productivity decline?',
+      tag: '🐟 Why did fish productivity decline?',
       loc: 'digha'
     },
     {
@@ -300,7 +266,7 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
             </button>
           )}
           <span className="text-[11px] text-slate-400 flex items-center gap-1 font-mono">
-            <Radio className="h-3 w-3 text-emerald-400" />
+            <Radio className="h-3 w-3 text-emerald-400 animate-pulse" />
             <span>{dict.languageMode}</span>
           </span>
         </div>
@@ -312,7 +278,7 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
         {detected.language !== 'en' && (
           <div className="flex items-center justify-between text-[11px] font-mono text-cyan-300 bg-cyan-950/70 border border-cyan-800/60 px-3 py-1.5 rounded-lg shadow-sm">
             <span className="flex items-center gap-1.5">
-              <Sparkles className="h-3.5 w-3.5 text-cyan-300" />
+              <Sparkles className="h-3.5 w-3.5 text-cyan-300 animate-pulse" />
               <span>Script Identified: <strong className="text-white">{detected.nativeName} ({detected.name})</strong></span>
             </span>
             <span className="text-[10px] text-cyan-400/80 bg-cyan-900/50 px-1.5 py-0.5 rounded border border-cyan-700/50 font-semibold">
@@ -344,8 +310,8 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
               onClick={toggleListening}
               title={isListening ? 'Stop listening' : 'Start voice input'}
               className={`p-2 rounded-lg transition-all cursor-pointer ${isListening
-                ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/50'
-                : 'bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white'
+                  ? 'bg-rose-500 text-white animate-pulse shadow-lg shadow-rose-500/50'
+                  : 'bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white'
                 }`}
             >
               {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
@@ -371,7 +337,7 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
 
         {/* Speech Listening Feedback or Error */}
         {isListening && (
-          <div className="flex items-center space-x-2 text-xs text-rose-400 bg-rose-950/40 border border-rose-900/50 px-3 py-1.5 rounded-lg">
+          <div className="flex items-center space-x-2 text-xs text-rose-400 bg-rose-950/40 border border-rose-900/50 px-3 py-1.5 rounded-lg animate-pulse">
             <span className="h-2 w-2 rounded-full bg-rose-500"></span>
             <span>{dict.listening} Speak clearly in your selected language.</span>
           </div>
@@ -390,17 +356,7 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
             <select
               id="select-coastal-station"
               value={selectedLocation}
-              onChange={(e) => {
-                const newLocKey = e.target.value;
-                setSelectedLocation(newLocKey);
-                if (newLocKey && COASTAL_LOCATIONS[newLocKey]) {
-                  const loc = COASTAL_LOCATIONS[newLocKey];
-                  const newQueryText = `Is it safe to fish near ${loc.name} right now?`;
-                  setInputQuery(newQueryText);
-                  const detectedLang = detectQueryLanguage(newQueryText, language);
-                  onSearch(newQueryText, newLocKey, selectedTime || undefined, detectedLang.language);
-                }
-              }}
+              onChange={(e) => setSelectedLocation(e.target.value)}
               className="bg-transparent text-slate-200 text-xs w-full cursor-pointer"
             >
               <option value="" className="bg-slate-900 text-slate-400">{dict.autoLocation}</option>
@@ -434,36 +390,27 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
 
       {/* Suggested Prompt Chips with Tabs */}
       <div className="space-y-2 pt-1">
-        <button
-          type="button"
-          onClick={() => setShowPrompts((v) => !v)}
-          aria-expanded={showPrompts}
-          className="flex w-full items-center justify-between rounded-lg border border-slate-800 px-2.5 py-1.5 text-[11px] font-mono text-slate-400 transition-colors hover:border-slate-600 hover:text-slate-200"
-        >
-          <span>Example queries ({ISRO_BENCHMARK_QUERIES.length})</span>
-          <span className="text-slate-500">{showPrompts ? '\u2013' : '+'}</span>
-        </button>
-
-        <div className={showPrompts ? 'space-y-2' : 'hidden'}>
         <div className="flex items-center justify-between border-b border-slate-800/80 pb-1.5">
           <div className="flex items-center space-x-2">
             <button
               type="button"
               onClick={() => setActivePromptTab('isro')}
-              className={`text-[11px] font-mono font-semibold px-2.5 py-1 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${activePromptTab === 'isro'
+              className={`text-[11px] font-mono font-semibold px-2.5 py-1 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+                activePromptTab === 'isro'
                   ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm'
                   : 'text-slate-400 hover:text-slate-200 border border-transparent'
-                }`}
+              }`}
             >
-              <span>ISRO Benchmark Queries (1–8)</span>
+              <span>🚀 ISRO Benchmark Queries (1–8)</span>
             </button>
             <button
               type="button"
               onClick={() => setActivePromptTab('regional')}
-              className={`text-[11px] font-mono font-semibold px-2.5 py-1 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${activePromptTab === 'regional'
+              className={`text-[11px] font-mono font-semibold px-2.5 py-1 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+                activePromptTab === 'regional'
                   ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm'
                   : 'text-slate-400 hover:text-slate-200 border border-transparent'
-                }`}
+              }`}
             >
               <span>🇮🇳 Regional Scenarios</span>
             </button>
@@ -517,7 +464,6 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
         )}
       </div>
 
-        </div>
     </div>
   );
 };

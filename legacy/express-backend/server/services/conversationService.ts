@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import {
   ConversationSession,
   ConversationTurn,
@@ -9,10 +11,58 @@ import {
 import { COASTAL_LOCATIONS } from '../../src/data/coastalData.ts';
 import { resolveLocation, resolveTimeWindow } from './marineService.ts';
 
-// In-memory persistent session store
+// In-memory persistent session store with disk-backed JSON persistence
 const sessions = new Map<string, ConversationSession>();
 const MAX_SESSIONS = 100;
 const SESSION_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+const SESSIONS_DIR = path.resolve(process.cwd(), 'data', 'sessions');
+
+function ensureSessionDirectory(): void {
+  try {
+    if (!fs.existsSync(SESSIONS_DIR)) {
+      fs.mkdirSync(SESSIONS_DIR, { recursive: true });
+    }
+  } catch (err) {
+    console.warn(`[ConversationSession] Failed to ensure directory ${SESSIONS_DIR}:`, err);
+  }
+}
+
+function sanitizeSessionId(sessionId: string): string {
+  return sessionId.replace(/[^a-zA-Z0-9_-]/g, '_');
+}
+
+function getSessionFilePath(sessionId: string): string {
+  return path.join(SESSIONS_DIR, `${sanitizeSessionId(sessionId)}.json`);
+}
+
+function persistSessionToDisk(session: ConversationSession): void {
+  try {
+    ensureSessionDirectory();
+    const filePath = getSessionFilePath(session.sessionId);
+    fs.writeFileSync(filePath, JSON.stringify(session, null, 2), 'utf-8');
+  } catch (err) {
+    console.warn(`[ConversationSession] Failed to persist session ${session.sessionId} to disk:`, err);
+  }
+}
+
+function loadSessionFromDisk(sessionId: string): ConversationSession | null {
+  try {
+    const filePath = getSessionFilePath(sessionId);
+    if (fs.existsSync(filePath)) {
+      const data = fs.readFileSync(filePath, 'utf-8');
+      const session = JSON.parse(data) as ConversationSession;
+      const updatedMs = new Date(session.updatedAt || session.createdAt).getTime();
+      if (Date.now() - updatedMs > SESSION_TTL_MS) {
+        try { fs.unlinkSync(filePath); } catch {}
+        return null;
+      }
+      return session;
+    }
+  } catch (err) {
+    console.warn(`[ConversationSession] Failed to load session ${sessionId} from disk:`, err);
+  }
+  return null;
+}
 
 function generateId(prefix = 'session'): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -70,11 +120,20 @@ export function getOrCreateSession(
   sessionId?: string,
   initialLocation?: LocationInfo
 ): ConversationSession {
-  if (sessionId && sessions.has(sessionId)) {
-    const existing = sessions.get(sessionId)!;
-    // Refresh updatedAt
-    existing.updatedAt = new Date().toISOString();
-    return existing;
+  if (sessionId) {
+    if (sessions.has(sessionId)) {
+      const existing = sessions.get(sessionId)!;
+      existing.updatedAt = new Date().toISOString();
+      persistSessionToDisk(existing);
+      return existing;
+    }
+    const onDisk = loadSessionFromDisk(sessionId);
+    if (onDisk) {
+      onDisk.updatedAt = new Date().toISOString();
+      sessions.set(sessionId, onDisk);
+      persistSessionToDisk(onDisk);
+      return onDisk;
+    }
   }
 
   // Enforce capacity bounds
@@ -95,11 +154,20 @@ export function getOrCreateSession(
   };
 
   sessions.set(newId, session);
+  persistSessionToDisk(session);
   return session;
 }
 
 export function getSession(sessionId: string): ConversationSession | undefined {
-  return sessions.get(sessionId);
+  if (sessions.has(sessionId)) {
+    return sessions.get(sessionId);
+  }
+  const onDisk = loadSessionFromDisk(sessionId);
+  if (onDisk) {
+    sessions.set(sessionId, onDisk);
+    return onDisk;
+  }
+  return undefined;
 }
 
 export function listSessions(): Array<{
@@ -110,6 +178,22 @@ export function listSessions(): Array<{
   turnCount: number;
   locationName?: string;
 }> {
+  try {
+    ensureSessionDirectory();
+    const files = fs.readdirSync(SESSIONS_DIR);
+    for (const file of files) {
+      if (file.endsWith('.json')) {
+        const id = file.replace(/\.json$/, '');
+        if (!sessions.has(id)) {
+          const loaded = loadSessionFromDisk(id);
+          if (loaded) sessions.set(loaded.sessionId, loaded);
+        }
+      }
+    }
+  } catch {
+    // Non-fatal
+  }
+
   return Array.from(sessions.values())
     .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
     .map(s => ({
@@ -123,11 +207,33 @@ export function listSessions(): Array<{
 }
 
 export function deleteSession(sessionId: string): boolean {
-  return sessions.delete(sessionId);
+  const memDeleted = sessions.delete(sessionId);
+  let diskDeleted = false;
+  try {
+    const filePath = getSessionFilePath(sessionId);
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+      diskDeleted = true;
+    }
+  } catch (err) {
+    console.warn(`[ConversationSession] Failed to delete file for session ${sessionId}:`, err);
+  }
+  return memDeleted || diskDeleted;
 }
 
 export function clearAllSessions(): void {
   sessions.clear();
+  try {
+    ensureSessionDirectory();
+    const files = fs.readdirSync(SESSIONS_DIR);
+    for (const file of files) {
+      if (file.endsWith('.json')) {
+        fs.unlinkSync(path.join(SESSIONS_DIR, file));
+      }
+    }
+  } catch (err) {
+    console.warn('[ConversationSession] Failed to clear sessions directory:', err);
+  }
 }
 
 /**
@@ -202,13 +308,25 @@ export function recordSessionTurn(
   session.activeLocation = analysis.location;
   session.activeTimeWindow = analysis.timeWindow;
   session.activeRiskLevel = analysis.risk.riskLevel;
+  session.activeDecision = analysis.operationalDecision;
 
-  // Extract best PFZ zone id if present
+  // Extract best PFZ zone id and full PFZ analysis if present
   if (analysis.pfz && typeof analysis.pfz === 'object') {
+    session.activePfz = analysis.pfz;
     const pfzObj = analysis.pfz as any;
     if (pfzObj.bestZone?.id) {
       session.activePfzZoneId = pfzObj.bestZone.id;
     }
+  }
+
+  // Preserve active safe route if computed
+  if (analysis.safeRoute) {
+    session.activeRoute = analysis.safeRoute;
+  }
+
+  // Preserve active geofence spatial analysis
+  if (analysis.geofenceAnalysis) {
+    session.activeGeofence = analysis.geofenceAnalysis;
   }
 
   // Generate a concise session title from the first turn
@@ -218,5 +336,6 @@ export function recordSessionTurn(
     session.title = `${loc}: ${intentShort.slice(0, 24)}`;
   }
 
+  persistSessionToDisk(session);
   return session;
 }
