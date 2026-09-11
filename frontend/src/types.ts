@@ -95,9 +95,16 @@ export interface OperationalDecision { decision: 'PROCEED' | 'CAUTION' | 'AVOID'
 export interface SafeRouteSummary { status: 'ROUTE_FOUND' | 'ROUTE_UNAVAILABLE' | 'ROUTE_BLOCKED' | 'ROUTE_NOT_REQUESTED'; destinationLabel?: string; distanceKm?: number; directDistanceKm?: number; routeEfficiencyPct?: number; waypointCount: number; waypoints?: any[]; avoidedConstraints?: string[]; origin?: any; destination?: any; warnings: string[]; rationale: string; source: string; }
 export interface AudioAlertPayload {
   phrase: string;
-  cueType: 'SIREN_CRITICAL' | 'CHIME_WARNING' | 'NOTIFICATION_INFO' | 'VOICE_BRIEFING';
+  cueType: 'SIREN_CRITICAL' | 'CHIME_WARNING' | 'NOTIFICATION_INFO' | 'VOICE_BRIEFING' | 'SILENT';
   isCritical: boolean;
   language: LanguageCode;
+}
+
+export interface AlertSummary {
+  alertCount: number;
+  maxSeverity?: string;
+  triggers?: string[];
+  activeAlerts?: any[];
 }
 
 export interface OrcaAnalysisResponse { queryId: string; originalQuery: string; language: LanguageCode; detectedIntent: string; location: LocationInfo; timeWindow: TimeWindow; weather: WeatherData; ocean: OceanData; satellite: SatelliteData; risk: RiskPrediction; gisLayers: GisLayerData; geofenceAnalysis?: GeofenceSpatialAnalysis; pfz?: unknown; operationalDecision?: OperationalDecision; safeRoute?: SafeRouteSummary; alertSummary?: AlertSummary; evidence: EvidenceItem[]; vesselTraffic?: DarkVesselAnalysis; agentTraces: AgentStepTrace[]; groundedSummary: string; translatedSummary?: Record<string, string>; audioAlert?: AudioAlertPayload; isDataDegraded?: boolean; warnings?: string[]; freshnessTimestamp: string; officialDisclaimer: string; executionPlan?: OrcaExecutionPlan; sessionId?: string; turnIndex?: number; }
@@ -188,6 +195,7 @@ export interface DarkVesselAnalysis {
   totalTrackedVessels: number;
   activeAisVessels: number;
   darkVesselCount: number;
+  highRiskEncounter?: boolean;
   sentinel1PassTime: string;
   sarOverpassId?: string;
   targetVessels: VesselTarget[];

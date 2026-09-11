@@ -7,13 +7,16 @@ interface ScrollyCanvasBackgroundProps {
   initialFrame?: number;
 }
 
-const TOTAL_FRAMES = 1076;
+// The sequence currently shipped in public/bg contains 301 AVIF frames.
+// Keep this in sync with the checked-in asset set so the canvas does not
+// request nonexistent WebP frames.
+const TOTAL_FRAMES = 301;
 
 function getFrameUrl(index: number): string {
-  // index is 0-based (0 to 1075); frame files in ./public/bg are 1-based (frame_0001.webp to frame_1076.webp)
+  // index is 0-based; files in ./public/bg are 1-based AVIF frames.
   const frameNum = Math.min(TOTAL_FRAMES, Math.max(1, index + 1));
   const padded = String(frameNum).padStart(4, "0");
-  return `/bg/frame_${padded}.webp`;
+  return `/bg/frame_${padded}.avif`;
 }
 
 export const ScrollyCanvasBackground: React.FC<ScrollyCanvasBackgroundProps> = ({

@@ -49,39 +49,39 @@ const navItems: {
   icon: React.ElementType;
   badge?: string;
 }[] = [
-  {
-    id: 'dashboard',
-    label: 'Mission Control',
-    description: 'Advisory, telemetry and live chart',
-    icon: Compass,
-    badge: 'LIVE'
-  },
-  {
-    id: 'analysis',
-    label: 'Risk Drivers',
-    description: 'Feature attribution behind the score',
-    icon: Activity
-  },
-  {
-    id: 'satellite',
-    label: 'Satellite Passes',
-    description: 'Copernicus Sentinel catalogue',
-    icon: Satellite,
-    badge: 'SAR'
-  },
-  {
-    id: 'evidence',
-    label: 'Authority Corpus',
-    description: 'INCOIS, IMD and NDMA guidance',
-    icon: BookOpen
-  },
-  {
-    id: 'simulator',
-    label: 'What-If Studio',
-    description: 'Perturb conditions against the engine',
-    icon: SlidersHorizontal
-  }
-];
+    {
+      id: 'dashboard',
+      label: 'Mission Control',
+      description: 'Advisory, telemetry and live chart',
+      icon: Compass,
+      badge: 'LIVE'
+    },
+    {
+      id: 'analysis',
+      label: 'Risk Drivers',
+      description: 'Feature attribution behind the score',
+      icon: Activity
+    },
+    {
+      id: 'satellite',
+      label: 'Satellite Passes',
+      description: 'Copernicus Sentinel catalogue',
+      icon: Satellite,
+      badge: 'SAR'
+    },
+    {
+      id: 'evidence',
+      label: 'Authority Corpus',
+      description: 'INCOIS, IMD and NDMA guidance',
+      icon: BookOpen
+    },
+    {
+      id: 'simulator',
+      label: 'What-If Studio',
+      description: 'Perturb conditions against the engine',
+      icon: SlidersHorizontal
+    }
+  ];
 
 /** ORCA-X wordmark: a sounding mark struck over a contour. */
 const Wordmark: React.FC<{ compact?: boolean }> = ({ compact = false }) => (
@@ -107,21 +107,20 @@ const Wordmark: React.FC<{ compact?: boolean }> = ({ compact = false }) => (
 const StatusLamp: React.FC<{ isProcessing: boolean; language?: LanguageCode }> = ({ isProcessing, language = 'en' }) => {
   const dict = MULTILINGUAL_DICTIONARY[language] || MULTILINGUAL_DICTIONARY.en;
   return (
-  <span className="flex items-center gap-2">
-    <span className="relative flex h-1.5 w-1.5">
-      {isProcessing && (
-        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-buoy/70" />
-      )}
-      <span
-        className={`relative inline-flex h-1.5 w-1.5 rounded-full ${
-          isProcessing ? 'bg-buoy' : 'bg-emerald-400'
-        }`}
-      />
+    <span className="flex items-center gap-2">
+      <span className="relative flex h-1.5 w-1.5">
+        {isProcessing && (
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-buoy/70" />
+        )}
+        <span
+          className={`relative inline-flex h-1.5 w-1.5 rounded-full ${isProcessing ? 'bg-buoy' : 'bg-emerald-400'
+            }`}
+        />
+      </span>
+      <span className="font-mono text-[9.5px] tracking-[0.18em] text-fathom">
+        {isProcessing ? dict.running : dict.standingBy}
+      </span>
     </span>
-    <span className="font-mono text-[9.5px] tracking-[0.18em] text-fathom">
-      {isProcessing ? dict.running : dict.standingBy}
-    </span>
-  </span>
   );
 };
 
@@ -132,30 +131,30 @@ const LanguageField: React.FC<{
 }> = ({ id, language, setLanguage }) => {
   const dict = MULTILINGUAL_DICTIONARY[language] || MULTILINGUAL_DICTIONARY.en;
   return (
-  <div>
-    <label
-      htmlFor={id}
-      className="mb-2 flex items-center justify-between font-mono text-[9.5px] uppercase tracking-[0.18em] text-fathom"
-    >
-      <span className="flex items-center gap-1.5">
-        <Globe className="h-3 w-3 text-shoal" />
-        {dict.languageLabel}
-      </span>
-      <span className="text-buoy">{language}</span>
-    </label>
-    <select
-      id={id}
-      value={language}
-      onChange={(e) => setLanguage(e.target.value as LanguageCode)}
-      className="w-full cursor-pointer appearance-none border border-shoal/20 bg-shelf/60 px-3 py-2 font-mono text-[11px] text-slate-200 transition-colors hover:border-shoal/50 focus:border-shoal"
-    >
-      {languages.map((lang) => (
-        <option key={lang.code} value={lang.code} className="bg-shelf text-slate-200">
-          {lang.native} — {lang.label}
-        </option>
-      ))}
-    </select>
-  </div>
+    <div>
+      <label
+        htmlFor={id}
+        className="mb-2 flex items-center justify-between font-mono text-[9.5px] uppercase tracking-[0.18em] text-fathom"
+      >
+        <span className="flex items-center gap-1.5">
+          <Globe className="h-3 w-3 text-shoal" />
+          {dict.languageLabel}
+        </span>
+        <span className="text-buoy">{language}</span>
+      </label>
+      <select
+        id={id}
+        value={language}
+        onChange={(e) => setLanguage(e.target.value as LanguageCode)}
+        className="w-full cursor-pointer appearance-none border border-shoal/20 bg-shelf/60 px-3 py-2 font-mono text-[11px] text-slate-200 transition-colors hover:border-shoal/50 focus:border-shoal"
+      >
+        {languages.map((lang) => (
+          <option key={lang.code} value={lang.code} className="bg-shelf text-slate-200">
+            {lang.native} — {lang.label}
+          </option>
+        ))}
+      </select>
+    </div>
   );
 };
 
@@ -181,57 +180,55 @@ const NavList: React.FC<{
     simulator: dict.simulatorTitle
   };
   return (
-  <nav className="space-y-0.5">
-    {navItems.map((item) => {
-      const Icon = item.icon;
-      const isActive = currentTab === item.id;
+    <nav className="space-y-0.5">
+      {navItems.map((item) => {
+        const Icon = item.icon;
+        const isActive = currentTab === item.id;
 
-      return (
-        <button
-          key={item.id}
-          id={`left-nav-tab-${item.id}`}
-          aria-current={isActive ? 'page' : undefined}
-          onClick={() => {
-            setCurrentTab(item.id);
-            onNavigate?.();
-          }}
-          /* Active module reads as a plotted fix: a shoal rule and a lifted plate. */
-          className={[
-            'group flex w-full items-center justify-between gap-3 border-l-2 py-2.5 pl-3.5 pr-3 text-left transition-colors duration-200',
-            isActive
-              ? 'border-shoal bg-shoal/10 text-chartpaper'
-              : 'border-transparent text-slate-300 hover:border-shoal/40 hover:bg-shoal/5 hover:text-chartpaper'
-          ].join(' ')}
-        >
-          <span className="flex min-w-0 items-center gap-3">
-            <Icon
-              className={`h-4 w-4 shrink-0 transition-colors ${
-                isActive ? 'text-shoal' : 'text-fathom group-hover:text-shoal'
-              }`}
-            />
-            <span className="min-w-0">
-              <span className="block truncate text-[12.5px] font-medium leading-tight">
-                {labels[item.id]}
-              </span>
-              <span className="mt-0.5 block truncate text-[10.5px] leading-tight text-fathom">
-                {descriptions[item.id]}
+        return (
+          <button
+            key={item.id}
+            id={`left-nav-tab-${item.id}`}
+            aria-current={isActive ? 'page' : undefined}
+            onClick={() => {
+              setCurrentTab(item.id);
+              onNavigate?.();
+            }}
+            /* Active module reads as a plotted fix: a shoal rule and a lifted plate. */
+            className={[
+              'group flex w-full items-center justify-between gap-3 border-l-2 py-2.5 pl-3.5 pr-3 text-left transition-colors duration-200',
+              isActive
+                ? 'border-shoal bg-shoal/10 text-chartpaper'
+                : 'border-transparent text-slate-300 hover:border-shoal/40 hover:bg-shoal/5 hover:text-chartpaper'
+            ].join(' ')}
+          >
+            <span className="flex min-w-0 items-center gap-3">
+              <Icon
+                className={`h-4 w-4 shrink-0 transition-colors ${isActive ? 'text-shoal' : 'text-fathom group-hover:text-shoal'
+                  }`}
+              />
+              <span className="min-w-0">
+                <span className="block truncate text-[12.5px] font-medium leading-tight">
+                  {labels[item.id]}
+                </span>
+                <span className="mt-0.5 block truncate text-[10.5px] leading-tight text-fathom">
+                  {descriptions[item.id]}
+                </span>
               </span>
             </span>
-          </span>
 
-          {item.badge && (
-            <span
-              className={`shrink-0 border px-1.5 py-0.5 font-mono text-[8.5px] tracking-[0.12em] ${
-                isActive ? 'border-shoal/45 text-shoal' : 'border-slate-700 text-fathom'
-              }`}
-            >
-              {item.badge}
-            </span>
-          )}
-        </button>
-      );
-    })}
-  </nav>
+            {item.badge && (
+              <span
+                className={`shrink-0 border px-1.5 py-0.5 font-mono text-[8.5px] tracking-[0.12em] ${isActive ? 'border-shoal/45 text-shoal' : 'border-slate-700 text-fathom'
+                  }`}
+              >
+                {item.badge}
+              </span>
+            )}
+          </button>
+        );
+      })}
+    </nav>
   );
 };
 
@@ -243,9 +240,8 @@ const BriefLink: React.FC<{ onExit: () => void; size?: 'sm' | 'xs'; language?: L
 }) => (
   <button
     onClick={onExit}
-    className={`group flex items-center gap-2 font-mono ${
-      size === 'sm' ? 'text-[10px]' : 'text-[9.5px]'
-    } uppercase tracking-[0.18em] text-fathom transition-colors hover:text-shoal`}
+    className={`group flex items-center gap-2 font-mono ${size === 'sm' ? 'text-[10px]' : 'text-[9.5px]'
+      } uppercase tracking-[0.18em] text-fathom transition-colors hover:text-shoal`}
   >
     <ArrowLeft className="h-3.5 w-3.5 transition-transform duration-300 group-hover:-translate-x-1" />
     {(MULTILINGUAL_DICTIONARY[language] || MULTILINGUAL_DICTIONARY.en).projectBrief}
@@ -380,11 +376,10 @@ export const LeftNavbar: React.FC<LeftNavbarProps> = ({
             <button
               key={item.id}
               onClick={() => setCurrentTab(item.id)}
-              className={`relative flex flex-col items-center justify-center min-h-[52px] flex-1 py-1 px-1 rounded-xl transition-all btn-micro-interactive ${
-                isActive
+              className={`relative flex flex-col items-center justify-center min-h-[52px] flex-1 py-1 px-1 rounded-xl transition-all btn-micro-interactive ${isActive
                   ? 'bg-slate-800/80 text-white font-bold border border-slate-700/60 shadow-sm'
                   : 'text-slate-500 hover:text-slate-300 active:scale-95'
-              }`}
+                }`}
             >
               {isActive && (
                 <span className="absolute -top-1 h-1 w-6 rounded-full bg-slate-300" />

@@ -82,13 +82,12 @@ export const MarineTelemetry: React.FC<MarineTelemetryProps> = ({
                 </span>
                 <span className="text-xs font-medium text-slate-500">{dict.meters || 'meters'}</span>
               </div>
-              <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border ${
-                ocean.waveHeightMeters > 2.0
+              <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border ${ocean.waveHeightMeters > 2.0
                   ? 'bg-rose-500/10 text-rose-400 border-rose-500/20'
                   : ocean.waveHeightMeters > 1.25
                     ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
                     : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-              }`}>
+                }`}>
                 {ocean.waveHeightMeters > 2.0 ? 'ROUGH' : ocean.waveHeightMeters > 1.25 ? 'MODERATE' : 'SLIGHT'}
               </span>
             </div>
@@ -96,9 +95,8 @@ export const MarineTelemetry: React.FC<MarineTelemetryProps> = ({
             {/* Visual Gauge Bar */}
             <div className="w-full h-1 bg-slate-800/50 rounded-full overflow-hidden">
               <div
-                className={`h-full transition-all duration-1000 ease-out ${
-                  ocean.waveHeightMeters > 2.0 ? 'bg-rose-500' : ocean.waveHeightMeters > 1.25 ? 'bg-amber-400' : 'bg-cyan-500/80'
-                }`}
+                className={`h-full transition-all duration-1000 ease-out ${ocean.waveHeightMeters > 2.0 ? 'bg-rose-500' : ocean.waveHeightMeters > 1.25 ? 'bg-amber-400' : 'bg-cyan-500/80'
+                  }`}
                 style={{ width: `${wavePct}%` }}
               />
             </div>
@@ -125,9 +123,8 @@ export const MarineTelemetry: React.FC<MarineTelemetryProps> = ({
                 </span>
                 <span className="text-xs font-medium text-slate-500">{dict.seconds || 'seconds'}</span>
               </div>
-              <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border ${
-                ocean.swellPeriodSec > 13 ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-              }`}>
+              <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border ${ocean.swellPeriodSec > 13 ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                }`}>
                 {ocean.swellPeriodSec > 13 ? (dict.highSurge || 'SURGE HAZARD') : (dict.stable || 'STABLE')}
               </span>
             </div>
@@ -227,11 +224,10 @@ export const MarineTelemetry: React.FC<MarineTelemetryProps> = ({
               <Compass className="h-4 w-4 text-slate-400" />
               <span>Vector Dial</span>
             </span>
-            <span className={`px-2 py-0.5 rounded border ${
-              isWindAgainstSwell
+            <span className={`px-2 py-0.5 rounded border ${isWindAgainstSwell
                 ? 'bg-rose-500/10 text-rose-400 border-rose-500/30 animate-pulse font-bold'
                 : 'bg-slate-800/50 text-cyan-500/80 border-slate-700/50'
-            }`}>
+              }`}>
               {isWindAgainstSwell ? 'WIND-VS-SWELL' : 'CO-ALIGNED'}
             </span>
           </div>
@@ -305,7 +301,7 @@ export const MarineTelemetry: React.FC<MarineTelemetryProps> = ({
 
       {/* Secondary Environmental Indicators */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        
+
         {/* 1. Sea Surface Temp */}
         <div className="bg-[#0b121f]/50 border border-slate-800/40 rounded-xl p-4 flex flex-col justify-between space-y-3 hover:bg-[#0b121f]/80 transition-all min-w-0">
           <div className="flex items-center space-x-2 min-w-0">

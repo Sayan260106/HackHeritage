@@ -1,15 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
-import { 
-  Layers, 
-  MapPin, 
-  Eye, 
-  EyeOff, 
-  Compass, 
-  Waves, 
-  Navigation, 
-  Anchor, 
-  Radio, 
+import {
+  Layers,
+  MapPin,
+  Eye,
+  EyeOff,
+  Compass,
+  Waves,
+  Navigation,
+  Anchor,
+  Radio,
   Maximize2,
   Minimize2,
   Info,
@@ -121,7 +121,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           reason,
           recipient: 'INDIAN_COAST_GUARD_ICGS_PATROL'
         })
-      }).catch(() => {});
+      }).catch(() => { });
 
       if (onCoordinateClickRef.current) {
         onCoordinateClickRef.current(lat, lon);
@@ -246,7 +246,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           setPfzFrontlines(data);
         }
       })
-      .catch(() => {});
+      .catch(() => { });
 
     return () => { isMounted = false; };
   }, [location.latitude, location.longitude, location.name]);
@@ -824,11 +824,10 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
                 <span>🐟 ${zone.id}</span>
                 <span class="text-[10px] text-cyan-300 font-mono">UID: ${zone.incoisUid || 'INCOIS'}</span>
               </div>
-              <span class="px-1.5 py-0.5 rounded text-[9px] font-black tracking-wider uppercase ${
-                isRestricted ? 'bg-rose-600 text-white' :
-                isHigh ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' :
-                'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-              }">
+              <span class="px-1.5 py-0.5 rounded text-[9px] font-black tracking-wider uppercase ${isRestricted ? 'bg-rose-600 text-white' :
+            isHigh ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' :
+              'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+          }">
                 ${zone.suitability}
               </span>
             </div>
@@ -858,10 +857,9 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
               ` : ''}
               <div class="flex justify-between border-t border-slate-800 pt-1">
                 <span class="text-slate-400">Geofence Status:</span>
-                <span class="font-bold ${
-                  zone.geofenceStatus === 'CLEAR' ? 'text-emerald-400' :
-                  zone.geofenceStatus === 'CAUTION' ? 'text-amber-400' : 'text-red-400'
-                }">${zone.geofenceStatus}</span>
+                <span class="font-bold ${zone.geofenceStatus === 'CLEAR' ? 'text-emerald-400' :
+            zone.geofenceStatus === 'CAUTION' ? 'text-amber-400' : 'text-red-400'
+          }">${zone.geofenceStatus}</span>
               </div>
             </div>
 
@@ -1002,10 +1000,10 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
 
       // Hover tooltip showing sequence number, distance, and bearing tag
       marker.bindTooltip(
-        isStart 
-          ? '⚓ Route Origin (Boat)' 
-          : isEnd 
-            ? `🏁 Destination • ${cumDistNm} NM` 
+        isStart
+          ? '⚓ Route Origin (Boat)'
+          : isEnd
+            ? `🏁 Destination • ${cumDistNm} NM`
             : `WP #${idx} • ${cumDistNm} NM • ${bearingStr}`,
         {
           direction: 'top',
@@ -1325,11 +1323,10 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   }, [showOilSpills, oilSpillsData]);
 
   return (
-    <div 
-      ref={outerWrapperRef} 
-      className={`orca-map-frame relative bg-slate-900 rounded-2xl overflow-hidden shadow-2xl transition-all ${
-        isFullscreen ? 'fixed inset-0 z-[9999] w-screen h-screen rounded-none' : 'h-[440px] sm:h-[480px] lg:h-[540px]'
-      }`}
+    <div
+      ref={outerWrapperRef}
+      className={`orca-map-frame relative bg-slate-900 rounded-2xl overflow-hidden shadow-2xl transition-all ${isFullscreen ? 'fixed inset-0 z-[9999] w-screen h-screen rounded-none' : 'h-[440px] sm:h-[480px] lg:h-[540px]'
+        }`}
     >
       {/* Decorative glowing border frame — purely cosmetic, non-interactive */}
       <div className="orca-frame-glow pointer-events-none absolute inset-0 z-[350] rounded-2xl" />
@@ -1343,7 +1340,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
 
       {/* Map Header & Controls Overlay — Stacked layout prevents UI collision */}
       <div className="absolute top-3 left-3 z-[400] flex flex-col items-start gap-2 max-w-[82%] sm:max-w-[88%] lg:max-w-2xl">
-        
+
         {/* Quick Coastal Hub Jump Menu — All 17 Indian Coastal Hubs */}
         <div className="orca-glass-panel p-1.5 flex items-center space-x-1.5 overflow-x-auto max-w-full scrollbar-thin">
           <span className="text-[10px] font-mono uppercase text-slate-400 pl-1.5 flex items-center gap-1 shrink-0">
@@ -1359,7 +1356,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
             const loc = COASTAL_LOCATIONS[key];
             if (!loc) return null;
             const isSelected = location.regionType !== 'open_sea' && (
-              loc.name.toLowerCase() === location.name.toLowerCase() || 
+              loc.name.toLowerCase() === location.name.toLowerCase() ||
               location.name.toLowerCase().includes(key)
             );
             const shortName = loc.name.split(' ')[0].replace('/', '');
@@ -1368,11 +1365,10 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
                 key={key}
                 id={`map-loc-${key}`}
                 onClick={() => onSelectLocation(key)}
-                className={`px-2 py-0.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all shrink-0 ${
-                  isSelected
+                className={`px-2 py-0.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all shrink-0 ${isSelected
                     ? 'bg-cyan-500 text-slate-950 shadow-[0_0_12px_rgba(34,211,238,0.6)]'
                     : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
-                }`}
+                  }`}
               >
                 {shortName}
               </button>
@@ -1385,9 +1381,8 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           <button
             onClick={() => setShowHazardZones(!showHazardZones)}
             title="Toggle Hazard Polygons"
-            className={`px-2 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1 transition-all whitespace-nowrap ${
-              showHazardZones ? 'bg-red-950/70 text-red-300 border border-red-700/50 shadow-[0_0_10px_rgba(239,68,68,0.25)]' : 'text-slate-400 hover:bg-slate-800/60'
-            }`}
+            className={`px-2 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1 transition-all whitespace-nowrap ${showHazardZones ? 'bg-red-950/70 text-red-300 border border-red-700/50 shadow-[0_0_10px_rgba(239,68,68,0.25)]' : 'text-slate-400 hover:bg-slate-800/60'
+              }`}
           >
             <Waves className="h-3 w-3 text-red-400" />
             <span className="hidden md:inline">{dict.hazardZones}</span>
@@ -1396,9 +1391,8 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           <button
             onClick={() => setShowSafeCorridors(!showSafeCorridors)}
             title="Toggle Safe Navigation Corridors"
-            className={`px-2 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1 transition-all whitespace-nowrap ${
-              showSafeCorridors ? 'bg-emerald-950/70 text-emerald-300 border border-emerald-700/50 shadow-[0_0_10px_rgba(16,185,129,0.25)]' : 'text-slate-400 hover:bg-slate-800/60'
-            }`}
+            className={`px-2 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1 transition-all whitespace-nowrap ${showSafeCorridors ? 'bg-emerald-950/70 text-emerald-300 border border-emerald-700/50 shadow-[0_0_10px_rgba(16,185,129,0.25)]' : 'text-slate-400 hover:bg-slate-800/60'
+              }`}
           >
             <Navigation className="h-3 w-3 text-emerald-400" />
             <span className="hidden md:inline">{dict.safeChannels}</span>
@@ -1407,9 +1401,8 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           <button
             onClick={() => setShowBuoys(!showBuoys)}
             title="Toggle Ocean Buoys"
-            className={`px-2 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1 transition-all whitespace-nowrap ${
-              showBuoys ? 'bg-amber-950/70 text-amber-300 border border-amber-600/60 shadow-[0_0_10px_rgba(245,158,11,0.25)]' : 'text-slate-400 hover:bg-slate-800/60'
-            }`}
+            className={`px-2 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1 transition-all whitespace-nowrap ${showBuoys ? 'bg-amber-950/70 text-amber-300 border border-amber-600/60 shadow-[0_0_10px_rgba(245,158,11,0.25)]' : 'text-slate-400 hover:bg-slate-800/60'
+              }`}
           >
             <Radio className="h-3 w-3 text-amber-400" />
             <span className="hidden md:inline">{dict.buoys}</span>
@@ -1418,9 +1411,8 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           <button
             onClick={() => setShowImbl(!showImbl)}
             title="Toggle International Maritime Boundary Lines (IMBL)"
-            className={`px-2 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1 transition-all whitespace-nowrap ${
-              showImbl ? 'bg-rose-950/70 text-rose-300 border border-rose-700/50 shadow-[0_0_10px_rgba(244,63,94,0.25)] font-bold' : 'text-slate-400 hover:bg-slate-800/60'
-            }`}
+            className={`px-2 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1 transition-all whitespace-nowrap ${showImbl ? 'bg-rose-950/70 text-rose-300 border border-rose-700/50 shadow-[0_0_10px_rgba(244,63,94,0.25)] font-bold' : 'text-slate-400 hover:bg-slate-800/60'
+              }`}
           >
             <ShieldAlert className="h-3 w-3 text-rose-400" />
             <span className="hidden sm:inline">IMBL Border</span>
@@ -1429,9 +1421,8 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           <button
             onClick={() => setShowMpas(!showMpas)}
             title="Toggle Marine Protected Areas (MPAs)"
-            className={`px-2 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1 transition-all whitespace-nowrap ${
-              showMpas ? 'bg-emerald-950/70 text-emerald-300 border border-emerald-700/50 shadow-[0_0_10px_rgba(16,185,129,0.25)] font-bold' : 'text-slate-400 hover:bg-slate-800/60'
-            }`}
+            className={`px-2 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1 transition-all whitespace-nowrap ${showMpas ? 'bg-emerald-950/70 text-emerald-300 border border-emerald-700/50 shadow-[0_0_10px_rgba(16,185,129,0.25)] font-bold' : 'text-slate-400 hover:bg-slate-800/60'
+              }`}
           >
             <ShieldCheck className="h-3 w-3 text-emerald-400" />
             <span className="hidden sm:inline">MPA Reserves</span>
@@ -1440,9 +1431,8 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           <button
             onClick={() => setShowPfz(!showPfz)}
             title="Toggle Statutory INCOIS Daily Potential Fishing Zones (PFZ) & Satellite Frontlines"
-            className={`px-2 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1 transition-all whitespace-nowrap ${
-              showPfz ? 'bg-emerald-950/90 text-emerald-200 border border-emerald-500/80 shadow-[0_0_12px_rgba(16,185,129,0.4)] font-bold' : 'text-slate-400 hover:bg-slate-800/60'
-            }`}
+            className={`px-2 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1 transition-all whitespace-nowrap ${showPfz ? 'bg-emerald-950/90 text-emerald-200 border border-emerald-500/80 shadow-[0_0_12px_rgba(16,185,129,0.4)] font-bold' : 'text-slate-400 hover:bg-slate-800/60'
+              }`}
           >
             <span>🐟</span>
             <span className="hidden sm:inline">INCOIS PFZ (Live WFS)</span>
@@ -1451,9 +1441,8 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           <button
             onClick={() => setIsSatelliteView(!isSatelliteView)}
             title="Toggle Real High-Resolution Optical Satellite Imagery Base Layer (Esri World Imagery + OpenSeaMap)"
-            className={`px-2 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1 transition-all whitespace-nowrap ${
-              isSatelliteView ? 'bg-cyan-950/90 text-cyan-200 border border-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.4)] font-bold' : 'text-slate-400 hover:bg-slate-800/60'
-            }`}
+            className={`px-2 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1 transition-all whitespace-nowrap ${isSatelliteView ? 'bg-cyan-950/90 text-cyan-200 border border-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.4)] font-bold' : 'text-slate-400 hover:bg-slate-800/60'
+              }`}
           >
             <span>🛰️</span>
             <span className="hidden sm:inline">{isSatelliteView ? 'Satellite Map (Live)' : 'Satellite View'}</span>
@@ -1473,11 +1462,10 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
               }
             }}
             title="Toggle Dynamic Safe Navigation Route Polyline"
-            className={`px-2 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1 transition-all whitespace-nowrap ${
-              showSafeRouteLayer && (safeRouteResult || routeDestination)
+            className={`px-2 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1 transition-all whitespace-nowrap ${showSafeRouteLayer && (safeRouteResult || routeDestination)
                 ? 'bg-emerald-950/90 text-emerald-200 border border-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.5)] font-bold'
                 : 'text-slate-400 hover:bg-slate-800/60'
-            }`}
+              }`}
           >
             <Navigation className="h-3 w-3 text-emerald-400" />
             <span className="hidden sm:inline">Safe Route</span>
@@ -1486,11 +1474,10 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           <button
             onClick={() => setShowVessels(!showVessels)}
             title="Toggle Live INCOIS Moored Ocean Buoy Stations (NDBP/NIOT Telemetry)"
-            className={`px-2 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1 transition-all whitespace-nowrap ${
-              showVessels
+            className={`px-2 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1 transition-all whitespace-nowrap ${showVessels
                 ? 'bg-amber-950/90 text-amber-200 border border-amber-500/80 shadow-[0_0_12px_rgba(245,158,11,0.5)] font-bold'
                 : 'text-slate-400 hover:bg-slate-800/60'
-            }`}
+              }`}
           >
             <span>📡</span>
             <span className="hidden sm:inline">INCOIS Buoys (Live)</span>
@@ -1499,11 +1486,10 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           <button
             onClick={() => setShowOilSpills(!showOilSpills)}
             title="Toggle Live Satellite Oil Spill Slicks & Hazards (NASA EONET / Copernicus STAC)"
-            className={`px-2 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1 transition-all whitespace-nowrap ${
-              showOilSpills
+            className={`px-2 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1 transition-all whitespace-nowrap ${showOilSpills
                 ? 'bg-purple-950/90 text-purple-200 border border-purple-500/80 shadow-[0_0_12px_rgba(168,85,247,0.5)] font-bold'
                 : 'text-slate-400 hover:bg-slate-800/60'
-            }`}
+              }`}
           >
             <span>🛢️</span>
             <span className="hidden sm:inline">Oil Slicks (Live NASA)</span>
@@ -1518,11 +1504,10 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         <button
           onClick={handleLocateBoat}
           disabled={isLocating}
-          className={`orca-glass-panel px-2.5 py-1.5 flex items-center gap-1.5 text-xs font-semibold rounded-lg transition-all shadow-lg ${
-            isLocating 
-              ? 'bg-cyan-500/30 text-cyan-300 border border-cyan-400 animate-pulse' 
+          className={`orca-glass-panel px-2.5 py-1.5 flex items-center gap-1.5 text-xs font-semibold rounded-lg transition-all shadow-lg ${isLocating
+              ? 'bg-cyan-500/30 text-cyan-300 border border-cyan-400 animate-pulse'
               : 'text-cyan-300 hover:text-white hover:bg-slate-800/80 border border-slate-700/60'
-          }`}
+            }`}
           title="Detect live GPS coordinates from this device / boat"
         >
           <Navigation className={`h-3.5 w-3.5 ${isLocating ? 'animate-spin' : 'text-cyan-400'}`} />
@@ -1552,11 +1537,10 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
                     <ShieldAlert className="h-3.5 w-3.5 text-cyan-400" />
                     <span>Geofence Status</span>
                   </span>
-                  <span className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-black uppercase ${
-                    isBreach ? 'bg-red-600 text-white animate-pulse' :
-                    isCaution ? 'bg-amber-500 text-slate-950' :
-                    'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                  }`}>
+                  <span className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-black uppercase ${isBreach ? 'bg-red-600 text-white animate-pulse' :
+                      isCaution ? 'bg-amber-500 text-slate-950' :
+                        'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                    }`}>
                     {geo.status}
                   </span>
                 </div>
@@ -1587,11 +1571,10 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
                       <span className="text-slate-300 truncate max-w-[170px]" title={geo.nearestImbl.boundaryName}>
                         {geo.nearestImbl.boundaryName.split('(')[0].replace('International Maritime Boundary Line', 'IMBL')}
                       </span>
-                      <span className={`font-mono font-bold ${
-                        geo.nearestImbl.hasCrossedBorder ? 'text-red-400 font-black animate-pulse' :
-                        geo.nearestImbl.distanceNm <= 3.0 ? 'text-red-400 font-black animate-pulse' :
-                        geo.nearestImbl.distanceNm <= 8.0 ? 'text-amber-400' : 'text-slate-300'
-                      }`}>
+                      <span className={`font-mono font-bold ${geo.nearestImbl.hasCrossedBorder ? 'text-red-400 font-black animate-pulse' :
+                          geo.nearestImbl.distanceNm <= 3.0 ? 'text-red-400 font-black animate-pulse' :
+                            geo.nearestImbl.distanceNm <= 8.0 ? 'text-amber-400' : 'text-slate-300'
+                        }`}>
                         {geo.nearestImbl.hasCrossedBorder ? `CROSSED (${geo.nearestImbl.distanceNm} NM)` : `${geo.nearestImbl.distanceNm} NM`}
                       </span>
                     </div>
@@ -1609,10 +1592,9 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
                       <span className="text-slate-300 truncate max-w-[170px]" title={geo.nearestMpa.boundaryName}>
                         {geo.nearestMpa.boundaryName.split(' ')[0]} Sanctuary
                       </span>
-                      <span className={`font-mono font-bold ${
-                        (geo.nearestMpa.isInside || geo.nearestMpa.distanceNm === 0) ? 'text-red-400 font-black animate-pulse' :
-                        geo.nearestMpa.distanceNm <= 3.0 ? 'text-amber-400' : 'text-emerald-400'
-                      }`}>
+                      <span className={`font-mono font-bold ${(geo.nearestMpa.isInside || geo.nearestMpa.distanceNm === 0) ? 'text-red-400 font-black animate-pulse' :
+                          geo.nearestMpa.distanceNm <= 3.0 ? 'text-amber-400' : 'text-emerald-400'
+                        }`}>
                         {(geo.nearestMpa.isInside || geo.nearestMpa.distanceNm === 0)
                           ? `INSIDE (${geo.nearestMpa.insideDepthNm ?? geo.nearestMpa.distanceNm} NM)`
                           : `${geo.nearestMpa.distanceNm} NM`}
@@ -1660,8 +1642,8 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
                         severity: isBreach
                           ? ('CRITICAL_BREACH' as const)
                           : isCaution
-                          ? ('PROXIMITY_WARNING' as const)
-                          : ('ADVISORY' as const),
+                            ? ('PROXIMITY_WARNING' as const)
+                            : ('ADVISORY' as const),
                       };
                       const phrase = voiceWarning.generateGeofencePhrase(alertWithSeverity, language);
                       voiceWarning.speak(phrase, language, {
