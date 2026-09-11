@@ -11,6 +11,7 @@ import {
   satelliteAnalysis,
   gisSpatialAnalysis,
   evidenceLiveIngest,
+  marineSourceAudit,
   getConversation,
   listConversations,
   deleteConversation,
@@ -32,6 +33,8 @@ router.get('/marine/conditions', marineConditions);
 router.get('/marine/forecast', marineForecast);
 router.get('/marine/telemetry', marineTelemetry);
 router.get('/marine/telemetry/analysis', marineTelemetryAnalysis);
+router.get('/marine/audit', marineSourceAudit);
+router.post('/marine/audit', marineSourceAudit);
 router.post('/marine/risk', marineRisk);
 router.post('/satellite/analysis', satelliteAnalysis);
 router.post('/evidence/search', evidenceSearch);

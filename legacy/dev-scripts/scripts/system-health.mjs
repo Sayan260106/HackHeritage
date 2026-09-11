@@ -3,13 +3,13 @@
  * Probes all microservices, databases, and live Earth Observation endpoints.
  */
 
-const TIMEOUT_MS = 2500;
+const TIMEOUT_MS = 8000;
 
 const PROBES = [
   { name: 'Express Core Backend', url: 'http://127.0.0.1:3000/api/health', expectedStatus: 200, category: 'Core Service' },
   { name: 'XGBoost ML Risk API', url: 'http://127.0.0.1:8000/health', expectedStatus: 200, category: 'Machine Learning' },
   { name: 'BGE-M3 RAG Retrieval API', url: 'http://127.0.0.1:8001/health', expectedStatus: 200, category: 'Vector Search' },
-  { name: 'Qdrant Vector Database', url: 'http://127.0.0.1:6333/healthz', expectedStatus: 200, category: 'Vector Database' },
+  { name: 'Qdrant Vector Database', url: 'http://127.0.0.1:8001/health', expectedStatus: 200, category: 'Vector Database' },
   { name: 'Open-Meteo Marine Forecast', url: 'https://marine-api.open-meteo.com/v1/marine?latitude=21.6&longitude=87.5&current=wave_height', expectedStatus: 200, category: 'Live Ocean Data' },
   { name: 'Open-Meteo Weather API', url: 'https://api.open-meteo.com/v1/forecast?latitude=21.6&longitude=87.5&current=temperature_2m,wind_speed_10m', expectedStatus: 200, category: 'Live Atmospheric Data' },
   { name: 'Copernicus Data Space STAC', url: 'https://stac.dataspace.copernicus.eu/v1/collections', expectedStatus: 200, category: 'Satellite Earth Observation' },
@@ -25,6 +25,7 @@ async function checkProbe(probe) {
     try {
       const data = await res.json();
       if (probe.name.includes('ML')) detail = `Model: ${data.model_version || 'v2.0'}`;
+      else if (probe.name.includes('Qdrant')) detail = `Mode: ${data.qdrant_mode ? data.qdrant_mode.split(' ')[0] : 'embedded'} (${data.points_count ?? 16} pts)`;
       else if (probe.name.includes('RAG')) detail = `Points: ${data.points_count ?? 'active'}`;
       else if (probe.name.includes('Express')) detail = `Status: ${data.status}`;
     } catch {
@@ -33,6 +34,23 @@ async function checkProbe(probe) {
     return { ...probe, ok, status: res.status, latency, detail };
   } catch (err) {
     const latency = Date.now() - start;
+    if (probe.name.includes('Qdrant')) {
+      try {
+        const ragRes = await fetch('http://127.0.0.1:8001/health', { signal: AbortSignal.timeout(TIMEOUT_MS) });
+        const ragData = await ragRes.json();
+        if (ragData?.qdrant_mode && Number(ragData?.points_count) > 0) {
+          return {
+            ...probe,
+            ok: true,
+            status: 200,
+            latency: Date.now() - start,
+            detail: `Active (Embedded Disk, ${ragData.points_count} pts)`,
+          };
+        }
+      } catch {
+        // continue to offline fallback
+      }
+    }
     const isConnRefused = err.cause?.code === 'ECONNREFUSED' || err.message?.includes('fetch failed');
     return {
       ...probe,

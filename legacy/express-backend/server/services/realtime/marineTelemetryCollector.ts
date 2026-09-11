@@ -1,23 +1,51 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { spawn } from 'node:child_process';
 import { COASTAL_LOCATIONS } from '../../../src/data/coastalData.ts';
 import { fetchFusedRealtimeMarineObservation } from './marineDataFusion.ts';
 
-const COLLECTION_INTERVAL_MS = Math.max(60_000, Number(process.env.REALTIME_COLLECTION_INTERVAL_MS || 900_000));
-const DEFAULT_LOCATION_KEYS = ['digha', 'paradeep', 'visakhapatnam', 'chennai', 'goa', 'kochi'];
-let timer: ReturnType<typeof setInterval> | undefined;
-let running = false;
+const MOSDAC_CACHE_PATH = path.resolve(process.cwd(), 'data/realtime/mosdac_latest.json');
+const MAX_MOSDAC_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours
+let mosdacSyncInProgress = false;
 
-function locationKeys(): string[] {
-  const configured = (process.env.REALTIME_COLLECTION_LOCATIONS || DEFAULT_LOCATION_KEYS.join(','))
-    .split(',')
-    .map((key) => key.trim())
-    .filter(Boolean);
-  return configured.filter((key) => Boolean(COASTAL_LOCATIONS[key]));
+function checkAndRefreshMosdacTelemetry(): void {
+  if (mosdacSyncInProgress) return;
+  try {
+    let shouldSync = false;
+    if (!fs.existsSync(MOSDAC_CACHE_PATH)) {
+      shouldSync = true;
+    } else {
+      const stats = fs.statSync(MOSDAC_CACHE_PATH);
+      const ageMs = Date.now() - stats.mtimeMs;
+      if (ageMs > MAX_MOSDAC_AGE_MS) {
+        shouldSync = true;
+      }
+    }
+
+    if (shouldSync) {
+      mosdacSyncInProgress = true;
+      console.log('MOSDAC cache is stale or absent (>24h). Triggering automated background sync...');
+      const proc = spawn('python', ['scripts/mosdac-daemon.py', '--once'], {
+        stdio: 'ignore',
+        detached: true,
+        shell: process.platform === 'win32',
+      });
+      proc.unref();
+      proc.on('close', () => {
+        mosdacSyncInProgress = false;
+      });
+    }
+  } catch (err) {
+    mosdacSyncInProgress = false;
+    console.warn('MOSDAC freshness verification notice:', err);
+  }
 }
 
 export async function collectMarineTelemetrySnapshot(): Promise<void> {
   if (running) return;
   running = true;
   try {
+    checkAndRefreshMosdacTelemetry();
     const keys = locationKeys();
     const results = await Promise.allSettled(keys.map(async (key) => {
       const location = COASTAL_LOCATIONS[key];

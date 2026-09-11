@@ -159,6 +159,17 @@ export async function evidenceSearch(req: Request, res: Response) {
 
 export async function evidenceLiveIngest(req: Request, res: Response) {
   try {
+    const configuredKey = process.env.RAG_INGEST_API_KEY || 'orca-rag-internal-key';
+    const clientKey = (req.headers['x-api-key'] as string) || (req.query.apiKey as string);
+    const isProd = process.env.NODE_ENV === 'production' || process.env.ORCA_PRODUCTION === 'true';
+
+    if (isProd && (!clientKey || clientKey === 'orca-rag-internal-key')) {
+      return res.status(403).json({ error: 'Forbidden: Valid production X-API-Key header required for live evidence ingestion.' });
+    }
+    if (configuredKey && clientKey !== configuredKey) {
+      return res.status(401).json({ error: 'Unauthorized: Invalid or missing X-API-Key for evidence ingestion.' });
+    }
+
     const { title, excerpt, sourceAuthority, documentType, publicationDate, complianceRule, officialUrl, id } = req.body;
     if (!title || !excerpt || !sourceAuthority) {
       return res.status(400).json({ error: 'title, excerpt, and sourceAuthority are required for live evidence ingestion.' });
@@ -210,30 +221,48 @@ export function gisSpatialAnalysis(req: Request, res: Response) {
   }
 }
 
-export async function health(_req: Request, res: Response) {
-  const mlUrl = process.env.ORCA_ML_API_URL || 'http://127.0.0.1:8000';
-  const ragUrl = process.env.ORCA_RAG_API_URL || 'http://127.0.0.1:8001';
-  const qdrantUrl = process.env.QDRANT_URL || 'http://127.0.0.1:6333';
+let cachedHealthResponse: any = null;
+let lastHealthCheckTime = 0;
+const HEALTH_CACHE_TTL_MS = 2500;
 
-  const [mlCheck, ragCheck, qdrantCheck] = await Promise.all([
-    fetch(`${mlUrl}/health`, { signal: AbortSignal.timeout(600) })
-      .then(r => r.ok)
-      .catch(() => false),
-    fetch(`${ragUrl}/health`, { signal: AbortSignal.timeout(600) })
-      .then(r => r.ok)
-      .catch(() => false),
-    fetch(`${qdrantUrl}/healthz`, { signal: AbortSignal.timeout(600) })
-      .then(r => r.ok)
-      .catch(() => false),
+export async function health(_req: Request, res: Response) {
+  if (cachedHealthResponse && (Date.now() - lastHealthCheckTime) < HEALTH_CACHE_TTL_MS) {
+    return res.json(cachedHealthResponse);
+  }
+
+  const mlUrl = process.env.ORCA_ML_API_URL || 'http://127.0.0.1:8000';
+  const ragUrl = process.env.ORCA_RAG_API_URL || 'http://127.0.0.1:8000';
+  const ragCandidateUrl = ragUrl;
+
+  const [mlData, ragDataDirect] = await Promise.all([
+    fetch(`${mlUrl}/health`, { signal: AbortSignal.timeout(1200) })
+      .then(r => (r.ok ? r.json() : null))
+      .catch(() => null),
+    (ragCandidateUrl !== mlUrl)
+      ? fetch(`${ragCandidateUrl}/health`, { signal: AbortSignal.timeout(1200) })
+          .then(r => (r.ok ? r.json() : null))
+          .catch(() => null)
+      : Promise.resolve(null),
   ]);
 
-  res.json({
+  const mlCheck = Boolean(mlData && (mlData.status === 'healthy' || mlData.status === 'ok'));
+  let ragData = ragDataDirect || (mlData?.rag && mlData.rag.status === 'healthy' ? mlData.rag : null);
+  if (!ragData && !process.env.ORCA_RAG_API_URL) {
+    ragData = await fetch('http://127.0.0.1:8001/health', { signal: AbortSignal.timeout(800) })
+      .then(r => (r.ok ? r.json() : null))
+      .catch(() => null);
+  }
+
+  const isRagOnline = Boolean(ragData && (ragData.status === 'healthy' || ragData.status === 'ok'));
+  const isQdrantOnline = Boolean(ragData?.qdrant_mode && Number(ragData?.points_count) > 0);
+
+  const payload = {
     status: 'healthy',
     timestamp: new Date().toISOString(),
     liveStatus: {
       mlService: mlCheck ? 'ONLINE' : 'PHYSICS_FALLBACK',
-      ragService: ragCheck ? 'ONLINE' : 'LEXICAL_FALLBACK',
-      qdrantVectorDb: qdrantCheck ? 'ONLINE' : 'OFFLINE',
+      ragService: isRagOnline ? 'ONLINE' : 'LEXICAL_FALLBACK',
+      qdrantVectorDb: isQdrantOnline ? 'ONLINE' : 'OFFLINE',
       geminiLlm: process.env.GEMINI_API_KEY ? 'ACTIVE' : 'DETERMINISTIC_FALLBACK',
       openMeteo: 'ONLINE',
       incoisPfz: 'AVAILABLE',
@@ -249,7 +278,7 @@ export async function health(_req: Request, res: Response) {
       satelliteProcessing: 'incois_statutory_ocean_fronts_and_copernicus_stac',
       riskEngine: mlCheck ? 'xgboost_microservice' : 'xgboost_with_rule_based_fallback',
       mlRiskApi: mlUrl,
-      evidenceRetrieval: ragCheck ? 'bge-m3-qdrant_vector' : 'bge-m3-qdrant_with_lexical_fallback',
+      evidenceRetrieval: (isRagOnline && isQdrantOnline) ? 'bge-m3-qdrant_vector' : 'bge-m3-qdrant_with_lexical_fallback',
       ragApi: ragUrl,
       agentOrchestrator: 'server_workflow',
       geminiGroundingAgent: process.env.GEMINI_API_KEY ? 'configured' : 'standby_deterministic',
@@ -271,7 +300,11 @@ export async function health(_req: Request, res: Response) {
       marineProtectedAreasCoverage: true,
     },
     supportedLocations: getSupportedLocationCount(),
-  });
+  };
+
+  cachedHealthResponse = payload;
+  lastHealthCheckTime = Date.now();
+  res.json(payload);
 }
 
 export async function vesselsLive(req: Request, res: Response) {
@@ -300,4 +333,75 @@ export async function vesselsLive(req: Request, res: Response) {
     res.status(500).json({ error: 'Failed to retrieve AIS vessel traffic' });
   }
 }
+
+export async function marineSourceAudit(req: Request, res: Response) {
+  try {
+    const lat = Number(req.query.lat ?? req.body?.latitude ?? 21.6266);
+    const lon = Number(req.query.lon ?? req.body?.longitude ?? 87.5074);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+      return res.status(400).json({ error: 'Valid latitude and longitude are required.' });
+    }
+
+    // Call ML Model 1 directly or gather live providers
+    const mlUrl = (process.env.ORCA_ML_API_URL || 'http://127.0.0.1:8000').replace(/\/$/, '');
+    const providers = getRealtimeSourceReadiness();
+
+    // Ingest live conditions to construct sources map
+    const { weather, ocean } = await fetchMarineAndWeatherData(lat, lon);
+    const sourcesPayload: Record<string, any> = {
+      OPEN_METEO: {
+        observed_at: weather.observedAt,
+        latitude: lat,
+        longitude: lon,
+        values: {
+          wind_speed_kts: weather.windSpeedKts,
+          wind_gust_kts: weather.windGustKts,
+          wind_direction_deg: weather.windDirectionDeg,
+          wave_height_m: ocean.waveHeightMeters,
+          wave_period_s: ocean.wavePeriodSec,
+          wave_direction_deg: ocean.waveDirectionDeg,
+          air_pressure_hpa: weather.pressureHpa,
+          air_temperature_c: weather.airTemperatureC,
+          sea_surface_temperature_c: ocean.seaSurfaceTemperatureC,
+          precipitation_mm: weather.precipitationMm,
+        }
+      }
+    };
+
+    try {
+      const mlRes = await fetch(`${mlUrl}/audit-and-fuse`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sources: sourcesPayload, latitude: lat, longitude: lon }),
+        signal: AbortSignal.timeout(3000),
+      });
+      if (mlRes.ok) {
+        const auditData = await mlRes.json();
+        return res.json(auditData);
+      }
+    } catch {
+      // Degraded fallback
+    }
+
+    res.json({
+      success: true,
+      degraded: true,
+      mode: 'deterministic_fallback',
+      audited_vector: {
+        wind_speed_kts: weather.windSpeedKts,
+        wave_height_m: ocean.waveHeightMeters,
+        air_pressure_hpa: weather.pressureHpa,
+        sea_surface_temperature_c: ocean.seaSurfaceTemperatureC,
+        latitude: lat,
+        longitude: lon,
+      },
+      quality_score: 0.7,
+      active_sources: ['OPEN_METEO'],
+      providers,
+    });
+  } catch (error) {
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Marine source audit failed.' });
+  }
+}
+
 

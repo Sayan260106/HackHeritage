@@ -33,6 +33,7 @@ export interface SafeRouteResult {
   warnings: string[];
   rationale: string;
   source: string;
+  disclaimer?: string;
 }
 
 const EARTH_RADIUS_KM = 6371;
@@ -320,5 +321,6 @@ export function calculateSafeRoute(request: SafeRouteRequest): SafeRouteResult {
     warnings,
     rationale: `Selected the lowest-cost geofence-safe corridor in the local search grid${cautionWaypoints ? ' while penalizing caution corridors' : ''}.`,
     source: 'ORCA-X deterministic safe-routing engine + authoritative maritime geofence dataset',
+    disclaimer: 'DECISION SUPPORT ONLY. Not for primary vessel navigation. Does not contain bathymetric depth charts or electronic navigational chart (ENC) hydrographic depth contours.',
   };
 }

@@ -159,7 +159,55 @@ class InferenceContractTests(unittest.TestCase):
         self.assertTrue(any("rogue/cyclonic" in a.lower() for a in ood_result["ood_diagnostics"]["anomalies"]))
 
 
+    def test_dual_model_audited_realtime_prediction(self) -> None:
+        from source_auditor import MarineSourceAuditor
+        auditor = MarineSourceAuditor()
+        sources = {
+            "OPEN_METEO": {
+                "observed_at": "2026-08-25T03:00:00Z",
+                "values": {
+                    "wind_speed_kts": 14.0,
+                    "wave_height_m": 1.4,
+                    "air_temperature_c": 26.0,
+                    "wind_direction_deg": 210.0,
+                },
+            },
+            "INCOIS": {
+                "observed_at": "2026-08-25T02:45:00Z",
+                "latitude": 21.63,
+                "longitude": 87.51,
+                "values": {
+                    "wind_speed_kts": 16.5,
+                    "wave_height_m": 1.6,
+                    "water_temperature_c": 27.2,
+                    "sea_surface_temperature_c": 27.2,
+                    "wind_direction_deg": 225.0,
+                },
+            },
+            "MOSDAC": {
+                "observed_at": "2026-08-25T02:00:00Z",
+                "values": {
+                    "wind_speed_kts": 15.8,
+                    "sea_surface_temperature_c": 27.0,
+                },
+            },
+        }
+        # Step 1: Model 1 Audit & Precision Fusion
+        audit_res = auditor.audit_and_fuse(sources, target_lat=21.6266, target_lon=87.5074)
+        self.assertIn("audited_vector", audit_res)
+        fused = audit_res["audited_vector"]
+        self.assertGreater(fused["wind_speed_kts"], 14.5)
+        self.assertLess(fused["wind_speed_kts"], 16.5)
+
+        # Step 2: Model 2 Predict over fused precision vector
+        result = self.predictor.predict_one(fused)
+        self.assertIn(result["risk_label"], {"LOW", "MODERATE", "HIGH", "EXTREME"})
+        self.assertTrue(0.0 <= result["confidence"] <= 1.0)
+        self.assertIn("uncertainty", result)
+
+
 if __name__ == "__main__":
     unittest.main()
+
 
 

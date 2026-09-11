@@ -25,45 +25,50 @@ jobs:
           python-version: '3.11'
 
       - name: Install Node dependencies
+        working-directory: ./frontend
         run: npm ci
 
       - name: Install ML dependencies
         run: |
           python -m pip install --upgrade pip
           python -m pip install --index-url https://download.pytorch.org/whl/cpu "torch>=2.1,<3"
-          python -m pip install -r ml/requirements.txt
+          python -m pip install -r legacy/ml-service/ml/requirements.txt
 
       - name: Type check
+        working-directory: ./frontend
         run: npm run lint
 
       - name: CLI runtime tests
+        working-directory: ./frontend
         run: |
-          npm run test:agentic
-          npm run test:agentic-pfz
-          npm run test:agentic-safe-routing
-          npm run test:decision-fusion
-          npm run test:safe-routing
-          npm run test:alerts
-          npm run test:agentic-alerts
-          npm run test:geofence
-          npm run test:gis
-          npm run test:gis-agentic
-          npm run test:pfz
-          npm run test:mosdac-cache
+          npm run legacy:test:agentic
+          npm run legacy:test:agentic-pfz
+          npm run legacy:test:agentic-safe-routing
+          npm run legacy:test:decision-fusion
+          npm run legacy:test:safe-routing
+          npm run legacy:test:alerts
+          npm run legacy:test:agentic-alerts
+          npm run legacy:test:geofence
+          npm run legacy:test:gis
+          npm run legacy:test:gis-agentic
+          npm run legacy:test:pfz
+          npm run legacy:test:mosdac-cache
 
       - name: Python syntax validation
-        run: python -m compileall -q ml scripts/mosdac-sync.py scripts/mosdac-normalize.py
+        run: python -m compileall -q legacy/ml-service/ml legacy/dev-scripts/scripts/mosdac-sync.py legacy/dev-scripts/scripts/mosdac-normalize.py
 
       - name: ML regression tests
         run: |
-          python -m unittest ml/tests/test_inference_contract.py
-          python ml/src/test_label_policy.py
+          python -m unittest legacy/ml-service/ml/tests/test_inference_contract.py
+          python legacy/ml-service/ml/src/test_label_policy.py
 
       - name: Production build
+        working-directory: ./frontend
         run: npm run build
 
       - name: Start ML API
         run: nohup uvicorn ml.api:app --host 127.0.0.1 --port 8000 > /tmp/orca-ml.log 2>&1 &
+        working-directory: ./legacy/ml-service
 
       - name: Wait for ML API
         run: |
@@ -86,6 +91,7 @@ jobs:
 
       - name: Start BGE-M3 RAG API
         run: nohup uvicorn ml.rag_api:app --host 127.0.0.1 --port 8001 > /tmp/orca-rag.log 2>&1 &
+        working-directory: ./legacy/ml-service
 
       - name: Wait for BGE-M3 RAG API
         run: |
@@ -107,7 +113,8 @@ jobs:
           exit 1
 
       - name: Ingest Refinement 3 marine evidence into Qdrant
-        run: npm run ingest:rag
+        working-directory: ./frontend
+        run: npm run legacy:ingest:rag
 
       - name: Verify Qdrant evidence collection
         run: |
@@ -124,9 +131,10 @@ jobs:
           PY
 
       - name: Start ORCA-X server
+        working-directory: ./frontend
         env:
           ORCA_REALTIME_TEST_MODE: fixture
-        run: nohup npm start > /tmp/orca-server.log 2>&1 &
+        run: nohup npm run legacy:dev > /tmp/orca-server.log 2>&1 &
 
       - name: Wait for ORCA-X server
         run: |
@@ -138,7 +146,8 @@ jobs:
           exit 1
 
       - name: End-to-end Refinement 3 smoke test
-        run: npm run smoke
+        working-directory: ./frontend
+        run: npm run legacy:smoke
 
       - name: Upload service logs on failure
         if: failure()
@@ -150,3 +159,4 @@ jobs:
       - name: Cleanup Qdrant
         if: always()
         run: docker rm -f orca-qdrant || true
+

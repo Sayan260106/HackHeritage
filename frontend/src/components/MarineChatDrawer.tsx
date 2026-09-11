@@ -25,11 +25,21 @@ import { MULTILINGUAL_DICTIONARY } from '../data/coastalData';
 import { detectQueryLanguage } from '../utils/languageDetector';
 import { voiceWarning } from '../services/audio/voiceWarningService';
 
+interface SavedSessionSummary {
+  sessionId: string;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+  turnCount: number;
+  locationName?: string;
+}
+
 interface MarineChatDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   sessionId: string;
   onNewSession: () => void;
+  onSelectSession?: (sessionId: string, turns: ConversationTurn[], latestAnalysis?: OrcaAnalysisResponse) => void;
   turns: ConversationTurn[];
   isLoading: boolean;
   onSendMessage: (query: string) => void;
@@ -43,6 +53,7 @@ export const MarineChatDrawer: React.FC<MarineChatDrawerProps> = ({
   onClose,
   sessionId,
   onNewSession,
+  onSelectSession,
   turns,
   isLoading,
   onSendMessage,
@@ -52,8 +63,66 @@ export const MarineChatDrawer: React.FC<MarineChatDrawerProps> = ({
   const [inputMessage, setInputMessage] = useState('');
   const [isListening, setIsListening] = useState(false);
   const [speakingTurnId, setSpeakingTurnId] = useState<string | null>(null);
+  const [showHistoryModal, setShowHistoryModal] = useState<boolean>(false);
+  const [savedSessions, setSavedSessions] = useState<SavedSessionSummary[]>([]);
+  const [isLoadingSessions, setIsLoadingSessions] = useState<boolean>(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const dict = MULTILINGUAL_DICTIONARY[language] || MULTILINGUAL_DICTIONARY.en;
+
+  const fetchSavedSessions = async () => {
+    setIsLoadingSessions(true);
+    try {
+      const res = await fetch('/api/orca/conversations');
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setSavedSessions(data);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load saved sessions:', err);
+    } finally {
+      setIsLoadingSessions(false);
+    }
+  };
+
+  const handleOpenHistory = () => {
+    setShowHistoryModal(true);
+    fetchSavedSessions();
+  };
+
+  const handleResumeSession = async (targetSessionId: string) => {
+    try {
+      const res = await fetch(`/api/orca/conversations/${targetSessionId}`);
+      if (res.ok) {
+        const session = await res.json();
+        if (session && Array.isArray(session.turns)) {
+          const latestAnalysis = session.turns[session.turns.length - 1]?.responseAnalysis;
+          if (onSelectSession) {
+            onSelectSession(session.sessionId, session.turns, latestAnalysis);
+          }
+          setShowHistoryModal(false);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to resume session:', err);
+    }
+  };
+
+  const handleDeleteSession = async (targetSessionId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      const res = await fetch(`/api/orca/conversations/${targetSessionId}`, { method: 'DELETE' });
+      if (res.ok) {
+        setSavedSessions((prev) => prev.filter((s) => s.sessionId !== targetSessionId));
+        if (targetSessionId === sessionId) {
+          onNewSession();
+        }
+      }
+    } catch (err) {
+      console.error('Failed to delete session:', err);
+    }
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -67,14 +136,14 @@ export const MarineChatDrawer: React.FC<MarineChatDrawerProps> = ({
 
   // All 8 canonical ISRO Problem Statement 26176 scenario recommendations
   const scenarioSuggestions = [
-    { label: 'Q1: Nearest PFZ Today', query: 'Where is the nearest Potential Fishing Zone today?' },
-    { label: 'Q2: Venture Safety Tomorrow', query: 'Is it safe to venture into the sea tomorrow morning?' },
-    { label: 'Q3: Tide & Sea Conditions', query: 'What are the tide, weather, and sea conditions near my fishing location?' },
-    { label: 'Q4: Cyclone & Lightning Alerts', query: 'Are there any lightning or cyclone alerts in my area?' },
-    { label: 'Q5: Chlorophyll & SST Fronts', query: 'Which regions show high chlorophyll concentration and favourable sea surface temperature?' },
-    { label: 'Q6: Safest Navigation Route', query: 'What is the safest route for a fishing vessel considering weather and sea-state conditions?' },
-    { label: 'Q7: Fish Productivity Decline', query: 'Why has fish productivity declined in a particular coastal region?' },
-    { label: 'Q8: Restricted Geofence Zones', query: 'Which fishing zones should be avoided due to hazardous marine conditions or geofencing restrictions?' },
+    { label: '🎣 Q1: Nearest PFZ Today', query: 'Where is the nearest Potential Fishing Zone today?' },
+    { label: '⚓ Q2: Venture Safety Tomorrow', query: 'Is it safe to venture into the sea tomorrow morning?' },
+    { label: '🌊 Q3: Tide & Sea Conditions', query: 'What are the tide, weather, and sea conditions near my fishing location?' },
+    { label: '⚡ Q4: Cyclone & Lightning Alerts', query: 'Are there any lightning or cyclone alerts in my area?' },
+    { label: '🛰️ Q5: Chlorophyll & SST Fronts', query: 'Which regions show high chlorophyll concentration and favourable sea surface temperature?' },
+    { label: '🧭 Q6: Safest Navigation Route', query: 'What is the safest route for a fishing vessel considering weather and sea-state conditions?' },
+    { label: '🔬 Q7: Fish Productivity Decline', query: 'Why has fish productivity declined in a particular coastal region?' },
+    { label: '🛑 Q8: Restricted Geofence Zones', query: 'Which fishing zones should be avoided due to hazardous marine conditions or geofencing restrictions?' },
   ];
 
   const handleSend = (e?: React.FormEvent) => {
@@ -190,16 +259,24 @@ export const MarineChatDrawer: React.FC<MarineChatDrawerProps> = ({
 
         <div className="flex items-center space-x-2">
           <button
+            onClick={handleOpenHistory}
+            title="Browse saved threads from disk"
+            className="flex items-center gap-1 rounded-lg border border-cyan-800 bg-cyan-950/60 px-2.5 py-1.5 text-xs text-cyan-300 hover:bg-cyan-900/60 hover:text-white transition-all font-mono cursor-pointer"
+          >
+            <Clock className="h-3.5 w-3.5 text-cyan-400" />
+            <span className="hidden sm:inline">History</span>
+          </button>
+          <button
             onClick={onNewSession}
             title="Start new thread / clear memory"
-            className="flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-800/80 px-2.5 py-1.5 text-xs text-slate-300 hover:bg-slate-700 hover:text-white transition-all font-mono"
+            className="flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-800/80 px-2.5 py-1.5 text-xs text-slate-300 hover:bg-slate-700 hover:text-white transition-all font-mono cursor-pointer"
           >
             <Trash2 className="h-3.5 w-3.5 text-rose-400" />
             <span className="hidden sm:inline">New Thread</span>
           </button>
           <button
             onClick={onClose}
-            className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white transition-colors"
+            className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white transition-colors cursor-pointer"
           >
             <X className="h-5 w-5" />
           </button>
@@ -211,7 +288,7 @@ export const MarineChatDrawer: React.FC<MarineChatDrawerProps> = ({
         {turns.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center px-4 py-12">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-500/10 text-cyan-400 mb-3 border border-cyan-500/20">
-              <Sparkles className="h-6 w-6" />
+              <Sparkles className="h-6 w-6 animate-pulse" />
             </div>
             <h3 className="text-sm font-bold text-white mb-1">
               Contextual Marine Decision Support
@@ -262,13 +339,13 @@ export const MarineChatDrawer: React.FC<MarineChatDrawerProps> = ({
                     {/* Status Header */}
                     <div className="flex items-center justify-between gap-2 border-b border-slate-800/80 pb-2">
                       <div className="flex items-center space-x-1.5">
-                        <span className="flex h-2 w-2 rounded-full bg-cyan-400" />
+                        <span className="flex h-2 w-2 rounded-full bg-cyan-400 animate-pulse" />
                         <span className="font-mono text-[10px] uppercase font-bold text-cyan-400 tracking-wider">
                           ORCA-X Agent
                         </span>
                         {turn.locationName && (
                           <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[10px] text-slate-300 font-mono">
-                            {turn.locationName.split(' ')[0]}
+                            📍 {turn.locationName.split(' ')[0]}
                           </span>
                         )}
                       </div>
@@ -292,7 +369,7 @@ export const MarineChatDrawer: React.FC<MarineChatDrawerProps> = ({
                           title="Read out response"
                           className={`rounded-md p-1 transition-colors ${
                             speakingTurnId === turn.turnId
-                              ? 'bg-cyan-500 text-slate-950'
+                              ? 'bg-cyan-500 text-slate-950 animate-pulse'
                               : 'text-slate-400 hover:bg-slate-800 hover:text-white'
                           }`}
                         >
@@ -360,7 +437,7 @@ export const MarineChatDrawer: React.FC<MarineChatDrawerProps> = ({
                           }}
                           className="px-2 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg text-[10px] transition-all flex items-center gap-1 shadow cursor-pointer shrink-0"
                         >
-                          View on Map
+                          🧭 View on Map
                         </button>
                       </div>
                     )}
@@ -429,7 +506,7 @@ export const MarineChatDrawer: React.FC<MarineChatDrawerProps> = ({
               title={isListening ? 'Stop listening' : 'Voice input'}
               className={`rounded-lg p-1.5 transition-all ${
                 isListening
-                  ? 'bg-rose-500 text-white'
+                  ? 'bg-rose-500 text-white animate-pulse'
                   : 'text-slate-400 hover:bg-slate-800 hover:text-white'
               }`}
             >
@@ -450,6 +527,80 @@ export const MarineChatDrawer: React.FC<MarineChatDrawerProps> = ({
           </div>
         </div>
       </form>
+
+      {/* Persistent Saved Marine Threads Modal Overlay */}
+      {showHistoryModal && (
+        <div className="absolute inset-0 z-50 flex flex-col bg-slate-950/98 backdrop-blur-xl animate-in fade-in duration-200">
+          <div className="flex items-center justify-between border-b border-slate-800 px-5 py-4 bg-slate-900/80">
+            <div className="flex items-center space-x-2.5">
+              <Clock className="h-4 w-4 text-cyan-400" />
+              <h3 className="text-sm font-bold font-mono text-white uppercase tracking-wider">
+                Saved Marine Threads
+              </h3>
+            </div>
+            <button
+              onClick={() => setShowHistoryModal(false)}
+              className="rounded-lg p-1 text-slate-400 hover:bg-slate-800 hover:text-white cursor-pointer"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-4 space-y-3">
+            {isLoadingSessions ? (
+              <div className="flex flex-col items-center justify-center py-12 text-slate-400 font-mono text-xs">
+                <RefreshCw className="h-5 w-5 animate-spin text-cyan-400 mb-2" />
+                <span>Loading saved threads from disk...</span>
+              </div>
+            ) : savedSessions.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-slate-400 font-mono text-xs text-center">
+                <p>No saved threads found on disk.</p>
+                <p className="text-[11px] text-slate-500 mt-1">Queries you perform are automatically saved to disk sessions.</p>
+              </div>
+            ) : (
+              savedSessions.map((s) => {
+                const isActive = s.sessionId === sessionId;
+                return (
+                  <div
+                    key={s.sessionId}
+                    onClick={() => handleResumeSession(s.sessionId)}
+                    className={`p-3.5 rounded-xl border transition-all cursor-pointer flex flex-col gap-2 ${
+                      isActive
+                        ? 'bg-cyan-950/40 border-cyan-500/60 ring-1 ring-cyan-500/30'
+                        : 'bg-slate-900/60 border-slate-800 hover:border-slate-700 hover:bg-slate-900'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-xs font-bold text-slate-200 font-mono truncate max-w-[220px]">
+                          {s.title}
+                        </span>
+                        {isActive && (
+                          <span className="text-[9px] font-mono font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 px-1.5 py-0.2 rounded">
+                            CURRENT
+                          </span>
+                        )}
+                      </div>
+                      <button
+                        onClick={(e) => handleDeleteSession(s.sessionId, e)}
+                        title="Delete saved thread"
+                        className="p-1 rounded text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 transition-colors cursor-pointer"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+
+                    <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono">
+                      <span>{s.locationName || 'Indian Coast'} &bull; {s.turnCount} {s.turnCount === 1 ? 'Turn' : 'Turns'}</span>
+                      <span className="text-slate-500">{new Date(s.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
