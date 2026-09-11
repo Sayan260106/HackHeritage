@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from "react";
-import { AlertCircle, ArrowLeft, RefreshCw, MessageSquare, Activity, Radio, Navigation } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import { AlertCircle, ArrowLeft, RefreshCw, MessageSquare, Activity, Radio, Navigation, CheckCircle2, MapPin, X } from "lucide-react";
+import { ConsoleErrorBoundary } from "../components/ConsoleErrorBoundary";
 import { LeftNavbar } from "../components/LeftNavbar";
 import { InteractiveMap } from "../components/InteractiveMap";
 import { QueryPanel } from "../components/QueryPanel";
@@ -13,9 +14,30 @@ import { WhatIfSimulator } from "../components/WhatIfSimulator";
 import { AudioAlertController } from "../components/AudioAlertController";
 import { MarineChatDrawer } from "../components/MarineChatDrawer";
 import { SystemHealthModal } from "../components/SystemHealthModal";
-import { OrcaAnalysisResponse, LanguageCode, ConversationTurn } from "../types";
+import { OrcaAnalysisResponse, LanguageCode, ConversationTurn, LocationOverride } from "../types";
 import { COASTAL_LOCATIONS, MULTILINGUAL_DICTIONARY } from "../data/coastalData";
 import { detectQueryLanguage } from "../utils/languageDetector";
+
+const PORT_BAR_KEYS = ['digha', 'puri', 'paradeep', 'visakhapatnam', 'kochi', 'chennai', 'mumbai'];
+
+// Matched by distance rather than by name: orca-core's place names come from a
+// geocoder that spells ports differently from this table (Paradip vs Paradeep).
+const PORT_MATCH_KM = 15;
+
+function nearestPortKey(lat: number, lon: number): string | null {
+  let best: string | null = null;
+  let bestKm = PORT_MATCH_KM;
+  for (const [key, port] of Object.entries(COASTAL_LOCATIONS)) {
+    const dLatKm = (port.latitude - lat) * 111;
+    const dLonKm = (port.longitude - lon) * 111 * Math.cos((lat * Math.PI) / 180);
+    const km = Math.hypot(dLatKm, dLonKm);
+    if (km < bestKm) {
+      best = key;
+      bestKm = km;
+    }
+  }
+  return best;
+}
 
 interface ConsolePageProps {
   onExit: () => void;
@@ -34,6 +56,17 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
   const [chatTurns, setChatTurns] = useState<ConversationTurn[]>([]);
   const [isChatDrawerOpen, setIsChatDrawerOpen] = useState<boolean>(false);
   const [isHealthModalOpen, setIsHealthModalOpen] = useState<boolean>(false);
+  const [activePortKey, setActivePortKey] = useState<string | null>(null);
+  const [pendingPortKey, setPendingPortKey] = useState<string | null>(null);
+  const [portError, setPortError] = useState<{ key: string; message: string } | null>(null);
+  const [switchNotice, setSwitchNotice] = useState<{ name: string; state?: string; latitude: number; longitude: number } | null>(null);
+  const [querySync, setQuerySync] = useState<{ query: string; locationKey: string | null; nonce: number } | null>(null);
+  const [analysisVersion, setAnalysisVersion] = useState(0);
+  const requestSeqRef = useRef(0);
+  const abortRef = useRef<AbortController | null>(null);
+  const lastCoordsRef = useRef<[number, number] | null>(null);
+  const portBarRef = useRef<HTMLDivElement>(null);
+  const portButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
   const fetchAnalysis = async (
     queryText: string,
@@ -42,10 +75,26 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
     responseLanguage: LanguageCode = language,
     retryCount: number = 0,
   ) => {
+    // A newer click supersedes an older one; without this, a slow response for
+    // the previous port can land after the new one and silently undo the switch.
+    const seq = ++requestSeqRef.current;
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    const portKey = locOverride && COASTAL_LOCATIONS[locOverride] ? locOverride : null;
+    const port = portKey ? COASTAL_LOCATIONS[portKey] : null;
+    // Known ports go as coordinates: sending the key makes orca-core geocode it,
+    // and a name the geocoder can't find falls back to Digha without telling anyone.
+    const override: LocationOverride | undefined = port
+      ? { latitude: port.latitude, longitude: port.longitude, name: port.name }
+      : locOverride;
+
     setIsLoading(true);
-    // Only clear errorMessage on first attempt; keep previous analysisData for smooth UX
+    setPendingPortKey(portKey);
     if (retryCount === 0) {
       setErrorMessage(null);
+      setPortError(null);
     }
 
     // Auto-detect regional script from query (e.g. Bengali, Hindi, Tamil)
@@ -59,9 +108,10 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
       const response = await fetch("/api/orca/query", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
         body: JSON.stringify({
           query: queryText,
-          locationOverride: locOverride,
+          locationOverride: override,
           timeOverride,
           language: effectiveLang,
           sessionId,
@@ -69,9 +119,12 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
       });
 
       const payload = await response.json().catch(() => null);
+      if (seq !== requestSeqRef.current) return;
       if (!response.ok) {
         throw new Error(
-          payload?.error || `Server returned status ${response.status}`,
+          payload?.error ||
+            (typeof payload?.detail === "string" ? payload.detail : null) ||
+            `Server returned status ${response.status}`,
         );
       }
 
@@ -81,8 +134,36 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
         );
       }
 
-      const responsePayload = payload as OrcaAnalysisResponse;
+      const raw = payload as OrcaAnalysisResponse;
+      const resolvedKey =
+        portKey ?? (override ? null : nearestPortKey(raw.location.latitude, raw.location.longitude));
+      const resolvedPort = resolvedKey ? COASTAL_LOCATIONS[resolvedKey] : null;
+      // orca-core labels every point "open_sea" with no port metadata, so a
+      // known port's own record is the more accurate label.
+      const responsePayload: OrcaAnalysisResponse = resolvedPort
+        ? {
+            ...raw,
+            location: {
+              ...raw.location,
+              name: resolvedPort.name,
+              state: resolvedPort.state,
+              regionType: resolvedPort.regionType,
+              nearestPort: resolvedPort.nearestPort,
+              depthMeters: resolvedPort.depthMeters,
+            },
+          }
+        : raw;
       setAnalysisData(responsePayload);
+      setAnalysisVersion((v) => v + 1);
+      setActivePortKey(resolvedKey);
+      setPendingPortKey(null);
+
+      const { latitude, longitude, name, state } = responsePayload.location;
+      const previous = lastCoordsRef.current;
+      if (previous && (Math.abs(previous[0] - latitude) > 1e-3 || Math.abs(previous[1] - longitude) > 1e-3)) {
+        setSwitchNotice({ name, state, latitude, longitude });
+      }
+      lastCoordsRef.current = [latitude, longitude];
 
       const turn: ConversationTurn = {
         turnId: `turn-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
@@ -106,11 +187,14 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
       setErrorMessage(null);
       setIsLoading(false);
     } catch (err) {
+      if (controller.signal.aborted || seq !== requestSeqRef.current) return;
       // Auto-retry once after 1 second for transient network or agent initialization blips
       if (retryCount < 1) {
         console.warn(`ORCA live-data transient hiccup, auto-retrying in 1s...`);
         setTimeout(() => {
-          fetchAnalysis(queryText, locOverride, timeOverride, responseLanguage, retryCount + 1);
+          if (seq === requestSeqRef.current) {
+            fetchAnalysis(queryText, locOverride, timeOverride, responseLanguage, retryCount + 1);
+          }
         }, 1000);
         return;
       }
@@ -118,24 +202,48 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
       const message =
         err instanceof Error ? err.message : "Unable to retrieve live ORCA data.";
       console.error("ORCA live-data request failed:", message);
-      // Only nullify analysisData if there was none previously to prevent layout flashing
-      setAnalysisData((prev) => prev);
       setErrorMessage(message);
+      if (portKey) setPortError({ key: portKey, message });
+      setPendingPortKey(null);
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchAnalysis("Is it safe for small fishing boats near Digha right now?");
+    fetchAnalysis("Is it safe for small fishing boats near Digha right now?", "digha");
+    return () => abortRef.current?.abort();
   }, []);
+
+  useEffect(() => {
+    if (!switchNotice) return;
+    const timer = setTimeout(() => setSwitchNotice(null), 8000);
+    return () => clearTimeout(timer);
+  }, [switchNotice]);
+
+  // Scroll only the port bar itself; scrollIntoView would also yank the page
+  // up when the port was picked from the map further down.
+  useEffect(() => {
+    const key = pendingPortKey ?? activePortKey;
+    const bar = portBarRef.current;
+    const button = key ? portButtonRefs.current[key] : null;
+    if (!bar || !button) return;
+    bar.scrollTo({ left: button.offsetLeft - (bar.clientWidth - button.clientWidth) / 2, behavior: "smooth" });
+  }, [pendingPortKey, activePortKey]);
 
   const handleLocationSelect = (locKey: string) => {
     const loc = COASTAL_LOCATIONS[locKey];
-    if (loc)
-      fetchAnalysis(
-        `Is it safe for small fishing boats near ${loc.name} right now?`,
-        locKey,
-      );
+    if (!loc) return;
+    const query = `Is it safe for small fishing boats near ${loc.name} right now?`;
+    setQuerySync({ query, locationKey: locKey, nonce: Date.now() });
+    fetchAnalysis(query, locKey);
+  };
+
+  // Follow-up questions stay where the operator is looking. orca-core has no
+  // place detection of its own, so sending nothing would answer for Digha.
+  const currentLocationOverride = (): string | undefined => {
+    if (activePortKey) return activePortKey;
+    if (!analysisData) return undefined;
+    return `${analysisData.location.latitude},${analysisData.location.longitude}`;
   };
 
   const handleMapCoordinateClick = (lat: number, lon: number) => {
@@ -146,6 +254,9 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
   };
 
   const dict = MULTILINGUAL_DICTIONARY[language] || MULTILINGUAL_DICTIONARY.en;
+  const pendingPort = pendingPortKey ? COASTAL_LOCATIONS[pendingPortKey] : null;
+  const isSwitchingPort = pendingPortKey !== null && pendingPortKey !== activePortKey;
+  const failedPort = portError ? COASTAL_LOCATIONS[portError.key] : null;
 
   return (
     <div className="flex min-h-screen flex-col bg-abyssal text-chartpaper lg:flex-row">
@@ -156,7 +267,7 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
         setLanguage={(nextLanguage) => {
           setLanguage(nextLanguage);
           if (analysisData)
-            fetchAnalysis(analysisData.originalQuery, undefined, undefined, nextLanguage);
+            fetchAnalysis(analysisData.originalQuery, currentLocationOverride(), undefined, nextLanguage);
         }}
         isProcessing={isLoading}
         onExit={onExit}
@@ -181,27 +292,51 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
           </button>
 
           {/* Multi-Port Coastal Hubs Live Status Bar (Section 2C: Touch-Snap Carousel) */}
-          <div className="flex items-center space-x-2 horizontal-snap-carousel py-2.5 px-4 orca-glass-panel rounded-xl text-xs font-mono shadow-lg">
+          <div ref={portBarRef} className="relative flex items-center space-x-2 overflow-x-auto horizontal-snap-carousel py-2.5 px-4 orca-glass-panel rounded-xl text-xs font-mono shadow-lg">
             <span className="text-[11px] text-cyan-400 font-bold uppercase tracking-wider shrink-0 flex items-center gap-1.5 px-1">
               <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
               <span>Coastal Ports:</span>
             </span>
-            {['digha', 'puri', 'paradeep', 'visakhapatnam', 'kochi', 'chennai', 'mumbai'].map((key) => {
+            {PORT_BAR_KEYS.map((key) => {
               const loc = COASTAL_LOCATIONS[key];
               if (!loc) return null;
-              const isSelected = analysisData?.location.name.toLowerCase().includes(key);
+              const isPending = pendingPortKey === key;
+              const isActive = activePortKey === key && !isPending;
+              const isLeaving = isActive && isSwitchingPort;
+              const hasError = portError?.key === key;
               return (
                 <button
                   key={key}
+                  ref={(el) => {
+                    portButtonRefs.current[key] = el;
+                  }}
                   onClick={() => handleLocationSelect(key)}
-                  className={`min-h-[44px] px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center space-x-1.5 active:scale-95 ${
-                    isSelected
-                      ? 'bg-cyan-400 text-slate-950 shadow-md shadow-cyan-400/30 font-black border border-cyan-300'
-                      : 'bg-slate-900 text-slate-200 hover:text-white hover:bg-slate-800 border border-slate-700'
+                  aria-pressed={activePortKey === key}
+                  aria-busy={isPending}
+                  title={hasError ? `Could not load ${loc.name}: ${portError?.message}` : `${loc.name}, ${loc.state}`}
+                  className={`min-h-[44px] px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all duration-200 flex items-center gap-1.5 shrink-0 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${
+                    isPending
+                      ? 'bg-cyan-500/15 text-cyan-100 border border-cyan-400 ring-2 ring-cyan-400/40 shadow-[0_0_16px_rgba(34,211,238,0.35)]'
+                      : isActive
+                      ? `bg-cyan-400 text-slate-950 shadow-md shadow-cyan-400/30 font-black border border-cyan-300 ${isLeaving ? 'opacity-50' : ''}`
+                      : hasError
+                      ? 'bg-red-950/40 text-red-200 border border-red-500/60 hover:bg-red-900/40'
+                      : 'bg-slate-900 text-slate-200 hover:text-white hover:bg-slate-800 border border-slate-700 hover:border-cyan-500/50'
                   }`}
                 >
+                  {isPending ? (
+                    <RefreshCw className="h-3.5 w-3.5 animate-spin text-cyan-300" aria-hidden />
+                  ) : isActive ? (
+                    <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />
+                  ) : hasError ? (
+                    <AlertCircle className="h-3.5 w-3.5 text-red-400" aria-hidden />
+                  ) : (
+                    <MapPin className="h-3.5 w-3.5 opacity-50" aria-hidden />
+                  )}
                   <span>{loc.name.split(' ')[0]}</span>
-                  <span className="text-[10px] opacity-80 font-mono">({loc.latitude.toFixed(1)}°N)</span>
+                  <span className="text-[10px] opacity-80 font-mono">
+                    {isPending ? 'loading…' : `(${loc.latitude.toFixed(1)}°N)`}
+                  </span>
                 </button>
               );
             })}
@@ -273,43 +408,111 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
           )}
 
           {isLoading && (
-            <div className="flex items-center gap-3 rounded-xl border border-cyan-500/30 orca-glass-panel p-3.5 shadow-md">
+            <div role="status" aria-live="polite" className="relative overflow-hidden flex items-center gap-3 rounded-xl border border-cyan-500/30 orca-glass-panel p-3.5 shadow-md">
               <RefreshCw className="h-4 w-4 shrink-0 animate-spin text-cyan-400" />
-              <div className="text-xs">
-                <span className="font-mono font-bold tracking-wider text-cyan-400 uppercase">
-                  PIPELINE RUNNING&nbsp;
-                </span>
-                <span className="text-slate-300">
-                  {dict.processing} — live weather and marine observations, Copernicus catalogue, BGE-M3 retrieval, risk engine.
-                </span>
+              <div className="text-xs min-w-0">
+                {pendingPort ? (
+                  <>
+                    <span className="font-mono font-bold tracking-wider text-cyan-400 uppercase">
+                      {!analysisData ? 'Loading' : isSwitchingPort ? 'Switching to' : 'Refreshing'} {pendingPort.name.split(' ')[0]}&nbsp;
+                    </span>
+                    <span className="text-slate-300">
+                      {pendingPort.state} · {pendingPort.latitude.toFixed(2)}°N, {pendingPort.longitude.toFixed(2)}°E — fetching live weather, sea state and risk for this port.
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="font-mono font-bold tracking-wider text-cyan-400 uppercase">
+                      PIPELINE RUNNING&nbsp;
+                    </span>
+                    <span className="text-slate-300">
+                      {dict.processing} — live weather and marine observations, Copernicus catalogue, BGE-M3 retrieval, risk engine.
+                    </span>
+                  </>
+                )}
               </div>
+              <div className="absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r from-transparent via-cyan-400 to-transparent animate-pulse" aria-hidden />
+            </div>
+          )}
+
+          {switchNotice && !isLoading && (
+            <div role="status" aria-live="polite" className="flex items-center gap-3 rounded-xl border border-emerald-500/40 bg-emerald-950/40 p-3 shadow-md">
+              <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400" />
+              <p className="min-w-0 flex-1 text-xs text-slate-200">
+                <span className="font-mono font-bold uppercase tracking-wider text-emerald-300">Now showing&nbsp;</span>
+                {switchNotice.name}
+                {switchNotice.state ? `, ${switchNotice.state}` : ''}
+                <span className="font-mono text-slate-400">
+                  {' '}· {switchNotice.latitude.toFixed(2)}°N, {switchNotice.longitude.toFixed(2)}°E
+                </span>
+              </p>
+              <button
+                onClick={() => setSwitchNotice(null)}
+                aria-label="Dismiss"
+                className="shrink-0 rounded p-1 text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
             </div>
           )}
 
           {errorMessage && !isLoading && (
-            <div className="flex items-start gap-3 rounded-sm border border-red-500/35 bg-red-950/25 p-4">
+            <div role="alert" className="flex items-start gap-3 rounded-sm border border-red-500/35 bg-red-950/25 p-4">
               <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-400" />
               <div>
                 <p className="text-sm font-semibold text-red-300">
-                  Live marine data {dict.unavailable ? dict.unavailable.toLowerCase() : 'unavailable'}
+                  {failedPort
+                    ? `Could not load ${failedPort.name}`
+                    : `Live marine data ${dict.unavailable ? dict.unavailable.toLowerCase() : 'unavailable'}`}
                 </p>
                 <p className="mt-1 text-xs text-slate-300">{errorMessage}</p>
+                {failedPort && analysisData && (
+                  <p className="mt-1 text-xs text-slate-400">Still showing {analysisData.location.name}.</p>
+                )}
                 <p className="mt-2 text-[11px] text-fathom">
                   ORCA-X does not substitute synthetic weather or ocean
                   measurements when a live provider fails.
                 </p>
+                {portError && failedPort && (
+                  <button
+                    onClick={() => handleLocationSelect(portError.key)}
+                    className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-red-400/50 px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider text-red-200 transition-colors hover:border-red-300 hover:bg-red-900/40"
+                  >
+                    <RefreshCw className="h-3 w-3" />
+                    Retry {failedPort.name.split(' ')[0]}
+                  </button>
+                )}
               </div>
             </div>
           )}
 
           {analysisData ? (
-            <>
+            <ConsoleErrorBoundary resetKey={`${currentTab}|${analysisVersion}`}>
+              <div className="relative">
+                {isLoading && (
+                  <div className="pointer-events-none sticky top-4 z-[1100] flex h-0 justify-center">
+                    <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-cyan-400/50 bg-slate-950/95 px-4 py-2 font-mono text-[11px] text-cyan-200 shadow-lg shadow-cyan-500/20">
+                      <RefreshCw className="h-3.5 w-3.5 animate-spin text-cyan-400" />
+                      <span>
+                        {pendingPort ? `Loading ${pendingPort.name.split(' ')[0]}` : 'Refreshing analysis'}
+                        {isSwitchingPort && (
+                          <span className="text-slate-400"> · showing {analysisData.location.name.split(' ')[0]} until ready</span>
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                )}
+                <div
+                  aria-busy={isLoading}
+                  className={`transition-[opacity,filter] duration-300 ${isLoading ? 'pointer-events-none select-none opacity-40 saturate-50' : ''}`}
+                >
               {currentTab === "dashboard" && (
                 <div className="space-y-6">
                   {/* Full-width Query Input Bar with single-line preset chips */}
                   <QueryPanel
-                    onSearch={(q, loc, time, detectedLang) => fetchAnalysis(q, loc, time, detectedLang || language)}
+                    onSearch={(q, loc, time, detectedLang) => fetchAnalysis(q, loc || currentLocationOverride(), time, detectedLang || language)}
                     isLoading={isLoading}
+                    sync={querySync ?? undefined}
                     language={language}
                     onOpenChat={() => setIsChatDrawerOpen(true)}
                   />
@@ -334,7 +537,7 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
                       safeRoute={analysisData.safeRoute}
                       vesselTraffic={analysisData.vesselTraffic}
                       onSelectLocation={handleLocationSelect}
-                      onCoordinateClick={handleMapCoordinateClick}
+                      onCoordinateClick={handleMapCoordinateClick} activePortKey={activePortKey} pendingPortKey={pendingPortKey}
                       language={language}
                     />
 
@@ -395,7 +598,7 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
                     safeRoute={analysisData.safeRoute}
                     vesselTraffic={analysisData.vesselTraffic}
                     onSelectLocation={handleLocationSelect}
-                    onCoordinateClick={handleMapCoordinateClick}
+                    onCoordinateClick={handleMapCoordinateClick} activePortKey={activePortKey} pendingPortKey={pendingPortKey}
                     language={language}
                   />
                 </div>
@@ -435,12 +638,14 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
                     safeRoute={analysisData.safeRoute}
                     vesselTraffic={analysisData.vesselTraffic}
                     onSelectLocation={handleLocationSelect}
-                    onCoordinateClick={handleMapCoordinateClick}
+                    onCoordinateClick={handleMapCoordinateClick} activePortKey={activePortKey} pendingPortKey={pendingPortKey}
                     language={language}
                   />
                 </div>
               )}
-            </>
+                </div>
+              </div>
+            </ConsoleErrorBoundary>
           ) : (
             <div className="flex flex-col items-center justify-center space-y-4 py-24 text-center">
               {isLoading ? (
@@ -450,8 +655,8 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
               )}
               <p className="font-mono text-xs tracking-wide text-fathom">
                 {isLoading
-                  ? "Connecting to live marine intelligence services…"
-                  : "No live analysis yet. Start the API on port 3000, then retry."}
+                  ? `Connecting to live marine intelligence services${pendingPort ? ` for ${pendingPort.name}` : ''}…`
+                  : "No live analysis yet. Start orca-core on port 8100, then retry."}
               </p>
               {!isLoading && errorMessage && (
                 <button
@@ -459,6 +664,7 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
                   onClick={() =>
                     fetchAnalysis(
                       "Is it safe for small fishing boats near Digha right now?",
+                      "digha",
                     )
                   }
                 >
@@ -513,7 +719,7 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
           }}
           turns={chatTurns}
           isLoading={isLoading}
-          onSendMessage={(query) => fetchAnalysis(query)}
+          onSendMessage={(query) => fetchAnalysis(query, currentLocationOverride())}
           language={language}
           onSelectLocation={handleLocationSelect}
           onSelectTurnData={(turnAnalysis) => {
