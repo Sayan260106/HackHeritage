@@ -23,6 +23,41 @@ import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion';
 import { maritimeSiren } from '../services/audio/maritimeSirenService';
 import { voiceWarning } from '../services/audio/voiceWarningService';
 
+/** Outer ring of the dimming mask — comfortably larger than REGION_BOUNDS. */
+const MASK_OUTER_RING: L.LatLngExpression[] = [
+  [-20, 30],
+  [-20, 130],
+  [50, 130],
+  [50, 30],
+];
+
+/**
+ * Collects the outer ring of every polygon in a (Multi)Polygon GeoJSON feature,
+ * converted from GeoJSON [lng, lat] to Leaflet [lat, lng].
+ */
+const collectOuterRings = (geojson: any): L.LatLngExpression[][] => {
+  const rings: L.LatLngExpression[][] = [];
+
+  for (const feature of geojson.features ?? []) {
+    const geometry = feature.geometry;
+    if (!geometry) continue;
+
+    const polygons =
+      geometry.type === 'Polygon'
+        ? [geometry.coordinates]
+        : geometry.type === 'MultiPolygon'
+          ? geometry.coordinates
+          : [];
+
+    for (const polygon of polygons) {
+      const outer = polygon[0];
+      if (outer) rings.push(outer.map(([lng, lat]: [number, number]) => [lat, lng] as L.LatLngExpression));
+    }
+  }
+
+  return rings;
+};
+
 interface InteractiveMapProps {
   location: LocationInfo;
   gisLayers: GisLayerData;
@@ -62,6 +97,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   const routeLayerGroupRef = useRef<L.LayerGroup | null>(null);
   const vesselLayerGroupRef = useRef<L.LayerGroup | null>(null);
   const oilSpillLayerGroupRef = useRef<L.LayerGroup | null>(null);
+  const imblLayerGroupRef = useRef<L.LayerGroup | null>(null);
   const targetMarkerRef = useRef<L.Marker | null>(null);
   const clickMarkerRef = useRef<L.Marker | null>(null);
   const onCoordinateClickRef = useRef(onCoordinateClick);
@@ -423,6 +459,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       mapInstanceRef.current = null;
       geojsonLayerRef.current = null;
       targetMarkerRef.current = null;
+      imblLayerGroupRef.current = null;
     };
   }, []);
 
@@ -519,6 +556,85 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
     };
   }, [isFullscreen, location]);
 
+  // Render International Maritime Boundaries (IMBL) & India EEZ Outline matching ORCA frontend
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+
+    if (imblLayerGroupRef.current) {
+      map.removeLayer(imblLayerGroupRef.current);
+      imblLayerGroupRef.current = null;
+    }
+
+    if (!showImbl) return;
+
+    let cancelled = false;
+    const limitsGroup = L.layerGroup().addTo(map);
+    imblLayerGroupRef.current = limitsGroup;
+
+    // 1. India's EEZ outline & dimming mask outside EEZ
+    fetch('/geo/india_eez.simplified.geojson')
+      .then((r) => r.ok ? r.json() : null)
+      .then((geojson) => {
+        if (cancelled || !geojson) return;
+        L.geoJSON(geojson, {
+          style: {
+            color: '#0369A1',
+            weight: 1.5,
+            opacity: 0.85,
+            fillColor: '#38BDF8',
+            fillOpacity: 0.06,
+          },
+          interactive: false,
+        })
+          .addTo(limitsGroup)
+          .bringToBack();
+
+        L.polygon([MASK_OUTER_RING, ...collectOuterRings(geojson)], {
+          stroke: false,
+          fillColor: '#1E293B',
+          fillOpacity: 0.16,
+          interactive: false,
+        })
+          .addTo(map)
+          .bringToBack();
+      })
+      .catch((err) => console.error('Failed to load India EEZ simplified boundary', err));
+
+    // 2. International maritime boundaries (Marine Regions v12)
+    fetch('/geo/india_eez_boundaries.geojson')
+      .then((r) => r.ok ? r.json() : null)
+      .then((geojson) => {
+        if (cancelled || !geojson) return;
+        L.geoJSON(geojson, {
+          filter: (feature) => {
+            const p = feature?.properties ?? {};
+            return Boolean(p.SOVEREIGN1 && p.SOVEREIGN2 && p.SOVEREIGN1 !== p.SOVEREIGN2);
+          },
+          style: {
+            color: '#B91C1C',
+            weight: 2,
+            opacity: 0.85,
+            dashArray: '7, 5',
+          },
+          interactive: true,
+          onEachFeature: (feature, lyr) => {
+            const p = (feature.properties ?? {}) as Record<string, string>;
+            const other =
+              p.SOVEREIGN1 && p.SOVEREIGN1 !== 'India' ? p.TERRITORY1 : p.TERRITORY2;
+            lyr.bindTooltip(`Maritime boundary — ${other ?? p.LINE_NAME}`, {
+              sticky: true,
+            });
+          },
+        }).addTo(limitsGroup);
+      })
+      .catch((err) => console.error('Failed to load international maritime boundaries', err));
+
+    return () => {
+      cancelled = true;
+    };
+  }, [showImbl]);
+
   // Render GeoJSON layers & markers
   useEffect(() => {
     const map = mapInstanceRef.current;
@@ -579,10 +695,10 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           const cat = feature?.properties?.category;
           if (cat === 'international_boundary') {
             return {
-              color: '#f43f5e',
-              weight: 3.5,
-              opacity: 0.95,
-              dashArray: '8, 6'
+              color: '#B91C1C',
+              weight: 2,
+              opacity: 0.85,
+              dashArray: '7, 5'
             };
           }
           if (cat === 'marine_protected_area') {
@@ -628,19 +744,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         pointToLayer: (feature, latlng) => {
           const cat = feature.properties.category;
           if (cat === 'international_boundary') {
-            const borderIcon = L.divIcon({
-              className: 'imbl-marker-icon',
-              html: `
-                <div class="relative flex items-center justify-center">
-                  <div class="w-6 h-6 rounded-full bg-rose-600 border-2 border-white shadow-lg flex items-center justify-center text-[10px] text-white font-bold animate-pulse">
-                    ⚓
-                  </div>
-                </div>
-              `,
-              iconSize: [22, 22],
-              iconAnchor: [11, 11]
-            });
-            return L.marker(latlng, { icon: borderIcon });
+            return L.circleMarker(latlng, { radius: 3, color: '#B91C1C', fillOpacity: 0.7, stroke: false });
           }
           if (cat === 'buoy_station') {
             const buoyIcon = L.divIcon({
