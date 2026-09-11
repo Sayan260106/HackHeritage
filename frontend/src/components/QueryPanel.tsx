@@ -24,6 +24,7 @@ interface QueryPanelProps {
   isLoading: boolean;
   language: LanguageCode;
   onOpenChat?: () => void;
+  sync?: { query: string; locationKey: string | null; nonce: number };
 }
 
 export const ISRO_BENCHMARK_QUERIES = [
@@ -89,7 +90,8 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
   onSearch,
   isLoading,
   language,
-  onOpenChat
+  onOpenChat,
+  sync
 }) => {
   const [inputQuery, setInputQuery] = useState<string>('Is it safe to fish near Digha tomorrow morning?');
   const [isListening, setIsListening] = useState<boolean>(false);
@@ -101,6 +103,12 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
 
   const dict = MULTILINGUAL_DICTIONARY[language] || MULTILINGUAL_DICTIONARY.en;
   const detected = detectQueryLanguage(inputQuery, language);
+
+  useEffect(() => {
+    if (!sync) return;
+    setInputQuery(sync.query);
+    setSelectedLocation(sync.locationKey ?? '');
+  }, [sync?.nonce]);
 
   // Fisherman-tailored quick question chips with icon tags across languages
   const samplePrompts = [

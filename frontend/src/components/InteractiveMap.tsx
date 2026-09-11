@@ -70,6 +70,8 @@ interface InteractiveMapProps {
   onSelectLocation: (locKey: string) => void;
   onCoordinateClick?: (lat: number, lon: number) => void;
   language: LanguageCode;
+  activePortKey: string | null;
+  pendingPortKey: string | null;
 }
 
 export const InteractiveMap: React.FC<InteractiveMapProps> = ({
@@ -83,7 +85,9 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   vesselTraffic,
   onSelectLocation,
   onCoordinateClick,
-  language
+  language,
+  activePortKey,
+  pendingPortKey
 }) => {
   const outerWrapperRef = useRef<HTMLDivElement>(null);
   const dict = MULTILINGUAL_DICTIONARY[language] || MULTILINGUAL_DICTIONARY.en;
@@ -1033,7 +1037,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
                 <span class="text-slate-400">Front Length:</span>
                 <span class="text-cyan-300 font-bold">${zone.frontLengthKm ?? '—'} km</span>
               </div>
-              ${zone.sstC !== undefined ? `
+              ${typeof zone.sstC === 'number' ? `
                 <div class="flex justify-between">
                   <span class="text-slate-400">SST at Front:</span>
                   <span class="text-amber-400 font-bold">${zone.sstC.toFixed(1)}°C</span>
@@ -1162,7 +1166,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       if (!isStart && !isEnd && idx % 2 !== 0 && waypoints.length > 10) return;
 
       const cumDistNm = ((wp.cumulativeDistanceKm || 0) / 1.852).toFixed(1);
-      const bearingStr = wp.bearingDeg !== undefined ? `${wp.bearingDeg}°` : '—';
+      const bearingStr = wp.bearingDeg != null ? `${wp.bearingDeg}°` : '—';
 
       const wpIcon = L.divIcon({
         className: 'custom-wp-marker-icon',
@@ -1207,7 +1211,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
               <span class="text-slate-400">Cumulative Distance:</span>
               <span class="font-bold text-cyan-300">${cumDistNm} NM (${(wp.cumulativeDistanceKm || 0).toFixed(1)} km)</span>
             </div>
-            ${wp.bearingDeg !== undefined ? `
+            ${wp.bearingDeg != null ? `
               <div class="flex justify-between">
                 <span class="text-slate-400">Compass Bearing:</span>
                 <span class="font-bold text-amber-300">${wp.bearingDeg}°</span>
@@ -1278,7 +1282,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
             <div class="px-2 py-0.5 rounded-full bg-slate-950 border border-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.6)] flex items-center gap-1 shadow-xl text-white font-bold text-[10px] whitespace-nowrap">
               <span>📡</span>
               <span class="font-mono text-[9px] text-amber-300 font-black">${vessel.buoyStationId || vessel.name.split(' ')[0]}</span>
-              <span class="font-mono text-[8px] text-cyan-300">${vessel.waveHeightM !== undefined ? `${vessel.waveHeightM}m` : ''}</span>
+              <span class="font-mono text-[8px] text-cyan-300">${vessel.waveHeightM != null ? `${vessel.waveHeightM}m` : ''}</span>
             </div>
           </div>
         `
@@ -1531,7 +1535,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
             <Compass className="h-3 w-3 text-cyan-400" />
             <span className="hidden sm:inline">{dict.coastalHubs}:</span>
           </span>
-          {location.regionType === 'open_sea' && (
+          {activePortKey === null && (
             <span className="px-2.5 py-0.5 rounded-lg text-xs font-bold bg-cyan-500 text-slate-950 shadow-[0_0_12px_rgba(34,211,238,0.7)] flex items-center gap-1 shrink-0">
               ⚓ Custom Boat Pin
             </span>
@@ -1539,17 +1543,19 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           {Object.keys(COASTAL_LOCATIONS).map((key) => {
             const loc = COASTAL_LOCATIONS[key];
             if (!loc) return null;
-            const isSelected = location.regionType !== 'open_sea' && (
-              loc.name.toLowerCase() === location.name.toLowerCase() ||
-              location.name.toLowerCase().includes(key)
-            );
+            const isPending = pendingPortKey === key;
+            const isSelected = activePortKey === key && !isPending;
             const shortName = loc.name.split(' ')[0].replace('/', '');
             return (
               <button
                 key={key}
                 id={`map-loc-${key}`}
                 onClick={() => onSelectLocation(key)}
-                className={`px-2 py-0.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all shrink-0 ${isSelected
+                aria-pressed={activePortKey === key}
+                aria-busy={isPending}
+                className={`px-2 py-0.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all shrink-0 ${isPending
+                    ? 'bg-cyan-500/20 text-cyan-100 ring-1 ring-cyan-400 animate-pulse'
+                    : isSelected
                     ? 'bg-cyan-500 text-slate-950 shadow-[0_0_12px_rgba(34,211,238,0.6)]'
                     : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
                   }`}

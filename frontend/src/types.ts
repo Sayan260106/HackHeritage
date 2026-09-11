@@ -169,15 +169,17 @@ export interface ConversationSession {
   activeVesselTraffic?: DarkVesselAnalysis;
 }
 
+export type LocationOverride = string | { latitude: number; longitude: number; name?: string };
+
 export interface ConversationalChatRequest {
   sessionId?: string;
   query: string;
-  locationOverride?: string;
+  locationOverride?: LocationOverride;
   timeOverride?: string;
   language?: LanguageCode;
 }
 
-export interface QueryRequest { query: string; locationOverride?: string; timeOverride?: string; language?: LanguageCode; includeSatellite?: boolean; sessionId?: string; }
+export interface QueryRequest { query: string; locationOverride?: LocationOverride; timeOverride?: string; language?: LanguageCode; includeSatellite?: boolean; sessionId?: string; }
 
 export type VesselType = 'FISHING_TRAWLER' | 'CARGO_CONTAINER' | 'TANKER' | 'COAST_GUARD_PATROL' | 'NAVY_FRIGATE' | 'UNKNOWN_DARK_VESSEL' | 'PASSENGER' | 'OCEANOGRAPHIC_BUOY';
 export type VesselAisStatus = 'ACTIVE_BROADCAST' | 'TRANSPONDER_SILENT' | 'SPOOFED_LOCATION' | 'UNREGISTERED_SAR_TARGET' | 'SIMULATION';
