@@ -63,12 +63,55 @@ async function testConversationSession() {
   assert.strictEqual(turn4.turnIndex, 4, 'Turn index must be 4');
   console.log(`✓ Turn 4 switched location to: ${turn4.location.name}`);
 
-  // Verify stored session in memory
+  // Turn 5: Request PFZ for Kochi
+  console.log('\n--- Turn 5: "Where is the nearest fishing zone here?" ---');
+  const turn5 = await runOrcaAgentWorkflow(
+    'Where is the nearest fishing zone here?',
+    undefined,
+    undefined,
+    'en',
+    sessionId
+  );
+  assert.strictEqual(turn5.location.name.toLowerCase().includes('kochi'), true, 'Turn 5 must retain Kochi');
+  assert.strictEqual(turn5.turnIndex, 5, 'Turn index must be 5');
+  assert.ok(turn5.pfz, 'Turn 5 must generate PFZ analysis');
+  console.log(`✓ Turn 5 PFZ best zone: ${turn5.pfz?.bestZone?.id} (Score: ${turn5.pfz?.bestZone?.score}/100)`);
+
+  // Turn 6: Contextual safe route to that PFZ without naming location or coordinates
+  console.log('\n--- Turn 6: "What is the safest route to navigate there?" ---');
+  const turn6 = await runOrcaAgentWorkflow(
+    'What is the safest route to navigate there?',
+    undefined,
+    undefined,
+    'en',
+    sessionId
+  );
+  assert.strictEqual(turn6.location.name.toLowerCase().includes('kochi'), true, 'Turn 6 must retain Kochi');
+  assert.strictEqual(turn6.turnIndex, 6, 'Turn index must be 6');
+  assert.ok(turn6.safeRoute, 'Turn 6 must compute safe route inheriting active PFZ target');
+  console.log(`✓ Turn 6 Safe Route: ${turn6.safeRoute?.status} (Distance: ${turn6.safeRoute?.distanceKm} km, Waypoints: ${turn6.safeRoute?.waypointCount})`);
+
+  // Verify stored session in memory and disk
   const stored = getSession(sessionId);
   assert.ok(stored, 'Session must exist in memory');
-  assert.strictEqual(stored?.turns.length, 4, 'Session must contain 4 recorded turns');
+  assert.strictEqual(stored?.turns.length, 6, 'Session must contain 6 recorded turns');
+  assert.ok(stored?.activePfz, 'Session must retain active PFZ');
+  assert.ok(stored?.activeRoute, 'Session must retain active Route');
+  assert.ok(stored?.activeGeofence, 'Session must retain active Geofence');
+  assert.ok(stored?.activeDecision, 'Session must retain active Decision');
+
+  // Verify disk persistence
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const diskPath = path.resolve(process.cwd(), 'data', 'sessions', `${sessionId}.json`);
+  assert.ok(fs.existsSync(diskPath), `Session file must be persisted to disk at ${diskPath}`);
+  console.log(`✓ Disk persistence verified: file exists at ${diskPath}`);
+
   console.log(`\n✓ Stored session verification passed: ${stored?.turns.length} turns recorded.`);
   console.log('✓ Title:', stored?.title);
+  console.log('✓ Active PFZ Zone ID:', stored?.activePfzZoneId);
+  console.log('✓ Active Route Status:', stored?.activeRoute?.status);
+  console.log('✓ Active Decision:', stored?.activeDecision?.decision);
   console.log('\n=== ALL MULTI-TURN CONVERSATION TESTS PASSED ===');
 }
 

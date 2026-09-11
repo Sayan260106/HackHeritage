@@ -206,5 +206,11 @@
     "hour": 0.0040433830581605434,
     "longitude": 0.0010801996104419231
   },
-  "label_policy": "Transparent threshold-derived operational proxy labels; not historical incident outcomes."
+  "label_policy": "Transparent threshold-derived operational proxy labels; not historical incident outcomes.",
+  "operational_role": "Model 2 in the ORCA-X dual-model architecture. Consumes canonical precision vectors produced by Model 1 (MarineSourceAuditor) across Open-Meteo, INCOIS, MOSDAC, and Copernicus feeds.",
+  "provenance_lineage": {
+    "baseline_pretraining": "NOAA NDBC Standard Meteorological Observations (3 buoys, 2024-2025)",
+    "regional_adaptation_corpus": "Open-Meteo Indian Coastal 6-Station Marine & Weather Dataset (2020-2025, 315,648 rows)",
+    "realtime_fusion_engine": "Model 1 MarineSourceAuditor (reliability-aware multi-source precision fusion)"
+  }
 }

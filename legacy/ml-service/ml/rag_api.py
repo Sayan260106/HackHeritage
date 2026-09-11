@@ -15,14 +15,17 @@ from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
-from fastapi import FastAPI, HTTPException
+from fastapi import APIRouter, FastAPI, Header, HTTPException, Security
 from FlagEmbedding import BGEM3FlagModel
 from pydantic import BaseModel, Field
 from qdrant_client import QdrantClient
 from qdrant_client.http import models
 
+rag_router = APIRouter(tags=["Evidence RAG"])
+
 QDRANT_URL = os.getenv("QDRANT_URL", "http://127.0.0.1:6333")
 QDRANT_API_KEY = os.getenv("QDRANT_API_KEY") or None
+RAG_INGEST_API_KEY = os.getenv("RAG_INGEST_API_KEY", "orca-rag-internal-key")
 QDRANT_COLLECTION = os.getenv("QDRANT_COLLECTION", "orca_marine_evidence")
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "BAAI/bge-m3")
 EMBEDDING_DEVICE = os.getenv("EMBEDDING_DEVICE", "cpu")
@@ -75,6 +78,15 @@ class EvidenceDocument(BaseModel):
     relevanceScore: float = 0
     officialUrl: str = ""
     complianceRule: str = ""
+    coast: Optional[str] = "all"
+    applicableStates: Optional[list[str]] = Field(default_factory=lambda: ["all"])
+    vesselClass: Optional[str] = "all"
+    jurisdiction: Optional[str] = "Territorial_Waters"
+    topicCategory: Optional[str] = ""
+    issuedAt: Optional[str] = None
+    expiresAt: Optional[str] = None
+    active: bool = True
+    revision: int = 1
 
 
 class IngestRequest(BaseModel):
@@ -90,11 +102,24 @@ class LiveIngestRequest(BaseModel):
     complianceRule: Optional[str] = ""
     officialUrl: Optional[str] = ""
     id: Optional[str] = None
+    coast: Optional[str] = "all"
+    applicableStates: Optional[list[str]] = Field(default_factory=lambda: ["all"])
+    vesselClass: Optional[str] = "all"
+    jurisdiction: Optional[str] = "Territorial_Waters"
+    topicCategory: Optional[str] = ""
+    issuedAt: Optional[str] = None
+    expiresAt: Optional[str] = None
+    active: bool = True
+    revision: int = 1
 
 
 class SearchRequest(BaseModel):
     query: str = Field(min_length=2, max_length=2000)
     top_k: int = Field(default=RAG_TOP_K, ge=1, le=20)
+    coast: Optional[str] = Field(default=None, description="Optional coastal filter: 'east', 'west', or 'all'")
+    state: Optional[str] = Field(default=None, description="Optional maritime state filter e.g. 'Odisha', 'Kerala'")
+    vessel_class: Optional[str] = Field(default=None, description="Optional craft filter: 'artisanal', 'mechanized', 'all'")
+    include_expired: bool = Field(default=False, description="Whether to include expired emergency bulletins in results")
 
 
 def _ensure_collection(client: QdrantClient) -> None:
@@ -115,7 +140,10 @@ def _collection_info(client: QdrantClient):
 def _index_documents(client: QdrantClient, documents: list[EvidenceDocument]) -> int:
     """Embed documents with BGE-M3 and upsert into Qdrant."""
     _ensure_collection(client)
-    texts = [f"{d.title}\n{d.excerpt}\n{d.complianceRule}\n{d.id}\n{d.sourceAuthority}" for d in documents]
+    texts = [
+        f"{d.title}\n{d.excerpt}\n{d.complianceRule}\n{d.id}\n{d.sourceAuthority}\n{d.topicCategory}\n{d.jurisdiction}\n{d.coast}"
+        for d in documents
+    ]
     encoded = get_embedder().encode(texts, batch_size=8, max_length=8192, return_dense=True)
     points = []
     for doc, vector in zip(documents, encoded["dense_vecs"]):
@@ -127,17 +155,17 @@ def _index_documents(client: QdrantClient, documents: list[EvidenceDocument]) ->
 
 
 def auto_warmup_corpus(client: QdrantClient) -> int:
-    """Automatically indexes the statutory marine corpus if Qdrant collection is uninitialized."""
+    """Automatically indexes the statutory marine corpus if Qdrant collection is uninitialized or out of date."""
     _ensure_collection(client)
-    info = client.get_collection(QDRANT_COLLECTION)
-    if info.points_count and info.points_count > 0:
-        return info.points_count
-
     corpus_path = Path(__file__).resolve().parents[1] / "data" / "evidence" / "statutory_marine_corpus.json"
     if not corpus_path.exists():
         return 0
 
     docs_data = json.loads(corpus_path.read_text(encoding="utf-8"))
+    info = client.get_collection(QDRANT_COLLECTION)
+    if info.points_count and info.points_count >= len(docs_data):
+        return info.points_count
+
     documents = [EvidenceDocument(**d) for d in docs_data]
     return _index_documents(client, documents)
 
@@ -163,8 +191,7 @@ app = FastAPI(
 )
 
 
-@app.get("/health")
-def health() -> dict[str, Any]:
+def get_rag_health_dict() -> dict[str, Any]:
     try:
         client, mode = get_qdrant_client()
         collection = _collection_info(client)
@@ -180,12 +207,18 @@ def health() -> dict[str, Any]:
         return {"status": "degraded", "error": str(exc), "embedding_model": EMBEDDING_MODEL}
 
 
-def _query_points(client: QdrantClient, vector: list[float], limit: int):
-    """Use the current Qdrant client query_points API."""
+@rag_router.get("/rag/health")
+def health() -> dict[str, Any]:
+    return get_rag_health_dict()
+
+
+def _query_points(client: QdrantClient, vector: list[float], limit: int, query_filter: Optional[models.Filter] = None):
+    """Use the current Qdrant client query_points API with optional metadata filtering."""
     return client.query_points(
         collection_name=QDRANT_COLLECTION,
         query=vector,
         limit=limit,
+        query_filter=query_filter,
         with_payload=True,
     ).points
 
@@ -229,8 +262,25 @@ def _lexical_score(query: str, payload: dict[str, Any]) -> float:
     return overlap + bonus
 
 
-@app.post("/ingest")
-def ingest(request: IngestRequest) -> dict[str, Any]:
+@rag_router.post("/ingest")
+@rag_router.post("/rag/ingest")
+def ingest(
+    request: IngestRequest,
+    x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
+) -> dict[str, Any]:
+    """Bulk-ingest canonical marine regulatory documents into the Qdrant vector index."""
+    is_prod = os.getenv("NODE_ENV") == "production" or os.getenv("ORCA_PRODUCTION", "").lower() in ("true", "1")
+    if is_prod:
+        if not x_api_key or x_api_key == "orca-rag-internal-key":
+            raise HTTPException(
+                status_code=403,
+                detail="Forbidden: Insecure or default RAG ingestion key rejected in production mode. Configure a custom RAG_INGEST_API_KEY.",
+            )
+        if RAG_INGEST_API_KEY and x_api_key != RAG_INGEST_API_KEY:
+            raise HTTPException(status_code=401, detail="Unauthorized: Invalid X-API-Key for bulk evidence ingestion.")
+    elif RAG_INGEST_API_KEY and x_api_key != RAG_INGEST_API_KEY:
+        raise HTTPException(status_code=401, detail="Unauthorized: Invalid or missing X-API-Key for bulk evidence ingestion.")
+
     try:
         client = get_qdrant()
         new_count = _index_documents(client, request.documents)
@@ -245,14 +295,32 @@ def ingest(request: IngestRequest) -> dict[str, Any]:
         raise HTTPException(status_code=503, detail=f"RAG ingestion unavailable: {exc}") from exc
 
 
-@app.post("/live-ingest")
-def live_ingest(request: LiveIngestRequest) -> dict[str, Any]:
+@rag_router.post("/live-ingest")
+@rag_router.post("/rag/live-ingest")
+def live_ingest(
+    request: LiveIngestRequest,
+    x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
+) -> dict[str, Any]:
     """Ingest a live IMD cyclone warning, Coast Guard alert, or INCOIS bulletin in real time."""
+    # Production security check: reject default or missing API key in production mode
+    is_prod = os.getenv("NODE_ENV") == "production" or os.getenv("ORCA_PRODUCTION", "").lower() in ("true", "1")
+    if is_prod:
+        if not x_api_key or x_api_key == "orca-rag-internal-key":
+            raise HTTPException(
+                status_code=403,
+                detail="Forbidden: Insecure or default RAG ingestion key rejected in production mode. Configure a custom RAG_INGEST_API_KEY.",
+            )
+        if RAG_INGEST_API_KEY and x_api_key != RAG_INGEST_API_KEY:
+            raise HTTPException(status_code=401, detail="Unauthorized: Invalid X-API-Key for live evidence ingestion.")
+    elif RAG_INGEST_API_KEY and x_api_key != RAG_INGEST_API_KEY:
+        raise HTTPException(status_code=401, detail="Unauthorized: Invalid or missing X-API-Key for live evidence ingestion.")
+
     try:
         client = get_qdrant()
         _ensure_collection(client)
         doc_id = request.id or f"LIVE-{uuid.uuid4().hex[:8].upper()}"
         pub_date = request.publicationDate or datetime.now(timezone.utc).date().isoformat()
+        now_iso = datetime.now(timezone.utc).isoformat()
 
         doc = EvidenceDocument(
             id=doc_id,
@@ -264,9 +332,19 @@ def live_ingest(request: LiveIngestRequest) -> dict[str, Any]:
             relevanceScore=0.96,
             officialUrl=request.officialUrl or "",
             complianceRule=request.complianceRule or "",
+            coast=request.coast or "all",
+            applicableStates=request.applicableStates or ["all"],
+            vesselClass=request.vesselClass or "all",
+            jurisdiction=request.jurisdiction or "Territorial_Waters",
+            topicCategory=request.topicCategory or "Advisory",
+            issuedAt=request.issuedAt or now_iso,
+            expiresAt=request.expiresAt,
+            active=request.active,
+            revision=request.revision,
         )
 
         new_count = _index_documents(client, [doc])
+        print(f"[RAG Live Ingest] Successfully ingested {doc_id} ('{doc.title}') into Qdrant collection {QDRANT_COLLECTION}. Total points: {new_count}")
         return {
             "success": True,
             "document_id": doc_id,
@@ -279,7 +357,65 @@ def live_ingest(request: LiveIngestRequest) -> dict[str, Any]:
         raise HTTPException(status_code=503, detail=f"Live evidence ingestion failed: {exc}") from exc
 
 
-@app.post("/search")
+@rag_router.post("/cleanup-expired")
+@rag_router.post("/rag/cleanup-expired")
+def cleanup_expired(
+    x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
+) -> dict[str, Any]:
+    """Prunes expired emergency bulletins and temporary alerts from the active Qdrant vector index."""
+    is_prod = os.getenv("NODE_ENV") == "production" or os.getenv("ORCA_PRODUCTION", "").lower() in ("true", "1")
+    if is_prod and (not x_api_key or x_api_key == "orca-rag-internal-key"):
+        raise HTTPException(status_code=403, detail="Forbidden: Production key required for cleanup.")
+    if RAG_INGEST_API_KEY and x_api_key != RAG_INGEST_API_KEY:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    try:
+        client = get_qdrant()
+        _ensure_collection(client)
+        now_iso = datetime.now(timezone.utc).isoformat()
+
+        # Scroll all points to check for expired temporary bulletins
+        pruned = 0
+        offset = None
+        points_to_delete = []
+
+        while True:
+            records, offset = client.scroll(
+                collection_name=QDRANT_COLLECTION,
+                limit=100,
+                offset=offset,
+                with_payload=True,
+            )
+            for record in records:
+                payload = record.payload or {}
+                expires_at = payload.get("expiresAt")
+                active = payload.get("active", True)
+                if not active or (expires_at and expires_at < now_iso):
+                    points_to_delete.append(record.id)
+            if offset is None:
+                break
+
+        if points_to_delete:
+            client.delete(
+                collection_name=QDRANT_COLLECTION,
+                points_selector=models.PointIdsList(points=points_to_delete),
+                wait=True,
+            )
+            pruned = len(points_to_delete)
+
+        collection = _collection_info(client)
+        return {
+            "success": True,
+            "pruned_count": pruned,
+            "remaining_points": collection.points_count,
+            "timestamp": now_iso,
+        }
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Cleanup failed: {exc}") from exc
+
+
+@rag_router.post("/search")
+@rag_router.post("/rag/search")
 def search(request: SearchRequest) -> dict[str, Any]:
     """True Hybrid Search blending Dense Cosine Similarity and Lexical Token Matching via RRF."""
     try:
@@ -291,14 +427,78 @@ def search(request: SearchRequest) -> dict[str, Any]:
         if not info.points_count or info.points_count == 0:
             auto_warmup_corpus(client)
 
-        # 1. Dense Semantic Channel
+        # Build Qdrant metadata filters if coastal or state parameters provided
+        must_filters: list[Any] = []
+        if request.coast and request.coast.lower() in ("east", "west"):
+            must_filters.append(
+                models.FieldCondition(
+                    key="coast",
+                    match=models.MatchAny(any=[request.coast.lower(), "all"]),
+                )
+            )
+        if request.state and request.state.strip():
+            must_filters.append(
+                models.FieldCondition(
+                    key="applicableStates",
+                    match=models.MatchAny(any=[request.state.strip(), "all"]),
+                )
+            )
+        if request.vessel_class and request.vessel_class.strip():
+            must_filters.append(
+                models.FieldCondition(
+                    key="vesselClass",
+                    match=models.MatchAny(any=[request.vessel_class.strip(), "all"]),
+                )
+            )
+
+        query_filter = models.Filter(must=must_filters) if must_filters else None
+
+        # 1. Dense Semantic Channel with optional metadata filter
         output = get_embedder().encode([request.query], batch_size=1, max_length=8192, return_dense=True)
         query_vector = output["dense_vecs"][0].tolist()
-        dense_hits = _query_points(client, query_vector, limit=min(40, max(20, request.top_k * 3)))
+        dense_hits = _query_points(
+            client,
+            query_vector,
+            limit=min(60, max(30, request.top_k * 4)),
+            query_filter=query_filter,
+        )
 
+        # Fallback if filtered hits are too sparse (< 2 hits):
+        # Relax vesselClass constraint first, but STRICTLY maintain coast/state jurisdiction
+        # to prevent surfacing out-of-jurisdiction state regulations.
+        if len(dense_hits) < 2 and query_filter is not None:
+            relaxed_filters: list[Any] = []
+            if request.coast and request.coast.lower() in ("east", "west"):
+                relaxed_filters.append(
+                    models.FieldCondition(
+                        key="coast",
+                        match=models.MatchAny(any=[request.coast.lower(), "all"]),
+                    )
+                )
+            if request.state and request.state.strip():
+                relaxed_filters.append(
+                    models.FieldCondition(
+                        key="applicableStates",
+                        match=models.MatchAny(any=[request.state.strip(), "all"]),
+                    )
+                )
+            relaxed_query_filter = models.Filter(must=relaxed_filters) if relaxed_filters else None
+            relaxed_hits = _query_points(client, query_vector, limit=min(60, max(30, request.top_k * 4)), query_filter=relaxed_query_filter)
+            if relaxed_hits:
+                dense_hits = relaxed_hits
+
+        now_iso = datetime.now(timezone.utc).isoformat()
         candidates: dict[str, dict[str, Any]] = {}
         for rank, hit in enumerate(dense_hits):
             payload = hit.payload or {}
+            # Exclude expired or inactive documents unless requested
+            if not request.include_expired:
+                if not payload.get("active", True):
+                    continue
+                expires_at = payload.get("expiresAt")
+                if expires_at and expires_at < now_iso:
+                    continue
+
             doc_id = str(payload.get("id") or hit.id)
             candidates[doc_id] = {
                 "payload": payload,
@@ -337,6 +537,15 @@ def search(request: SearchRequest) -> dict[str, Any]:
                 "excerpt": str(p.get("excerpt", "")),
                 "complianceRule": str(p.get("complianceRule", "")),
                 "officialUrl": str(p.get("officialUrl", "")),
+                "coast": str(p.get("coast", "all")),
+                "applicableStates": p.get("applicableStates", ["all"]),
+                "vesselClass": str(p.get("vesselClass", "all")),
+                "jurisdiction": str(p.get("jurisdiction", "Territorial_Waters")),
+                "topicCategory": str(p.get("topicCategory", "")),
+                "issuedAt": p.get("issuedAt"),
+                "expiresAt": p.get("expiresAt"),
+                "active": p.get("active", True),
+                "revision": p.get("revision", 1),
                 "relevanceScore": calibrated_score,
                 "denseScore": round(item["dense_score"], 4),
                 "lexicalScore": round(item["lexical_score"], 4),
@@ -353,4 +562,12 @@ def search(request: SearchRequest) -> dict[str, Any]:
         }
     except Exception as exc:
         raise HTTPException(status_code=503, detail=f"RAG retrieval unavailable: {exc}") from exc
+
+
+app.include_router(rag_router)
+
+
+@app.get("/health")
+def standalone_health() -> dict[str, Any]:
+    return get_rag_health_dict()
 

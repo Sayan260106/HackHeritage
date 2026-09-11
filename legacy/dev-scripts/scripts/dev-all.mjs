@@ -74,14 +74,74 @@ function launchProcess(name, command, args, prefixColor) {
 const npxCmd = isWindows ? 'npx.cmd' : 'npx';
 launchProcess('EXPRESS', npxCmd, ['tsx', 'server/app.ts'], '\x1b[36m');
 
-// 2. Start ML FastAPI
-launchProcess('ML-API', pythonBin, ['-m', 'uvicorn', 'ml.api:app', '--host', '0.0.0.0', '--port', '8000'], '\x1b[35m');
+// 2. Start Unified ML + RAG FastAPI Microservice
+launchProcess('UNIFIED-AI', pythonBin, ['-m', 'uvicorn', 'ml.api:app', '--host', '0.0.0.0', '--port', '8000'], '\x1b[35m');
 
-// 3. Start RAG FastAPI
-launchProcess('RAG-API', pythonBin, ['-m', 'uvicorn', 'ml.rag_api:app', '--host', '0.0.0.0', '--port', '8001'], '\x1b[32m');
+// 3. Optional Standalone RAG FastAPI (if explicitly enabled)
+if (process.env.STANDALONE_RAG === 'true' || process.env.STANDALONE_RAG === '1') {
+  launchProcess('RAG-STANDALONE', pythonBin, ['-m', 'uvicorn', 'ml.rag_api:app', '--host', '0.0.0.0', '--port', '8001'], '\x1b[32m');
+}
+
+// 4. Background Readiness Supervisor
+async function waitForReadiness() {
+  const endpoints = [
+    { name: 'Core Backend', url: 'http://127.0.0.1:3000/api/health' },
+    { name: 'Unified AI Microservice', url: 'http://127.0.0.1:8000/health' },
+  ];
+  if (process.env.STANDALONE_RAG === 'true' || process.env.STANDALONE_RAG === '1') {
+    endpoints.push({ name: 'Standalone RAG Engine', url: 'http://127.0.0.1:8001/health' });
+  }
+
+  let allReady = false;
+  const startTime = Date.now();
+  const maxWaitMs = 30000;
+
+  while (!allReady && (Date.now() - startTime) < maxWaitMs) {
+    await new Promise(r => setTimeout(r, 1000));
+    try {
+      const checks = await Promise.all(endpoints.map(ep =>
+        fetch(ep.url, { signal: AbortSignal.timeout(1000) })
+          .then(r => r.ok)
+          .catch(() => false)
+      ));
+      if (checks.every(Boolean)) {
+        allReady = true;
+      }
+    } catch {
+      // retry
+    }
+  }
+
+  if (allReady) {
+    console.log('\n========================================================================');
+    console.log('🎉 ALL ORCA-X PRODUCTION MICROSERVICES ARE ONLINE & READY');
+    console.log('========================================================================');
+    console.log('  🌐 Frontend & App:     http://localhost:3000');
+    console.log('  📊 System Health:      http://localhost:3000/api/health');
+    console.log('  🤖 Unified AI Engine:  http://localhost:8000/docs');
+    console.log('  🛰️ Telemetry Stream:   http://localhost:3000/api/marine/telemetry');
+    console.log('========================================================================\n');
+
+    const isSmokeMode = process.argv.includes('--smoke') || process.argv.includes('--ci');
+    if (isSmokeMode) {
+      console.log('🧪 Running automated CI smoke suite against live cluster...\n');
+      const smokeProc = spawn(process.execPath, ['scripts/smoke-test.mjs'], {
+        stdio: 'inherit',
+        shell: isWindows,
+        env: { ...process.env, FORCE_COLOR: '1' }
+      });
+      smokeProc.on('close', (code) => {
+        console.log(`\nCI Smoke test completed with code ${code}.`);
+        cleanup(code ?? 0);
+      });
+    }
+  }
+}
+
+waitForReadiness().catch(() => {});
 
 // Graceful termination
-function cleanup() {
+function cleanup(exitCode = 0) {
   console.log('\n🛑 Stopping all ORCA-X services...');
   for (const proc of processes) {
     try {
@@ -94,8 +154,10 @@ function cleanup() {
       // ignore
     }
   }
-  process.exit(0);
+  process.exit(exitCode);
 }
 
-process.on('SIGINT', cleanup);
-process.on('SIGTERM', cleanup);
+process.on('SIGINT', () => cleanup(0));
+process.on('SIGTERM', () => cleanup(0));
+
+

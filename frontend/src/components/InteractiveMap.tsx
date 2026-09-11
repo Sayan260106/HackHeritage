@@ -22,7 +22,6 @@ import { COASTAL_LOCATIONS, MULTILINGUAL_DICTIONARY } from '../data/coastalData'
 import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion';
 import { maritimeSiren } from '../services/audio/maritimeSirenService';
 import { voiceWarning } from '../services/audio/voiceWarningService';
-import { ORCA_BOUNDARY_LINES, ORCA_PROTECTED_AREAS } from '../data/orcaMaritimeGeometry';
 
 interface InteractiveMapProps {
   location: LocationInfo;
@@ -32,59 +31,11 @@ interface InteractiveMapProps {
   riskLevel: RiskLevel;
   risk?: RiskPrediction;
   safeRoute?: any;
+  vesselTraffic?: DarkVesselAnalysis;
   onSelectLocation: (locKey: string) => void;
   onCoordinateClick?: (lat: number, lon: number) => void;
   language: LanguageCode;
 }
-
-/**
- * Maritime boundaries and protected areas, drawn from geometry baked into the
- * bundle rather than fetched.
- *
- * These do not change: a treaty line and a gazetted sanctuary are the same on
- * every request, so asking the API for them on every query meant re-sending a
- * few hundred kilobytes of identical coordinates and waiting on a round trip
- * before the map could draw a line that was already known.
- *
- * They are built once here, at module scope, instead of per render — there are
- * a couple of hundred rings and rebuilding them on every state change is work
- * for no gain.
- *
- * The geometry is Marine Regions EEZ v12 and the MoEFCC protected-area layer,
- * the same files ORCA's server-side geofence reads. It replaces the
- * hand-written table in `maritimeBoundaries.ts`, whose `AUTHENTIC_IMBL_BOUNDARIES`
- * described the whole India-Sri Lanka boundary with eighteen points.
- *
- * Simplified for display only. Whether a position is actually inside a boundary
- * or an area is still decided server-side against the unsimplified geometry —
- * this layer shows where a line is, it does not adjudicate it.
- */
-const ORCA_STATIC_FEATURES: any[] = [
-  ...ORCA_BOUNDARY_LINES.map((line) => ({
-    type: 'Feature' as const,
-    geometry: { type: 'LineString' as const, coordinates: line.coordinates },
-    properties: {
-      name: line.name,
-      category: 'international_boundary' as const,
-      description: line.isOuterLimit
-        ? 'Outer limit of India\'s Exclusive Economic Zone (200 NM).'
-        : `${line.lineType} with ${line.neighbour}. Crossing it without clearance is an offence.`,
-      color: '#f97316',
-      details: { source: 'Marine Regions EEZ v12', neighbour: line.neighbour },
-    },
-  })),
-  ...ORCA_PROTECTED_AREAS.map((area) => ({
-    type: 'Feature' as const,
-    geometry: { type: 'Polygon' as const, coordinates: [area.coordinates] },
-    properties: {
-      name: area.name,
-      category: 'marine_protected_area' as const,
-      description: `${area.designation}. Fishing here may be restricted.`,
-      color: '#22c55e',
-      details: { source: 'MoEFCC / WDPA protected areas', designation: area.designation },
-    },
-  })),
-];
 
 export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   location,
@@ -94,6 +45,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   riskLevel,
   risk,
   safeRoute,
+  vesselTraffic,
   onSelectLocation,
   onCoordinateClick,
   language
@@ -175,7 +127,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         onCoordinateClickRef.current(lat, lon);
       }
 
-      alert(`COAST GUARD INTERCEPT WARNING DISPATCHED!\n\nTarget: ${name} (${mmsi})\nPosition: ${lat}°N, ${lon}°E\nRecipient: Indian Coast Guard ICGS Patrol Unit\nStatus: Transmitted to Maritime Security Command.\nAudio Siren Activated.`);
+      alert(`🚨 COAST GUARD INTERCEPT WARNING DISPATCHED!\n\nTarget: ${name} (${mmsi})\nPosition: ${lat}°N, ${lon}°E\nRecipient: Indian Coast Guard ICGS Patrol Unit\nStatus: Transmitted to Maritime Security Command.\nAudio Siren Activated.`);
     };
     return () => {
       delete (window as any).__orcaSetBoatLocation;
@@ -242,8 +194,12 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
     return () => { isMounted = false; };
   }, [location.latitude, location.longitude]);
 
-  // Fetch live AIS vessel traffic & Sentinel-1 SAR dark vessel analysis
+  // Synchronize vessel traffic from Agentic Brain analysis or fetch live AIS & SAR data
   useEffect(() => {
+    if (vesselTraffic && Array.isArray(vesselTraffic.targetVessels) && vesselTraffic.targetVessels.length > 0) {
+      setVesselsData(vesselTraffic);
+      return;
+    }
     let isMounted = true;
     fetch(`/api/vessels/live?lat=${location.latitude}&lon=${location.longitude}`)
       .then(res => res.ok ? res.json() : null)
@@ -255,7 +211,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       .catch(err => console.error('Failed to fetch live AIS vessel traffic:', err));
 
     return () => { isMounted = false; };
-  }, [location.latitude, location.longitude]);
+  }, [location.latitude, location.longitude, vesselTraffic]);
 
   // Fetch live statutory INCOIS PFZ satellite analysis for current location
   useEffect(() => {
@@ -411,7 +367,8 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
             <div class="relative flex items-center justify-center">
               <div class="absolute w-8 h-8 rounded-full bg-cyan-400/50 animate-ping"></div>
               <div class="w-7 h-7 rounded-full bg-cyan-500 flex items-center justify-center shadow-lg border-2 border-white text-white font-bold text-xs">
-                </div>
+                ⚓
+              </div>
             </div>
           `,
           iconSize: [28, 28],
@@ -423,7 +380,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           .bindPopup(`
             <div class="p-2 space-y-1.5 min-w-[190px]">
               <div class="font-bold text-cyan-300 text-xs flex items-center gap-1">
-                <span>Map Location Selected</span>
+                <span>📍 Map Location Selected</span>
               </div>
               <div class="text-[11px] font-mono text-slate-200">${lat.toFixed(4)}°N, ${lon.toFixed(4)}°E</div>
               <div class="pt-1 border-t border-slate-700 space-y-1">
@@ -431,13 +388,13 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
                   onclick="window.__orcaSetBoatLocation && window.__orcaSetBoatLocation(${lat}, ${lon})"
                   class="w-full py-1 px-2 rounded bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-[10px] flex items-center justify-center gap-1 shadow cursor-pointer transition-all"
                 >
-                  Set Boat Position Here
+                  ⚓ Set Boat Position Here
                 </button>
                 <button 
                   onclick="window.__orcaPlotRouteTo && window.__orcaPlotRouteTo(${lat}, ${lon}, 'Custom Target Point')"
                   class="w-full py-1 px-2 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] flex items-center justify-center gap-1 shadow cursor-pointer transition-all"
                 >
-                  Plot Safe Route to Here
+                  🧭 Plot Safe Route to Here
                 </button>
               </div>
             </div>
@@ -582,7 +539,8 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         <div class="relative flex items-center justify-center">
           <div class="absolute w-8 h-8 rounded-full ${riskLevel === 'EXTREME' || riskLevel === 'HIGH' ? 'bg-red-500/30 animate-ping' : 'bg-cyan-500/30 animate-ping'}"></div>
           <div class="w-7 h-7 rounded-full ${riskLevel === 'EXTREME' ? 'bg-red-600' : riskLevel === 'HIGH' ? 'bg-rose-600' : riskLevel === 'MODERATE' ? 'bg-amber-500' : 'bg-cyan-500'} flex items-center justify-center shadow-lg border-2 border-white text-white font-bold text-xs">
-            </div>
+            ⚓
+          </div>
         </div>
       `,
       iconSize: [28, 28],
@@ -594,7 +552,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       .bindPopup(`
         <div class="p-2 space-y-1">
           <div class="font-bold text-slate-100 text-sm flex items-center gap-1.5">
-            <span>${location.name}</span>
+            <span>⚓ ${location.name}</span>
           </div>
           <p class="text-xs text-slate-300">${location.nearestPort || 'Harbor Point'} • ${location.regionType}</p>
           <div class="pt-1 flex items-center justify-between text-[11px] border-t border-slate-700 font-mono">
@@ -604,13 +562,9 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         </div>
       `);
 
-    // Render GIS features: the baked boundaries and protected areas always,
-    // plus whatever the backend sent for this position (hazard cells, caution
-    // margins, the suggested passage). One collection so the filter, styling and
-    // popups below apply to both without knowing which is which.
-    const mergedFeatures = [...ORCA_STATIC_FEATURES, ...((gisLayers && gisLayers.features) || [])];
-    if (mergedFeatures.length) {
-      const geoLayer = L.geoJSON({ type: 'FeatureCollection', features: mergedFeatures } as any, {
+    // Render GIS GeoJSON Features
+    if (gisLayers && gisLayers.features) {
+      const geoLayer = L.geoJSON(gisLayers as any, {
         filter: (feature) => {
           const cat = feature.properties.category;
           if (cat === 'hazard_zone' && !showHazardZones) return false;
@@ -678,8 +632,9 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
               className: 'imbl-marker-icon',
               html: `
                 <div class="relative flex items-center justify-center">
-                  <div class="w-6 h-6 rounded-full bg-rose-600 border-2 border-white shadow-lg flex items-center justify-center text-[10px] text-white font-bold">
-                    </div>
+                  <div class="w-6 h-6 rounded-full bg-rose-600 border-2 border-white shadow-lg flex items-center justify-center text-[10px] text-white font-bold animate-pulse">
+                    ⚓
+                  </div>
                 </div>
               `,
               iconSize: [22, 22],
@@ -693,7 +648,8 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
               html: `
                 <div class="relative flex items-center justify-center">
                   <div class="w-5 h-5 rounded-full bg-slate-950 border border-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.8)] flex items-center justify-center text-[10px] text-amber-300 font-mono">
-                    </div>
+                    📡
+                  </div>
                 </div>
               `,
               iconSize: [20, 20],
@@ -729,7 +685,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
                     onclick="window.__orcaSetBoatLocation && window.__orcaSetBoatLocation(${clickLat}, ${clickLon})"
                     class="w-full py-1.5 px-2 rounded bg-cyan-600 hover:bg-cyan-500 active:bg-cyan-700 text-white font-bold text-[11px] flex items-center justify-center gap-1 shadow cursor-pointer transition-all"
                   >
-                    Set Boat Here & Check Distance
+                    ⚓ Set Boat Here & Check Distance
                   </button>
                 </div>
               </div>
@@ -794,7 +750,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           layer.bindPopup(`
             <div class="p-2.5 space-y-2 max-w-[270px] bg-slate-900 text-slate-100 rounded-lg text-xs font-mono">
               <div class="font-bold text-cyan-300 border-b border-cyan-800/80 pb-1 flex items-center justify-between">
-                <span class="flex items-center gap-1">INCOIS Satellite Front</span>
+                <span class="flex items-center gap-1">🛰️ INCOIS Satellite Front</span>
                 <span class="text-[9px] bg-cyan-950 text-cyan-300 px-1.5 py-0.5 rounded border border-cyan-700/60 font-black">GOVT WFS</span>
               </div>
               <div class="space-y-1 text-[11px] bg-slate-950/80 p-2 rounded border border-slate-800">
@@ -811,7 +767,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
                   onclick="window.__orcaPlotRouteTo && window.__orcaPlotRouteTo(${midLat.toFixed(4)}, ${midLon.toFixed(4)}, 'INCOIS Front ${uid}')"
                   class="w-full mt-1 py-1.5 px-2 bg-gradient-to-r from-cyan-600 to-emerald-600 hover:from-cyan-500 hover:to-emerald-500 text-white font-bold text-[10px] rounded transition-all text-center flex items-center justify-center gap-1 shadow cursor-pointer"
                 >
-                  Compute Safe Route to Front
+                  🧭 Compute Safe Route to Front
                 </button>
               ` : ''}
             </div>
@@ -849,7 +805,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
             <div class="relative flex items-center justify-center cursor-pointer">
               <div class="absolute w-8 h-8 rounded-full ${isHigh ? 'bg-emerald-500/40 animate-ping' : 'bg-amber-500/30'}"></div>
               <div class="px-2 py-0.5 rounded-full ${isRestricted ? 'bg-rose-700 border-rose-400' : isHigh ? 'bg-emerald-600 border-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.5)]' : 'bg-amber-600 border-amber-300'} border flex items-center gap-1 shadow-xl text-white font-bold text-[10px] whitespace-nowrap">
-                <span></span>
+                <span>🐟</span>
                 <span>INCOIS #${zone.rank}</span>
                 <span class="font-mono text-[9px] ${isHigh ? 'text-emerald-200' : 'text-amber-200'}">(${zone.score}%)</span>
               </div>
@@ -865,7 +821,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           <div class="p-2.5 space-y-2 max-w-[280px] bg-slate-900 text-slate-100 rounded-lg">
             <div class="flex items-center justify-between border-b border-slate-700/80 pb-1.5">
               <div class="flex items-center gap-1.5 font-bold text-xs text-emerald-400">
-                <span>${zone.id}</span>
+                <span>🐟 ${zone.id}</span>
                 <span class="text-[10px] text-cyan-300 font-mono">UID: ${zone.incoisUid || 'INCOIS'}</span>
               </div>
               <span class="px-1.5 py-0.5 rounded text-[9px] font-black tracking-wider uppercase ${
@@ -911,7 +867,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
 
             ${zone.explanations?.[0] ? `
               <p class="text-[10px] text-slate-300 leading-tight italic bg-emerald-950/30 p-1.5 rounded border border-emerald-800/40">
-                ${zone.explanations[0]}
+                💡 ${zone.explanations[0]}
               </p>
             ` : ''}
 
@@ -926,13 +882,13 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
                 onclick="window.__orcaSetBoatLocation && window.__orcaSetBoatLocation(${zone.latitude}, ${zone.longitude})"
                 class="py-1 px-1.5 bg-cyan-700 hover:bg-cyan-600 text-white font-bold text-[10px] rounded transition-all text-center flex items-center justify-center gap-1 shadow cursor-pointer"
               >
-                Move Boat Here
+                ⚓ Move Boat Here
               </button>
               <button
                 onclick="window.__orcaPlotRouteTo && window.__orcaPlotRouteTo(${zone.latitude}, ${zone.longitude}, 'INCOIS Front #${zone.rank}')"
                 class="py-1 px-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-[10px] rounded transition-all text-center flex items-center justify-center gap-1 shadow cursor-pointer"
               >
-                Compute Safe Route Here
+                🧭 Compute Safe Route Here
               </button>
             </div>
           </div>
@@ -992,7 +948,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
     polyline.bindPopup(`
       <div class="p-2.5 space-y-2 max-w-[280px] bg-slate-900 text-slate-100 rounded-xl font-mono text-xs shadow-2xl border border-emerald-500/50">
         <div class="flex items-center justify-between border-b border-slate-700/80 pb-1.5 font-bold text-emerald-400">
-          <span class="flex items-center gap-1.5">Safe Navigation Route</span>
+          <span class="flex items-center gap-1.5">🧭 Safe Navigation Route</span>
           <span class="text-[9px] bg-emerald-950 text-emerald-300 px-1.5 py-0.5 rounded border border-emerald-700 font-black">ACTIVE</span>
         </div>
         <div class="space-y-1 text-[11px] bg-slate-950/80 p-2 rounded border border-slate-800">
@@ -1010,7 +966,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         ` : ''}
         ${safeRouteResult.rationale ? `
           <p class="text-[10px] text-slate-300 italic bg-emerald-950/30 p-1.5 rounded border border-emerald-900/40">
-            ${safeRouteResult.rationale}
+            💡 ${safeRouteResult.rationale}
           </p>
         ` : ''}
       </div>
@@ -1030,7 +986,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         className: 'custom-wp-marker-icon',
         html: `
           <div class="relative flex items-center justify-center cursor-pointer group">
-            <div class="w-6 h-6 rounded-full ${isStart ? 'bg-cyan-600 border-2 border-white shadow-[0_0_12px_rgba(6,182,212,0.8)]' : isEnd ? 'bg-emerald-600 border-2 border-white shadow-[0_0_12px_rgba(16,185,129,0.8)]' : 'bg-slate-800 border-2 border-emerald-400'} shadow-lg flex items-center justify-center text-[10px] text-white font-bold font-mono">
+            <div class="w-6 h-6 rounded-full ${isStart ? 'bg-cyan-600 border-2 border-white shadow-[0_0_12px_rgba(6,182,212,0.8)]' : isEnd ? 'bg-emerald-600 border-2 border-white animate-pulse shadow-[0_0_12px_rgba(16,185,129,0.8)]' : 'bg-slate-800 border-2 border-emerald-400'} shadow-lg flex items-center justify-center text-[10px] text-white font-bold font-mono">
               ${isStart ? '⚓' : isEnd ? '🏁' : idx}
             </div>
             <div class="absolute -bottom-4 hidden group-hover:flex bg-slate-950/90 text-cyan-300 text-[9px] font-mono px-1 rounded border border-cyan-700 whitespace-nowrap shadow-md z-30">
@@ -1047,9 +1003,9 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       // Hover tooltip showing sequence number, distance, and bearing tag
       marker.bindTooltip(
         isStart 
-          ? 'Route Origin (Boat)' 
+          ? '⚓ Route Origin (Boat)' 
           : isEnd 
-            ? `Destination • ${cumDistNm} NM` 
+            ? `🏁 Destination • ${cumDistNm} NM` 
             : `WP #${idx} • ${cumDistNm} NM • ${bearingStr}`,
         {
           direction: 'top',
@@ -1061,7 +1017,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       const popupContent = `
         <div class="p-2.5 space-y-2 bg-slate-900 text-slate-100 rounded-xl text-xs font-mono max-w-[250px] shadow-2xl border border-slate-700">
           <div class="font-bold text-emerald-400 border-b border-slate-700 pb-1.5 flex items-center justify-between">
-            <span>${isStart ? 'Route Origin (Boat)' : isEnd ? 'Safe Destination' : `Waypoint #${idx}`}</span>
+            <span>${isStart ? '⚓ Route Origin (Boat)' : isEnd ? '🏁 Safe Destination' : `Waypoint #${idx}`}</span>
             <span class="text-[10px] text-cyan-300">${wp.latitude.toFixed(3)}°N, ${wp.longitude.toFixed(3)}°E</span>
           </div>
           <div class="space-y-1 text-[11px] bg-slate-950/80 p-2 rounded border border-slate-800">
@@ -1085,7 +1041,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
               onclick="window.__orcaSetBoatLocation && window.__orcaSetBoatLocation(${wp.latitude}, ${wp.longitude})"
               class="w-full py-1 px-2 rounded bg-cyan-700 hover:bg-cyan-600 text-white font-bold text-[10px] flex items-center justify-center gap-1 shadow cursor-pointer transition-all"
             >
-              Set Boat Position Here
+              ⚓ Set Boat Position Here
             </button>
           </div>
         </div>
@@ -1138,7 +1094,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           <div class="relative flex items-center justify-center cursor-pointer">
             <div class="absolute w-8 h-8 rounded-full bg-amber-400/25 animate-ping"></div>
             <div class="px-2 py-0.5 rounded-full bg-slate-950 border border-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.6)] flex items-center gap-1 shadow-xl text-white font-bold text-[10px] whitespace-nowrap">
-              <span></span>
+              <span>📡</span>
               <span class="font-mono text-[9px] text-amber-300 font-black">${vessel.buoyStationId || vessel.name.split(' ')[0]}</span>
               <span class="font-mono text-[8px] text-cyan-300">${vessel.waveHeightM !== undefined ? `${vessel.waveHeightM}m` : ''}</span>
             </div>
@@ -1168,7 +1124,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         <div class="p-2.5 space-y-2 max-w-[290px] bg-slate-900 text-slate-100 rounded-lg">
           <div class="flex items-center justify-between border-b border-slate-700/80 pb-1.5">
             <div class="flex items-center gap-1.5 font-bold text-xs text-amber-300">
-              <span>INCOIS MOORED BUOY STATION</span>
+              <span>📡 INCOIS MOORED BUOY STATION</span>
             </div>
             <span class="px-1.5 py-0.5 rounded text-[8.5px] font-black font-mono bg-amber-500/20 text-amber-300 border border-amber-500/40">
               ${vessel.buoyStationId || 'MOES'}
@@ -1215,7 +1171,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
               onclick="window.__orcaSetBoatLocation && window.__orcaSetBoatLocation(${vessel.latitude}, ${vessel.longitude})"
               class="w-full py-1.5 px-2 bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold text-[10px] rounded transition-all text-center flex items-center justify-center gap-1 shadow cursor-pointer"
             >
-              Center Radar at Buoy Station
+              ⚓ Center Radar at Buoy Station
             </button>
           </div>
         </div>
@@ -1223,9 +1179,9 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         <div class="p-2.5 space-y-2 max-w-[280px] bg-slate-900 text-slate-100 rounded-lg">
           <div class="flex items-center justify-between border-b border-slate-700/80 pb-1.5">
             <div class="flex items-center gap-1.5 font-bold text-xs ${isDark ? 'text-red-400' : 'text-cyan-300'}">
-              <span>${isDark ? 'DARK VESSEL DETECTED' : 'AIS BROADCASTING VESSEL'}</span>
+              <span>${isDark ? '🚨 DARK VESSEL DETECTED' : '🚢 AIS BROADCASTING VESSEL'}</span>
             </div>
-            <span class="px-1.5 py-0.5 rounded text-[8.5px] font-black uppercase font-mono ${isDark ? 'bg-red-600 text-white' : 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'}">
+            <span class="px-1.5 py-0.5 rounded text-[8.5px] font-black uppercase font-mono ${isDark ? 'bg-red-600 text-white animate-pulse' : 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'}">
               ${vessel.aisStatus.replace('_', ' ')}
             </span>
           </div>
@@ -1256,7 +1212,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           ${isDark ? `
             <div class="p-2 bg-red-950/60 border border-red-800 rounded text-[10px] text-red-200 leading-tight space-y-1">
               <div class="font-bold text-red-400 flex items-center gap-1">
-                <span>ANOMALY REASON:</span>
+                <span>⚠️ ANOMALY REASON:</span>
               </div>
               <p>${vessel.suspiciousReason}</p>
             </div>
@@ -1267,7 +1223,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
               onclick="${isDark ? `window.__orcaDispatchCoastGuardAlert && window.__orcaDispatchCoastGuardAlert('${vessel.mmsi}', '${vessel.name.replace(/'/g, "\\'")}', ${vessel.latitude}, ${vessel.longitude}, '${(vessel.suspiciousReason || 'Unregistered target').replace(/'/g, "\\'")}')` : `window.__orcaSetBoatLocation && window.__orcaSetBoatLocation(${vessel.latitude}, ${vessel.longitude})`}"
               class="w-full py-1.5 px-2 ${isDark ? 'bg-red-700 hover:bg-red-600' : 'bg-cyan-700 hover:bg-cyan-600'} text-white font-bold text-[10px] rounded transition-all text-center flex items-center justify-center gap-1 shadow cursor-pointer"
             >
-              ${isDark ? 'Dispatch Coast Guard Warning' : 'Track Vessel Coordinates'}
+              ${isDark ? '🚨 Dispatch Coast Guard Warning' : '⚓ Track Vessel Coordinates'}
             </button>
           </div>
         </div>
@@ -1316,7 +1272,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
             <div class="relative flex items-center justify-center cursor-pointer">
               <div class="absolute w-9 h-9 rounded-full bg-purple-600/40 animate-ping"></div>
               <div class="px-2 py-0.5 rounded-full bg-purple-950 border border-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.8)] flex items-center gap-1 shadow-xl text-white font-bold text-[10px] whitespace-nowrap">
-                <span></span>
+                <span>🛢️</span>
                 <span class="font-mono text-[9px] text-purple-200 font-black">OIL SLICK</span>
                 <span class="font-mono text-[8px] text-amber-300">(${spill.distanceNm ?? '—'} NM)</span>
               </div>
@@ -1331,7 +1287,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         const popupContent = `
           <div class="p-2.5 space-y-2 max-w-[290px] bg-slate-900 text-slate-100 rounded-xl font-mono text-xs shadow-2xl border border-purple-500/60">
             <div class="flex items-center justify-between border-b border-purple-800/80 pb-1.5 font-bold text-purple-300">
-              <span class="flex items-center gap-1.5">${spill.title}</span>
+              <span class="flex items-center gap-1.5">🛢️ ${spill.title}</span>
               <span class="text-[9px] bg-purple-950 text-purple-200 px-1.5 py-0.5 rounded border border-purple-700 font-black">SATELLITE</span>
             </div>
 
@@ -1344,14 +1300,14 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
             </div>
 
             <p class="text-[10px] text-purple-200 bg-purple-950/50 p-1.5 rounded border border-purple-900/60 italic leading-tight">
-              MARPOL Annex I Hazard Zone. Safe navigation routing will automatically steer vessels around this slick.
+              ⚠️ MARPOL Annex I Hazard Zone. Safe navigation routing will automatically steer vessels around this slick.
             </p>
 
             <button
               onclick="window.__orcaPlotRouteTo && window.__orcaPlotRouteTo(${spill.latitude + 0.08}, ${spill.longitude + 0.08}, 'Bypass Point for ${spill.id}')"
               class="w-full py-1.5 px-2 bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-600 hover:to-indigo-600 text-white font-bold text-[10px] rounded transition-all text-center flex items-center justify-center gap-1 shadow cursor-pointer"
             >
-              Plot Safe Route Bypass Around Slick
+              🧭 Plot Safe Route Bypass Around Slick
             </button>
           </div>
         `;
@@ -1396,7 +1352,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           </span>
           {location.regionType === 'open_sea' && (
             <span className="px-2.5 py-0.5 rounded-lg text-xs font-bold bg-cyan-500 text-slate-950 shadow-[0_0_12px_rgba(34,211,238,0.7)] flex items-center gap-1 shrink-0">
-              Custom Boat Pin
+              ⚓ Custom Boat Pin
             </span>
           )}
           {Object.keys(COASTAL_LOCATIONS).map((key) => {
@@ -1488,7 +1444,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
               showPfz ? 'bg-emerald-950/90 text-emerald-200 border border-emerald-500/80 shadow-[0_0_12px_rgba(16,185,129,0.4)] font-bold' : 'text-slate-400 hover:bg-slate-800/60'
             }`}
           >
-            <span></span>
+            <span>🐟</span>
             <span className="hidden sm:inline">INCOIS PFZ (Live WFS)</span>
           </button>
 
@@ -1499,7 +1455,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
               isSatelliteView ? 'bg-cyan-950/90 text-cyan-200 border border-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.4)] font-bold' : 'text-slate-400 hover:bg-slate-800/60'
             }`}
           >
-            <span></span>
+            <span>🛰️</span>
             <span className="hidden sm:inline">{isSatelliteView ? 'Satellite Map (Live)' : 'Satellite View'}</span>
           </button>
 
@@ -1536,7 +1492,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
                 : 'text-slate-400 hover:bg-slate-800/60'
             }`}
           >
-            <span></span>
+            <span>📡</span>
             <span className="hidden sm:inline">INCOIS Buoys (Live)</span>
           </button>
 
@@ -1549,7 +1505,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
                 : 'text-slate-400 hover:bg-slate-800/60'
             }`}
           >
-            <span></span>
+            <span>🛢️</span>
             <span className="hidden sm:inline">Oil Slicks (Live NASA)</span>
           </button>
 
@@ -1564,13 +1520,13 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           disabled={isLocating}
           className={`orca-glass-panel px-2.5 py-1.5 flex items-center gap-1.5 text-xs font-semibold rounded-lg transition-all shadow-lg ${
             isLocating 
-              ? 'bg-cyan-500/30 text-cyan-300 border border-cyan-400' 
+              ? 'bg-cyan-500/30 text-cyan-300 border border-cyan-400 animate-pulse' 
               : 'text-cyan-300 hover:text-white hover:bg-slate-800/80 border border-slate-700/60'
           }`}
           title="Detect live GPS coordinates from this device / boat"
         >
           <Navigation className={`h-3.5 w-3.5 ${isLocating ? 'animate-spin' : 'text-cyan-400'}`} />
-          <span className="hidden sm:inline">{isLocating ? 'Locating...' : 'My Boat GPS'}</span>
+          <span className="hidden sm:inline">{isLocating ? 'Locating...' : '📍 My Boat GPS'}</span>
         </button>
 
         <button
@@ -1597,7 +1553,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
                     <span>Geofence Status</span>
                   </span>
                   <span className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-black uppercase ${
-                    isBreach ? 'bg-red-600 text-white' :
+                    isBreach ? 'bg-red-600 text-white animate-pulse' :
                     isCaution ? 'bg-amber-500 text-slate-950' :
                     'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                   }`}>
@@ -1632,8 +1588,8 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
                         {geo.nearestImbl.boundaryName.split('(')[0].replace('International Maritime Boundary Line', 'IMBL')}
                       </span>
                       <span className={`font-mono font-bold ${
-                        geo.nearestImbl.hasCrossedBorder ? 'text-red-400 font-black' :
-                        geo.nearestImbl.distanceNm <= 3.0 ? 'text-red-400 font-black' :
+                        geo.nearestImbl.hasCrossedBorder ? 'text-red-400 font-black animate-pulse' :
+                        geo.nearestImbl.distanceNm <= 3.0 ? 'text-red-400 font-black animate-pulse' :
                         geo.nearestImbl.distanceNm <= 8.0 ? 'text-amber-400' : 'text-slate-300'
                       }`}>
                         {geo.nearestImbl.hasCrossedBorder ? `CROSSED (${geo.nearestImbl.distanceNm} NM)` : `${geo.nearestImbl.distanceNm} NM`}
@@ -1654,7 +1610,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
                         {geo.nearestMpa.boundaryName.split(' ')[0]} Sanctuary
                       </span>
                       <span className={`font-mono font-bold ${
-                        (geo.nearestMpa.isInside || geo.nearestMpa.distanceNm === 0) ? 'text-red-400 font-black' :
+                        (geo.nearestMpa.isInside || geo.nearestMpa.distanceNm === 0) ? 'text-red-400 font-black animate-pulse' :
                         geo.nearestMpa.distanceNm <= 3.0 ? 'text-amber-400' : 'text-emerald-400'
                       }`}>
                         {(geo.nearestMpa.isInside || geo.nearestMpa.distanceNm === 0)
@@ -1721,8 +1677,8 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
                   className="w-full mt-2 py-1.5 px-2 rounded-lg bg-cyan-950/70 hover:bg-cyan-900/80 border border-cyan-700/60 text-cyan-300 font-mono text-[10px] font-bold flex items-center justify-center gap-1.5 transition-all active:scale-95 shadow-sm"
                   title="Broadcast audible voice warning & siren for current boat position"
                 >
-                  <Radio className="h-3 w-3 text-cyan-400" />
-                  <span>Broadcast Alert ({language.toUpperCase()})</span>
+                  <Radio className="h-3 w-3 text-cyan-400 animate-pulse" />
+                  <span>🔊 Broadcast Alert ({language.toUpperCase()})</span>
                 </button>
               </>
             );
@@ -1751,7 +1707,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
                   className="text-cyan-300 hover:text-white bg-slate-800 hover:bg-slate-700 px-1.5 py-0.5 rounded text-[10px] font-bold flex items-center gap-1"
                   title="Frame Camera to Full Safe Route"
                 >
-                  Frame
+                  🎯 Frame
                 </button>
               )}
               <button
@@ -1762,13 +1718,13 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
                 className="text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 px-1.5 py-0.5 rounded text-[10px] font-bold"
                 title="Clear Active Navigation Route"
               >
-                Clear
+                ✕ Clear
               </button>
             </div>
           </div>
 
           {isCalculatingRoute ? (
-            <div className="py-2 text-center text-cyan-300 text-[11px] font-mono flex items-center justify-center gap-1.5">
+            <div className="py-2 text-center text-cyan-300 text-[11px] font-mono animate-pulse flex items-center justify-center gap-1.5">
               <Compass className="h-3.5 w-3.5 animate-spin" />
               <span>Calculating safe waypoints around IMBL & sanctuaries...</span>
             </div>
@@ -1795,9 +1751,12 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
               )}
               {safeRouteResult.rationale && (
                 <p className="text-[10px] text-slate-300 italic leading-tight pt-0.5">
-                  {safeRouteResult.rationale}
+                  💡 {safeRouteResult.rationale}
                 </p>
               )}
+              <div className="text-[9px] text-slate-400 bg-slate-900/90 p-1.5 rounded border border-slate-800 text-center font-mono">
+                ⚠️ DECISION SUPPORT ONLY — Not for primary vessel navigation.
+              </div>
             </div>
           ) : safeRouteResult?.status === 'ROUTE_UNAVAILABLE' ? (
             <div className="p-2 bg-rose-950/50 border border-rose-800/80 rounded text-[11px] text-rose-300 space-y-1">
@@ -1827,7 +1786,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         </div>
         <div className="space-y-1 text-[11px]">
           <div className="flex items-center space-x-2">
-            <span className="w-3.5 h-3.5 rounded-full bg-cyan-500 border border-white shadow-[0_0_8px_rgba(6,182,212,0.8)] flex items-center justify-center text-[8px] text-white"></span>
+            <span className="w-3.5 h-3.5 rounded-full bg-cyan-500 border border-white shadow-[0_0_8px_rgba(6,182,212,0.8)] flex items-center justify-center text-[8px] text-white">⚓</span>
             <span className="text-cyan-200 font-semibold">My Boat / Base Port</span>
           </div>
           <div className="flex items-center space-x-2">
@@ -1847,7 +1806,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
             <span className="text-cyan-300 font-semibold">INCOIS Frontline (WFS)</span>
           </div>
           <div className="flex items-center space-x-2">
-            <span className="w-3.5 h-3.5 rounded-full bg-emerald-600 border border-emerald-300 shadow-[0_0_8px_rgba(16,185,129,0.8)] flex items-center justify-center text-[9px] text-white"></span>
+            <span className="w-3.5 h-3.5 rounded-full bg-emerald-600 border border-emerald-300 shadow-[0_0_8px_rgba(16,185,129,0.8)] flex items-center justify-center text-[9px] text-white">🐟</span>
             <span className="text-emerald-300 font-semibold">PFZ Hotspot (INCOIS/ISRO)</span>
           </div>
           <div className="flex items-center space-x-2">
@@ -1855,12 +1814,12 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
             <span className="text-emerald-300 font-semibold">Safe Route Polyline (A*)</span>
           </div>
           <div className="flex items-center space-x-2">
-            <span className="w-3.5 h-3.5 rounded-full bg-slate-950 border border-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.8)] flex items-center justify-center text-[8px] text-amber-300"></span>
+            <span className="w-3.5 h-3.5 rounded-full bg-slate-950 border border-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.8)] flex items-center justify-center text-[8px] text-amber-300">📡</span>
             <span className="text-amber-300 font-semibold">{dict.buoyStation || 'INCOIS MoES Buoy'}</span>
           </div>
         </div>
         <div className="text-[10px] text-cyan-300/90 pt-0.5 font-mono">
-          Tap map or &apos;My Boat GPS&apos; to measure border distance
+          💡 Tap map or &apos;My Boat GPS&apos; to measure border distance
         </div>
       </div>
 

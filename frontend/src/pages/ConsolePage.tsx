@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { AlertCircle, ArrowLeft, RefreshCw, MessageSquare, Activity } from "lucide-react";
+import { AlertCircle, ArrowLeft, RefreshCw, MessageSquare, Activity, Radio, Navigation } from "lucide-react";
 import { LeftNavbar } from "../components/LeftNavbar";
 import { InteractiveMap } from "../components/InteractiveMap";
 import { QueryPanel } from "../components/QueryPanel";
@@ -34,10 +34,6 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
   const [chatTurns, setChatTurns] = useState<ConversationTurn[]>([]);
   const [isChatDrawerOpen, setIsChatDrawerOpen] = useState<boolean>(false);
   const [isHealthModalOpen, setIsHealthModalOpen] = useState<boolean>(false);
-  // Seventeen ports at equal weight is a wall. Show the few that are in
-  // play and keep the rest one click away.
-  const [showAllPorts, setShowAllPorts] = useState<boolean>(false);
-  const PORTS_SHOWN = 5;
 
   const fetchAnalysis = async (
     queryText: string,
@@ -185,59 +181,37 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
           </button>
 
           {/* Multi-Port Coastal Hubs Live Status Bar (Section 2C: Touch-Snap Carousel) */}
-          <div className="flex items-center space-x-2 horizontal-snap-carousel overflow-x-auto py-2.5 px-4 orca-glass-panel rounded-xl text-xs font-mono shadow-lg scrollbar-thin scrollbar-thumb-slate-700">
-            <span className="text-[11px] text-cyan-400 font-bold uppercase tracking-wider shrink-0 flex items-center gap-1.5 px-1 pr-2 border-r border-slate-800">
-              <span className="h-2 w-2 rounded-full bg-emerald-400"></span>
+          <div className="flex items-center space-x-2 horizontal-snap-carousel py-2.5 px-4 orca-glass-panel rounded-xl text-xs font-mono shadow-lg">
+            <span className="text-[11px] text-cyan-400 font-bold uppercase tracking-wider shrink-0 flex items-center gap-1.5 px-1">
+              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
               <span>Coastal Ports:</span>
             </span>
-            {(() => {
-              // The selected port is always shown, wherever it sits in the
-              // list — collapsing it away would hide the one that matters.
-              const allKeys = Object.keys(COASTAL_LOCATIONS);
-              const selectedKey = allKeys.find((k) => {
-                const l = COASTAL_LOCATIONS[k];
-                const name = analysisData?.location.name?.toLowerCase() ?? '';
-                return l && (name.includes(l.name.toLowerCase()) || name.includes(k));
-              });
-              const head = allKeys.slice(0, PORTS_SHOWN);
-              if (selectedKey && !head.includes(selectedKey)) head[PORTS_SHOWN - 1] = selectedKey;
-              return showAllPorts ? allKeys : head;
-            })().map((key) => {
+            {['digha', 'puri', 'paradeep', 'visakhapatnam', 'kochi', 'chennai', 'mumbai'].map((key) => {
               const loc = COASTAL_LOCATIONS[key];
               if (!loc) return null;
-              const isSelected = analysisData?.location.name.toLowerCase().includes(loc.name.toLowerCase()) || analysisData?.location.name.toLowerCase().includes(key);
+              const isSelected = analysisData?.location.name.toLowerCase().includes(key);
               return (
                 <button
                   key={key}
                   onClick={() => handleLocationSelect(key)}
-                  className={`min-h-[38px] px-3 py-1.5 rounded-xl text-xs whitespace-nowrap transition-colors flex items-center gap-1.5 active:scale-95 shrink-0 ${isSelected
-                      ? 'bg-cyan-400 text-slate-950 font-bold border border-cyan-300'
-                      : 'bg-transparent text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 border border-slate-800'
-                    }`}
+                  className={`min-h-[44px] px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center space-x-1.5 active:scale-95 ${
+                    isSelected
+                      ? 'bg-cyan-400 text-slate-950 shadow-md shadow-cyan-400/30 font-black border border-cyan-300'
+                      : 'bg-slate-900 text-slate-200 hover:text-white hover:bg-slate-800 border border-slate-700'
+                  }`}
                 >
-                  <span>{loc.name.split('/')[0].split(' ')[0]}</span>
-                  <span className="text-[10px] font-mono opacity-60">{loc.latitude.toFixed(1)}°N</span>
+                  <span>{loc.name.split(' ')[0]}</span>
+                  <span className="text-[10px] opacity-80 font-mono">({loc.latitude.toFixed(1)}°N)</span>
                 </button>
               );
             })}
-
-            {Object.keys(COASTAL_LOCATIONS).length > PORTS_SHOWN && (
-              <button
-                onClick={() => setShowAllPorts((v) => !v)}
-                className="min-h-[38px] shrink-0 rounded-xl border border-slate-700 px-3 py-1.5 text-xs font-semibold text-slate-400 transition-colors hover:border-slate-500 hover:text-slate-200"
-              >
-                {showAllPorts
-                  ? 'Show fewer'
-                  : `+${Object.keys(COASTAL_LOCATIONS).length - PORTS_SHOWN} more ports`}
-              </button>
-            )}
 
             <button
               onClick={() => setIsHealthModalOpen(true)}
               title="Inspect multi-service connectivity & fallback health"
               className="ml-auto shrink-0 flex items-center gap-1.5 rounded-xl border border-cyan-500/30 bg-slate-950/80 px-3 py-2 text-xs font-mono text-cyan-300 hover:bg-slate-900 hover:text-white hover:border-cyan-400 transition-all active:scale-95"
             >
-              <Activity className="h-3.5 w-3.5 text-emerald-400" />
+              <Activity className="h-3.5 w-3.5 text-emerald-400 animate-pulse" />
               <span className="hidden sm:inline">System Diagnostics</span>
             </button>
           </div>
@@ -247,7 +221,56 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
             language={language}
             geofenceAnalysis={analysisData?.geofenceAnalysis || analysisData?.gisLayers?.geofenceAnalysis}
             risk={analysisData?.risk}
+            audioAlert={analysisData?.audioAlert}
           />
+
+          {/* Maritime Vessel Surveillance Radar Banner */}
+          {analysisData?.vesselTraffic && analysisData.vesselTraffic.targetVessels && analysisData.vesselTraffic.targetVessels.length > 0 && (
+            <div className={`flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-xl border transition-all ${
+              analysisData.vesselTraffic.highRiskEncounter
+                ? 'bg-rose-950/40 border-rose-500/60 shadow-lg shadow-rose-950/50 ring-1 ring-rose-500/30'
+                : 'bg-slate-900/80 border-cyan-500/40 shadow-md'
+            }`}>
+              <div className="flex items-center space-x-3">
+                <div className={`p-2 rounded-lg flex items-center justify-center ${
+                  analysisData.vesselTraffic.highRiskEncounter
+                    ? 'bg-rose-600/30 text-rose-400 border border-rose-500/50 animate-pulse'
+                    : 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/40'
+                }`}>
+                  <Radio className="h-4 w-4" />
+                </div>
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-xs font-bold font-mono tracking-wide text-white uppercase">
+                      Maritime Surveillance Radar
+                    </span>
+                    <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border ${
+                      analysisData.vesselTraffic.darkVesselCount > 0
+                        ? 'bg-rose-500/20 text-rose-300 border-rose-500/50 animate-pulse'
+                        : 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40'
+                    }`}>
+                      {analysisData.vesselTraffic.totalTrackedVessels} Targets ({analysisData.vesselTraffic.darkVesselCount} Dark, {analysisData.vesselTraffic.activeAisVessels} AIS)
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-300 mt-0.5">
+                    {analysisData.vesselTraffic.alerts?.[0]?.description || `${analysisData.vesselTraffic.totalTrackedVessels} maritime targets tracked via INCOIS MoES Buoys and Sentinel-1 SAR radar.`}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    const mapEl = document.querySelector('.leaflet-container');
+                    if (mapEl) mapEl.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  className="px-3 py-1.5 rounded-lg text-xs font-mono font-bold text-cyan-300 bg-cyan-950/80 hover:bg-cyan-900/80 border border-cyan-600/50 hover:border-cyan-400 transition-all flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Navigation className="h-3 w-3 text-cyan-400" />
+                  <span>View on Map</span>
+                </button>
+              </div>
+            </div>
+          )}
 
           {isLoading && (
             <div className="flex items-center gap-3 rounded-xl border border-cyan-500/30 orca-glass-panel p-3.5 shadow-md">
@@ -290,9 +313,6 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
                         isLoading={isLoading}
                         language={language}
                         onOpenChat={() => setIsChatDrawerOpen(true)}
-                        activeLocationName={analysisData?.location.name}
-                        activeLocationKey={analysisData ? Object.keys(COASTAL_LOCATIONS).find(k => COASTAL_LOCATIONS[k].name === analysisData.location.name) : undefined}
-                        activeQuery={analysisData?.originalQuery}
                       />
                       <MarineTelemetry
                         weather={analysisData.weather}
@@ -318,6 +338,7 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
                         riskLevel={analysisData.risk.riskLevel}
                         risk={analysisData.risk}
                         safeRoute={analysisData.safeRoute}
+                        vesselTraffic={analysisData.vesselTraffic}
                         onSelectLocation={handleLocationSelect}
                         onCoordinateClick={handleMapCoordinateClick}
                         language={language}
@@ -381,6 +402,7 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
                     riskLevel={analysisData.risk.riskLevel}
                     risk={analysisData.risk}
                     safeRoute={analysisData.safeRoute}
+                    vesselTraffic={analysisData.vesselTraffic}
                     onSelectLocation={handleLocationSelect}
                     onCoordinateClick={handleMapCoordinateClick}
                     language={language}
@@ -420,6 +442,7 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
                     riskLevel={analysisData.risk.riskLevel}
                     risk={analysisData.risk}
                     safeRoute={analysisData.safeRoute}
+                    vesselTraffic={analysisData.vesselTraffic}
                     onSelectLocation={handleLocationSelect}
                     onCoordinateClick={handleMapCoordinateClick}
                     language={language}
@@ -490,6 +513,13 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
             setSessionId(nextSessionId);
             setChatTurns([]);
           }}
+          onSelectSession={(newSessionId, turns, latestAnalysis) => {
+            setSessionId(newSessionId);
+            setChatTurns(turns);
+            if (latestAnalysis) {
+              setAnalysisData(latestAnalysis);
+            }
+          }}
           turns={chatTurns}
           isLoading={isLoading}
           onSendMessage={(query) => fetchAnalysis(query)}
@@ -524,4 +554,3 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
 };
 
 export default ConsolePage;
-

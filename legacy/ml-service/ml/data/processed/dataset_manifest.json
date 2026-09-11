@@ -1,15 +1,21 @@
 {
   "dataset_name": "ORCA-X Historical Marine Risk Dataset",
   "dataset_version": "2.0-open-meteo-historical",
-  "status": "PIPELINE_DEFINED_AWAITING_LOCAL_DOWNLOAD_AND_BUILD",
+  "status": "ACTIVE_VERIFIED",
+  "verified_at": "2026-09-09T18:03:00Z",
+  "row_count": 315648,
   "source": "Open-Meteo Historical Weather API + Historical Marine API",
   "historical_period": ["2020-01-01", "2025-12-31"],
   "locations": ["digha_wb", "paradip_od", "vizag_ap", "chennai_tn", "goa", "kochi_kl"],
+  "sha256": {
+    "orca_historical_marine_risk.parquet": "7AC7423FBA7DCD4211FBFB77848246A4E3B580F7FE3A7F2A94FDF86572F42D1C",
+    "orca_historical_marine_risk.csv": "54894791EB2926113AA4848F517514CF3708244EBAAD453B4DB2D18E08D5E2E1"
+  },
   "features": [
     "wind_speed_kts", "wind_gust_kts", "wave_height_m", "wave_period_s",
     "swell_height_m", "swell_period_s", "wind_direction_deg", "wave_direction_deg",
     "swell_direction_deg", "air_pressure_hpa", "air_temperature_c",
-    "sea_surface_temperature_c", "precipitation_mm", "visibility_km",
+    "sea_surface_temperature_c", "precipitation_mm",
     "latitude", "longitude", "month", "season"
   ],
   "target": "risk_class",
@@ -17,3 +23,4 @@
   "label_policy": "ORCA-X operational proxy anchored to IMD/RSMC 25/34 kt marine wind bands and WMO Douglas sea-state terminology; not an official warning class or incident outcome.",
   "artifacts_generated_by": "ml/src/prepare_dataset.py"
 }
+

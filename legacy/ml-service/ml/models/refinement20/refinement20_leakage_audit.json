@@ -1,0 +1,57 @@
+{
+  "contract": {
+    "horizon_hours": 6,
+    "location_excluded": true,
+    "coordinates_excluded": true,
+    "stored_risk_label_excluded": true
+  },
+  "source": {
+    "rows": 315648,
+    "columns": 23,
+    "locations": 6,
+    "location_column": "location_id"
+  },
+  "candidate_numeric_features": [
+    "swell_period_s",
+    "wind_direction_deg",
+    "wave_direction_deg",
+    "swell_direction_deg",
+    "air_pressure_hpa",
+    "air_temperature_c",
+    "sea_surface_temperature_c",
+    "precipitation_mm",
+    "month",
+    "season"
+  ],
+  "forbidden_or_suspicious_feature_names": [
+    "latitude",
+    "location_id",
+    "longitude",
+    "risk_class",
+    "risk_label",
+    "swell_height_m",
+    "timestamp",
+    "wave_height_m",
+    "wave_period_s",
+    "wind_gust_kts",
+    "wind_speed_kts"
+  ],
+  "future_target_copy_findings": [],
+  "pair_integrity": {
+    "valid_rows": 315648,
+    "exact_forward_pairs": 315612,
+    "duplicate_location_timestamp_rows": 0
+  },
+  "temporal_partition": {
+    "train_rows": 220950,
+    "test_rows": 94698,
+    "temporal_order_violations": [],
+    "cross_partition_exact_feature_vector_matches": 0,
+    "cross_partition_match_fraction": 0.0
+  },
+  "verdict": {
+    "automated_leakage_flags": 11,
+    "strict_leakage_free_verdict": false,
+    "note": "PASS means these automated direct-leakage checks found no issue; it does not prove physical causal validity or rule out subtle dataset-construction leakage."
+  }
+}

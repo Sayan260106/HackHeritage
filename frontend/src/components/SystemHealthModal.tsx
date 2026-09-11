@@ -141,7 +141,7 @@ export const SystemHealthModal: React.FC<SystemHealthModalProps> = ({
         <div className="flex items-center justify-between border-b border-slate-800 pb-4">
           <div className="flex items-center space-x-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
-              <Activity className="h-5 w-5" />
+              <Activity className="h-5 w-5 animate-pulse" />
             </div>
             <div>
               <div className="flex items-center gap-2">
@@ -169,7 +169,7 @@ export const SystemHealthModal: React.FC<SystemHealthModalProps> = ({
         {/* Top summary bar */}
         <div className="mt-4 flex items-center justify-between rounded-xl bg-slate-950 border border-slate-800 p-3 text-xs font-mono">
           <div className="flex items-center gap-2 text-slate-300">
-            <Radio className="h-3.5 w-3.5 text-emerald-400" />
+            <Radio className="h-3.5 w-3.5 text-emerald-400 animate-pulse" />
             <span>Core API: <strong>Port 3000 (Express)</strong></span>
             {pingLatency && (
               <span className="text-slate-500">({pingLatency}ms ping)</span>

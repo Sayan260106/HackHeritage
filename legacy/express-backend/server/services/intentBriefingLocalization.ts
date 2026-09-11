@@ -9,7 +9,7 @@
  * Douglas sea state, INCOIS PFZ fronts, UNCLOS/PCA 2014 geofencing).
  */
 
-import { LanguageCode, LocationInfo, OceanData, WeatherData, RiskPrediction, OperationalDecision, SafeRouteSummary, AlertSummary, GeofenceSpatialAnalysis } from '../../src/types.ts';
+import { LanguageCode, LocationInfo, OceanData, WeatherData, RiskPrediction, OperationalDecision, SafeRouteSummary, AlertSummary, GeofenceSpatialAnalysis, DarkVesselAnalysis } from '../../src/types.ts';
 import { PfzAnalysis } from './pfzService.ts';
 
 interface LocalizationParams {
@@ -25,6 +25,7 @@ interface LocalizationParams {
   safeRoute?: SafeRouteSummary;
   alertSummary?: AlertSummary;
   geofence?: GeofenceSpatialAnalysis;
+  vesselTraffic?: DarkVesselAnalysis;
 }
 
 export function generateLocalizedIntentBriefing(params: LocalizationParams): string {
@@ -394,6 +395,59 @@ export function generateLocalizedIntentBriefing(params: LocalizationParams): str
         `Operational Directive: ${decisionText}. Weather and sea state are safe for routine fishing operations.`
       ].join('\n');
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Maritime Vessel Surveillance & MoES Buoy Radar Tracking
+  // ---------------------------------------------------------------------------
+  if (params.vesselTraffic || qLower.includes('vessel') || qLower.includes('ship') || qLower.includes('traffic') || qLower.includes('dark vessel') || qLower.includes('buoy') || qLower.includes('জাহাজ') || qLower.includes('जहाज')) {
+    const vt = params.vesselTraffic;
+    const trackedCount = vt?.totalTrackedVessels ?? 0;
+    const activeAis = vt?.activeAisVessels ?? 0;
+    const darkCount = vt?.darkVesselCount ?? 0;
+    const passTime = vt?.sentinel1PassTime ? vt.sentinel1PassTime.slice(0, 16).replace('T', ' ') + ' UTC' : 'Recent';
+    const nearestTarget = vt?.targetVessels?.[0];
+    const nearestStr = nearestTarget ? `${nearestTarget.name} (${nearestTarget.distanceFromBoatKm ?? 'N/A'} km)` : 'No active targets within range';
+
+    if (language === 'bn') {
+      return [
+        `সামুদ্রিক জাহাজ ট্র্যাফিক ও রাডার নজরদারি — ${location.name}`,
+        '',
+        `• ট্র্যাক করা মোট সামুদ্রিক লক্ষ্যবস্তু: ${trackedCount} টি (${activeAis} সক্রিয় এআইএস / গভীর সমুদ্র পর্যবেক্ষণ বয়)`,
+        `• সন্দেহভাজন ডার্ক ভেসেল (ট্রান্সপন্ডার বন্ধ): ${darkCount} টি সনাক্ত`,
+        `• সেন্টিনেল-১ এসএআর (SAR) উপগ্রহ রাডার স্ক্যান: ${passTime}`,
+        `• নিকটতম সামুদ্রিক পর্যবেক্ষণ স্টেশন: ${nearestStr}`,
+        `• ডেটা সূত্র: MoES / INCOIS জাতীয় ডেটা বয় প্রোগ্রাম (NDBP) ও কোপার্নিকাস সেন্টিনেল-১ রাডার।`,
+        '',
+        `নিরাপত্তা নির্দেশিকা: গভীর সমুদ্রে চলাচলের সময় আন্তর্জাতিক ভিএইচএফ চ্যানেল ১৬ মনিটর করুন এবং স্থির পর্যবেক্ষণ বয় থেকে নিরাপদ দূরত্ব বজায় রাখুন।`
+      ].join('\n');
+    }
+
+    if (language === 'hi') {
+      return [
+        `समुद्री पोत यातायात एवं राडार निगरानी रिपोर्ट — ${location.name}`,
+        '',
+        `• कुल ट्रैक किए गए समुद्री लक्ष्य: ${trackedCount} (${activeAis} सक्रिय AIS पोत / महासागरीय डेटा बॉय)`,
+        `• संदिग्ध डार्क वेसल्स (ट्रांसपोंडर बंद): ${darkCount} चिन्हित`,
+        `• सेंटिनल-1 सार (SAR) रडार ओवरपास: ${passTime}`,
+        `• निकटतम समुद्री स्टेशन: ${nearestStr}`,
+        `• डेटा स्रोत: MoES / INCOIS राष्ट्रीय महासागर बॉय नेटवर्क (NDBP) और कॉपरनिकस सेंटिनल-1 रडार।`,
+        '',
+        `सुरक्षा निर्देश: समुद्री नेविगेशन के दौरान अंतर्राष्ट्रीय VHF चैनल 16 पर निरंतर संपर्क बनाए रखें।`
+      ].join('\n');
+    }
+
+    return [
+      `Maritime Vessel Surveillance & Radar Tracking — ${location.name}`,
+      '',
+      `• Total Tracked Maritime Targets: ${trackedCount} (${activeAis} Active AIS / Deep-Sea Oceanographic Buoys)`,
+      `• Dark Vessels Detected (Silent Transponders): ${darkCount}`,
+      `• Copernicus Sentinel-1 C-Band SAR Satellite Radar Scan: ${passTime}`,
+      `• Nearest Oceanographic Monitoring Station: ${nearestStr}`,
+      `• Primary Surveillance Sources: MoES / INCOIS National Data Buoy Programme (NDBP) & European Space Agency Sentinel-1 SAR.`,
+      '',
+      `Operational Directive: Maintain continuous watch on VHF Marine Channel 16. Steer clear of moored oceanographic sensor buoys.`
+    ].join('\n');
   }
 
   // Fallback to empty string so default localized summary is used
