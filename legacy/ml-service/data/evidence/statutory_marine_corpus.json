@@ -1,0 +1,693 @@
+[
+  {
+    "id": "INCOIS-OSF-2026-041",
+    "title": "INCOIS Ocean State Forecast: Wave Height & Swell Surge Thresholds for Artisanal Fishing",
+    "sourceAuthority": "INCOIS (Indian National Centre for Ocean Information Services)",
+    "documentType": "Ocean State Forecast",
+    "publicationDate": "2026-02-15",
+    "excerpt": "For non-motorized and motorized traditional crafts (OAL < 10m), significant wave height (Hs) exceeding 1.8m or swell period > 14 seconds indicates high capsizing probability in nearshore breakers. High Swell Surge alerts mandate suspension of beach launching.",
+    "relevanceScore": 0.96,
+    "officialUrl": "https://incois.gov.in/portal/osf/osf.jsp",
+    "complianceRule": "Safety Advisory: Suspend beach landing craft operations when Hs > 1.8m or swell period > 14s.",
+    "coast": "all",
+    "applicableStates": [
+      "all"
+    ],
+    "vesselClass": "artisanal",
+    "jurisdiction": "Inshore_Harbor",
+    "topicCategory": "Vessel Safety Standards"
+  },
+  {
+    "id": "IMD-MAR-SQ-89",
+    "title": "IMD Cyclone Warning & Squally Weather Protocol for Bay of Bengal Coastal Strips",
+    "sourceAuthority": "IMD (India Meteorological Department)",
+    "documentType": "Cyclone Bulletin",
+    "publicationDate": "2026-02-18",
+    "excerpt": "Squally wind speed reaching 45-55 kmph (24-30 knots) gusting to 65 kmph creates Douglas Sea State 4 (Rough) to 5 (Very Rough). Small mechanised fishing trawlers must remain within 5 nautical miles or seek shelter at nearest protected fishing harbour.",
+    "relevanceScore": 0.92,
+    "officialUrl": "https://mausam.imd.gov.in/marine",
+    "complianceRule": "IMD Stage 2 Alert: No deep sea ventures when gusts exceed 30 knots.",
+    "coast": "east",
+    "applicableStates": [
+      "West Bengal",
+      "Odisha",
+      "Andhra Pradesh",
+      "Tamil Nadu"
+    ],
+    "vesselClass": "mechanized",
+    "jurisdiction": "Territorial_Waters",
+    "topicCategory": "Severe Weather Protocol"
+  },
+  {
+    "id": "CMFRI-PFZ-GUIDE-12",
+    "title": "CMFRI Potential Fishing Zones (PFZ) & Chlorophyll Thermal Front Safety Validation",
+    "sourceAuthority": "CMFRI & INCOIS",
+    "documentType": "Fisheries Advisory",
+    "publicationDate": "2026-01-20",
+    "excerpt": "PFZ advisories based on satellite SST gradients (0.5°C–1.2°C) and Chlorophyll-a (>0.6 mg/m³) identify high pelagic fish aggregations. However, if strong rip currents or localized wind squalls coincide with frontal zones, navigation hazard takes strict precedence over PFZ harvesting.",
+    "relevanceScore": 0.88,
+    "officialUrl": "https://www.cmfri.org.in",
+    "complianceRule": "Operational Doctrine: Weather and sea state safety index strictly overrides PFZ commercial utility.",
+    "coast": "all",
+    "applicableStates": [
+      "all"
+    ],
+    "vesselClass": "all",
+    "jurisdiction": "MZI_EEZ",
+    "topicCategory": "Oceanographic Productivity"
+  },
+  {
+    "id": "ICG-SOP-VHF-CH16",
+    "title": "Indian Coast Guard Standard Operating Procedure: Mandatory Safety Equipment & Distress Relays",
+    "sourceAuthority": "Indian Coast Guard (Ministry of Defence)",
+    "documentType": "Maritime Regulation",
+    "publicationDate": "2025-11-10",
+    "excerpt": "All registered sea-going fishing vessels operating beyond 3 nautical miles must carry: Lifejackets (1 per crew member), Lifebuoy with 30m lifeline, VHF radio tuned to Marine Channel 16 (156.800 MHz), GPS transponder (DAT/AIS-140), and red parachute flares.",
+    "relevanceScore": 0.85,
+    "officialUrl": "https://indiancoastguard.gov.in",
+    "complianceRule": "Mandatory Compliance: Carry VHF Ch 16 transmitter, certified lifejackets, and distress beacon.",
+    "coast": "all",
+    "applicableStates": [
+      "all"
+    ],
+    "vesselClass": "all",
+    "jurisdiction": "Territorial_Waters",
+    "topicCategory": "Search and Rescue"
+  },
+  {
+    "id": "IMO-SOLAS-V-REG34",
+    "title": "IMO SOLAS Chapter V Regulation 34: Safe Navigation and Voyage Planning Guidelines",
+    "sourceAuthority": "IMO (International Maritime Organization)",
+    "documentType": "Maritime Regulation",
+    "publicationDate": "2025-06-01",
+    "excerpt": "Prior to proceeding to sea, the master shall ensure the intended voyage has been planned using appropriate nautical charts and publications, taking into account meteorological and oceanographic conditions, tidal windows, and emergency alternate anchorages.",
+    "relevanceScore": 0.81,
+    "officialUrl": "https://www.imo.org/en/Knowledge/Pages/SOLAS.aspx",
+    "complianceRule": "Voyage Planning Rule: Verify tidal clearance, wind direction against tidal current (wind-against-tide steepening).",
+    "coast": "all",
+    "applicableStates": [
+      "all"
+    ],
+    "vesselClass": "all",
+    "jurisdiction": "MZI_EEZ",
+    "topicCategory": "Vessel Safety Standards"
+  },
+  {
+    "id": "CMFRI-MFB-2026-108",
+    "title": "CMFRI Marine Fisheries Bulletin: Oceanographic Drivers of Pelagic Fish Depletion and Coastal Upwelling Shifts",
+    "sourceAuthority": "CMFRI (Central Marine Fisheries Research Institute)",
+    "documentType": "Scientific Protocol",
+    "publicationDate": "2026-01-15",
+    "excerpt": "Declines in coastal pelagic fish productivity (oil sardine, mackerel) correlate strongly with breakdown of seasonal wind-driven upwelling. Sea surface temperature warming (>30.0°C) strengthens thermal stratification, preventing nutrient-rich sub-surface water (nitrates, phosphates) from reaching the euphotic zone. This suppresses diatom blooms, collapsing phytoplankton biomass (Chlorophyll-a < 0.3 mg/m³) and forcing fish schools to migrate offshore into deeper waters.",
+    "relevanceScore": 0.95,
+    "officialUrl": "https://www.cmfri.org.in/publications",
+    "complianceRule": "Ecological Diagnostic: High SST anomalies accompanied by low chlorophyll indicate upwelling failure and depressed coastal fish aggregation.",
+    "coast": "all",
+    "applicableStates": [
+      "all"
+    ],
+    "vesselClass": "all",
+    "jurisdiction": "Territorial_Waters",
+    "topicCategory": "Oceanographic Productivity"
+  },
+  {
+    "id": "INCOIS-NIO-2025-44",
+    "title": "INCOIS-NIO Oceanographic Assessment: Coastal Deoxygenation, Benthic Hypoxia and Demersal Fishery Displacement",
+    "sourceAuthority": "INCOIS & CSIR-NIO",
+    "documentType": "Ocean State Forecast",
+    "publicationDate": "2025-11-28",
+    "excerpt": "Post-monsoon river runoff combined with strong halocline stratification triggers widespread bottom-water hypoxia (dissolved oxygen < 2.0 mg/L) across the inner continental shelf. Demersal species including prawns, croakers, and silverbellies experience habitat compression, deserting traditional trawling corridors or suffering localized mortality, causing sharp declines in coastal trawl catch-per-unit-effort (CPUE).",
+    "relevanceScore": 0.93,
+    "officialUrl": "https://incois.gov.in/portal/ocean_productivity.jsp",
+    "complianceRule": "Fisheries Advisory: Avoid benthic trawling in oxygen-depleted inner shelf zones during stratified post-monsoon regimes.",
+    "coast": "all",
+    "applicableStates": [
+      "all"
+    ],
+    "vesselClass": "mechanized",
+    "jurisdiction": "Territorial_Waters",
+    "topicCategory": "Oceanographic Productivity"
+  },
+  {
+    "id": "MOES-MHW-2025-19",
+    "title": "Ministry of Earth Sciences Technical Report: Marine Heatwaves, Harmful Algal Blooms and Finfish Mortality",
+    "sourceAuthority": "MoES (Ministry of Earth Sciences)",
+    "documentType": "Scientific Protocol",
+    "publicationDate": "2025-08-14",
+    "excerpt": "Category II and III Marine Heatwaves (MHWs) characterized by SST thermal anomalies exceeding +1.5°C for 5 or more consecutive days induce acute thermal shock in fish larvae and trigger noxious dinoflagellate blooms (Noctiluca scintillans / red tides). These algal blooms deplete dissolved oxygen rapidly upon senescence, leading to finfish asphyxiation and temporary collapse of local artisanal landings.",
+    "relevanceScore": 0.91,
+    "officialUrl": "https://moes.gov.in/reports/marine-heatwaves",
+    "complianceRule": "Environmental Warning: High SST anomalies coupled with surface slick anomalies signal imminent red tide risk and finfish dispersal.",
+    "coast": "all",
+    "applicableStates": [
+      "all"
+    ],
+    "vesselClass": "all",
+    "jurisdiction": "Territorial_Waters",
+    "topicCategory": "Oceanographic Productivity"
+  },
+  {
+    "id": "CMFRI-CLIM-2025-09",
+    "title": "CMFRI Climate Teleconnections Report: Impact of El Niño and Positive Indian Ocean Dipole (IOD) on Catch Fluctuations",
+    "sourceAuthority": "CMFRI & INCOIS",
+    "documentType": "Fisheries Advisory",
+    "publicationDate": "2025-09-05",
+    "excerpt": "Coupled ocean-atmosphere anomalies during positive Indian Ocean Dipole (pIOD) and El Niño events alter monsoonal wind vectors and deepen the regional thermocline by 15-30 meters. This deepening arrests nutrient replenishment along the eastern Bay of Bengal and southwest Arabian Sea, leading to prolonged 20-35% seasonal contractions in harvestable pelagic biomass.",
+    "relevanceScore": 0.89,
+    "officialUrl": "https://www.cmfri.org.in/climate-change",
+    "complianceRule": "Harvest Advisory: Factor seasonal ENSO/IOD thermocline deepening into long-range fleet dispatch and fuel planning.",
+    "coast": "all",
+    "applicableStates": [
+      "all"
+    ],
+    "vesselClass": "all",
+    "jurisdiction": "MZI_EEZ",
+    "topicCategory": "Oceanographic Productivity"
+  },
+  {
+    "id": "ICG-SAR-SOP-2026-01",
+    "title": "Indian Coast Guard Maritime Search and Rescue (M-SAR) Standard Operating Procedure & Distress Relays",
+    "sourceAuthority": "Indian Coast Guard (Ministry of Defence)",
+    "documentType": "Maritime Regulation",
+    "publicationDate": "2026-01-10",
+    "excerpt": "National Maritime Search and Rescue (M-SAR) Plan under the Indian Coast Guard coordinates emergency response through three Maritime Rescue Coordination Centres (MRCC Mumbai for Western Region, MRCC Chennai for Eastern Region, MRCC Port Blair for Andaman & Nicobar). Maritime distress alerts must be broadcast on international VHF Marine Channel 16 (156.800 MHz) and MF/HF 2182 kHz. Vessels equipped with Digital Selective Calling (DSC) must trigger Channel 70 distress alert before voice transmission. Format Mayday voice calls as: MAYDAY (3 times), Vessel Name, Call Sign, GPS coordinates (Lat/Lon), Nature of Distress (capsizing, fire, flooding, medical emergency), Number of Crew Onboard, and Type of Assistance Required. The dedicated national toll-free maritime SAR emergency hotline is 1554.",
+    "relevanceScore": 0.95,
+    "officialUrl": "https://indiancoastguard.gov.in/msar",
+    "complianceRule": "Mandatory Distress Protocol: Continuous watch on VHF Ch 16, DSC Ch 70, and 24/7 toll-free emergency hotline 1554.",
+    "coast": "all",
+    "applicableStates": [
+      "all"
+    ],
+    "vesselClass": "all",
+    "jurisdiction": "MZI_EEZ",
+    "topicCategory": "Search and Rescue"
+  },
+  {
+    "id": "DAHD-TRAWL-BAN-2026-61",
+    "title": "Ministry of Fisheries Uniform Monsoon Fishing Trawl Ban Regulations (East Coast vs West Coast Seasonal Calendars)",
+    "sourceAuthority": "Department of Fisheries (Ministry of Fisheries, Animal Husbandry & Dairying)",
+    "documentType": "Maritime Regulation",
+    "publicationDate": "2026-03-01",
+    "excerpt": "Under Section 4 of the Maritime Zones of India (MZI) Act, a uniform 61-day annual monsoon fishing ban applies to all mechanized fishing vessels and motorized trawlers beyond territorial waters (12 NM to 200 NM EEZ) to protect spawning brooders and juvenile recruitment. East Coast Calendar (Bay of Bengal): strictly 15th April to 14th June annually (covers West Bengal, Odisha, Andhra Pradesh, Tamil Nadu, Puducherry, and Andaman & Nicobar). West Coast Calendar (Arabian Sea): strictly 1st June to 31st July annually (covers Gujarat, Daman & Diu, Maharashtra, Goa, Karnataka, Kerala, and Lakshadweep). Non-motorized traditional artisanal crafts using traditional gear are exempted within 5 NM. Violations incur immediate vessel impoundment, suspension of fishing license under State Marine Fishing Regulation Acts (MFRA), and statutory fines up to ₹5,00,000.",
+    "relevanceScore": 0.97,
+    "officialUrl": "https://dof.gov.in/monsoon-fishing-ban",
+    "complianceRule": "Statutory Ban: Zero mechanized fishing operations allowed on East Coast (15 Apr–14 Jun) and West Coast (01 Jun–31 Jul).",
+    "coast": "all",
+    "applicableStates": [
+      "all"
+    ],
+    "vesselClass": "mechanized",
+    "jurisdiction": "MZI_EEZ",
+    "topicCategory": "Monsoon Trawl Ban"
+  },
+  {
+    "id": "CMFRI-PFZ-PROD-2026-88",
+    "title": "CMFRI Field Guide: Oceanic Thermal Front Dynamics, Chlorophyll Gradients and Commercial Pelagic Fish Behavior",
+    "sourceAuthority": "CMFRI (Central Marine Fisheries Research Institute) & INCOIS",
+    "documentType": "Scientific Protocol",
+    "publicationDate": "2026-02-12",
+    "excerpt": "Potential Fishing Zone (PFZ) advisories utilize satellite Sea Surface Temperature (SST) gradients and Chlorophyll-a concentrations to identify oceanographic frontal boundaries where biological productivity concentrates. Oceanic fronts formed by convergence of warm coastal water with cold upwelled water generate horizontal SST breaks of 0.5°C to 1.5°C over 2 to 5 km. Chlorophyll-a boundaries exceeding 0.4 to 1.5 mg/m³ signify high phytoplankton blooms that concentrate zooplankton (copepods), attracting commercial pelagic aggregations: Indian oil sardine (Sardinella longiceps), Indian mackerel (Rastrelliger kanagurta), skipjack tuna (Katsuwonus pelamis), and ribbonfish. Catch-per-unit-effort (CPUE) within delineated PFZ zones increases by 2 to 3.5 times with 30-40% reduction in searching time and fuel consumption.",
+    "relevanceScore": 0.94,
+    "officialUrl": "https://www.cmfri.org.in/research/pfz-fronts",
+    "complianceRule": "Productivity Principle: Optimal pelagic harvesting occurs along SST gradient breaks (0.5–1.5°C) with Chlorophyll-a > 0.4 mg/m³.",
+    "coast": "all",
+    "applicableStates": [
+      "all"
+    ],
+    "vesselClass": "all",
+    "jurisdiction": "MZI_EEZ",
+    "topicCategory": "Oceanographic Productivity"
+  },
+  {
+    "id": "IMD-PORT-SIGNALS-1TO11",
+    "title": "IMD Port Warning Signals 1 to 11: Cyclone Intensity, Landfall Quadrants and Harbor Defense Actions",
+    "sourceAuthority": "IMD (India Meteorological Department)",
+    "documentType": "Cyclone Bulletin",
+    "publicationDate": "2026-01-05",
+    "excerpt": "The 11-stage IMD Port Warning Signal system guides coastal maritime safety during tropical cyclones in the North Indian Ocean: Signal 1 (Cautionary): Distant low pressure or depression forming, open sea vessels alerted. Signal 2 (Warning): Distant deep depression or storm with winds 34-47 kts; vessels leaving port must exercise caution. Signal 3 (Local Caution): Port threatened by squally winds (up to 40 kts); small boats prohibited from leaving harbor. Signal 4 (Local Danger): Port threatened by cyclonic storm winds (41-47 kts); port operations restricted. Signal 5 (Great Danger - South Landfall): Severe cyclone likely to cross coast south of port; counter-clockwise squalls expected. Signal 6 (Great Danger - North Landfall): Severe cyclone likely to cross coast north of port; clockwise destructive winds expected. Signal 7 (Great Danger - Over Port): Severe cyclonic storm (winds 48-63 kts) crossing directly over or close to port; total suspension of all port activities. Signals 8, 9, 10 (Great Danger - Communication Severed): Storm crossing south, north, or directly over port respectively after telegraphic/telecom communication failure. Signal 11 (Non-operational): Extreme catastrophic disruption under super cyclonic winds (>64 kts) and storm surge.",
+    "relevanceScore": 0.98,
+    "officialUrl": "https://mausam.imd.gov.in/port-warnings",
+    "complianceRule": "Harbor Safety Directive: Port Signal 3+ mandates all artisanal crafts remain inside harbor; Signal 7+ mandates complete port shutdown.",
+    "coast": "all",
+    "applicableStates": [
+      "all"
+    ],
+    "vesselClass": "all",
+    "jurisdiction": "Inshore_Harbor",
+    "topicCategory": "Port Warning Signals"
+  },
+  {
+    "id": "MPA-GEOFENCE-REG-2026",
+    "title": "MoEFCC Marine Protected Areas (MPA) and Coastal Biodiversity Conservation Regulations",
+    "sourceAuthority": "Ministry of Environment, Forest and Climate Change (MoEFCC)",
+    "documentType": "Maritime Regulation",
+    "publicationDate": "2026-02-01",
+    "excerpt": "Under the Wildlife Protection Act 1972 and Coastal Regulation Zone (CRZ) Notification, designated Marine Protected Areas (MPAs) enforce strict seasonal and permanent exclusion boundaries: (1) Gahirmatha Marine Wildlife Sanctuary (Odisha): Total fishing prohibition within 20 km offshore core zone from November 1 to May 31 for Olive Ridley sea turtle (Lepidochelys olivacea) mass nesting (Arribada). Mechanized trawlers operating within 5 km buffer must deploy Turtle Excluder Devices (TEDs). (2) Gulf of Mannar Marine National Park (Tamil Nadu): Core coral reef islands protected; bottom trawling, coral mining, and dynamite fishing strictly banned. (3) Sundarbans Biosphere Reserve Core & Buffer: Mechanized fishing banned in core mangrove delta and creek channels. Unauthorized entry into MPA core zones triggers immediate seizure and non-bailable arrest under Section 51 of Wildlife Protection Act.",
+    "relevanceScore": 0.92,
+    "officialUrl": "https://moef.gov.in/marine-protected-areas",
+    "complianceRule": "Conservation Geofence: Zero unauthorized mechanized entry in Gahirmatha (Nov–May), Gulf of Mannar coral zones, and Sundarbans core.",
+    "coast": "east",
+    "applicableStates": [
+      "Odisha",
+      "Tamil Nadu",
+      "West Bengal"
+    ],
+    "vesselClass": "mechanized",
+    "jurisdiction": "MPA_Sanctuary",
+    "topicCategory": "Marine Protected Areas"
+  },
+  {
+    "id": "OMFRA-TURTLE-TED-2026",
+    "title": "Odisha Marine Fishing Regulation Act (OMFRA): Mandatory TED and Gahirmatha Nesting Sanctuary Enforcement",
+    "sourceAuthority": "Fisheries & ARD Department, Government of Odisha",
+    "documentType": "Maritime Regulation",
+    "publicationDate": "2026-01-12",
+    "excerpt": "Under the Odisha Marine Fishing Regulation Act (OMFRA) 1982 and Wildlife Protection Act, mechanized fishing trawlers operating along the Odisha coast are legally mandated to install certified Turtle Excluder Devices (TEDs) in all trawl nets. Between November 1 and May 31 annually, zero fishing activity is permitted within a 20 km seaward boundary from the high-tide line of Dhamra river mouth to Devi river mouth covering the entire Gahirmatha Marine Wildlife Sanctuary. Traditional artisanal boats without inboard engines are permitted only in non-sanctuary waters beyond 5 km.",
+    "relevanceScore": 0.96,
+    "officialUrl": "https://odishafisheries.gov.in/omfra",
+    "complianceRule": "OMFRA Enforcement: Compulsory TED installation on trawl nets; strict 20 km seaward ban off Gahirmatha during Nov 1 to May 31.",
+    "coast": "east",
+    "applicableStates": [
+      "Odisha"
+    ],
+    "vesselClass": "mechanized",
+    "jurisdiction": "MPA_Sanctuary",
+    "topicCategory": "Marine Protected Areas"
+  },
+  {
+    "id": "WBMFRA-HILSA-CONSERV-2026",
+    "title": "West Bengal Marine Fishing Regulation Act: Hilsa Juvenile Sanctuary & Estuarine Conservation Calendars",
+    "sourceAuthority": "Department of Fisheries, Government of West Bengal",
+    "documentType": "Maritime Regulation",
+    "publicationDate": "2026-02-10",
+    "excerpt": "The West Bengal Marine Fishing Regulation Act (WBMFRA) establishes reserved artisanal fishing zones within 8 km of the shoreline, strictly prohibiting mechanized trawlers from operating inside this buffer. To safeguard Hilsa shad (Tenualosa ilisha) spawning migration, all monofilament gillnets with mesh size under 90 mm are strictly prohibited. Complete fishing bans apply across designated estuarine spawning corridors of the Hooghly-Bhagirathi and Matlah river mouths during the peak breeding window (October 1 to November 15 and March 1 to April 30). Violations lead to confiscation of fish catch and vessel cancellation.",
+    "relevanceScore": 0.95,
+    "officialUrl": "https://wbfisheries.gov.in/wbmfra",
+    "complianceRule": "WBMFRA Directive: Minimum gillnet mesh size 90mm for Hilsa; 8 km inshore corridor reserved strictly for traditional non-mechanized crafts.",
+    "coast": "east",
+    "applicableStates": [
+      "West Bengal"
+    ],
+    "vesselClass": "all",
+    "jurisdiction": "Territorial_Waters",
+    "topicCategory": "Vessel Safety Standards"
+  },
+  {
+    "id": "TNMFR-PALKBAY-3DAY-2026",
+    "title": "Tamil Nadu Marine Fishing Regulation Act: 3-Day/4-Day Token System & Gulf of Mannar Coral Biosphere",
+    "sourceAuthority": "Department of Fisheries, Government of Tamil Nadu",
+    "documentType": "Maritime Regulation",
+    "publicationDate": "2026-01-25",
+    "excerpt": "Under the Tamil Nadu Marine Fishing Regulation Act (TNMFR), a statutory 3-day/4-day rotation system regulates mechanized trawler departures from Rameswaram, Mandapam, and Nagapattinam jetties to prevent overcrowding and avoid crossing the International Maritime Boundary Line (IMBL) with Sri Lanka. Mechanized trawlers can venture only on Monday, Wednesday, and Saturday for 24-hour windows. Territorial waters within 3 nautical miles are strictly reserved for artisanal country craft (Vallar/Kattumaram). In the Gulf of Mannar Marine National Park, bottom pair-trawling and push-net operations around the 21 coral islands are strictly banned.",
+    "relevanceScore": 0.94,
+    "officialUrl": "https://fisheries.tn.gov.in/tnmfra",
+    "complianceRule": "TNMFR Rule: Strict compliance with 3-day jetty departure token schedule; absolute prohibition of bottom trawling within 3 NM and Gulf of Mannar reef buffers.",
+    "coast": "east",
+    "applicableStates": [
+      "Tamil Nadu"
+    ],
+    "vesselClass": "all",
+    "jurisdiction": "Territorial_Waters",
+    "topicCategory": "Marine Protected Areas"
+  },
+  {
+    "id": "APMFRA-DELTA-ZONE-2026",
+    "title": "Andhra Pradesh Marine Fishing Regulation Act: Coastal Inshore Zoning & Godavari-Krishna Mangrove Buffers",
+    "sourceAuthority": "Department of Fisheries, Government of Andhra Pradesh",
+    "documentType": "Maritime Regulation",
+    "publicationDate": "2026-01-30",
+    "excerpt": "The Andhra Pradesh Marine Fishing Regulation Act (APMFRA) 1994 specifies clear seaward zoning: (1) Waters up to 8 km from shore are reserved exclusively for non-mechanized traditional catamarans and motorized plank-built boats; (2) Mechanized boats up to 15m OAL must operate between 8 km and 20 km; (3) Deep sea vessels over 15m OAL must operate beyond 20 km. Mechanized fishing within 5 km of the Godavari (Coringa Wildlife Sanctuary) and Krishna delta mangrove estuaries is prohibited to preserve juvenile shrimp and mud crab recruitment grounds.",
+    "relevanceScore": 0.93,
+    "officialUrl": "https://fisheries.ap.gov.in/apmfra",
+    "complianceRule": "APMFRA Zoning: Mechanized vessels prohibited inside 8 km inshore zone; 5 km protected buffer enforced off Coringa wildlife mangrove creeks.",
+    "coast": "east",
+    "applicableStates": [
+      "Andhra Pradesh"
+    ],
+    "vesselClass": "all",
+    "jurisdiction": "Territorial_Waters",
+    "topicCategory": "Vessel Safety Standards"
+  },
+  {
+    "id": "KMFRA-MLS-REG-2026",
+    "title": "Kerala Marine Fishing Regulation Act: Minimum Legal Size (MLS) Limits & Night Trawling Prohibition",
+    "sourceAuthority": "Department of Fisheries, Government of Kerala",
+    "documentType": "Maritime Regulation",
+    "publicationDate": "2026-02-14",
+    "excerpt": "The Kerala Marine Fishing Regulation Act (KMFRA) enforces statutory Minimum Legal Size (MLS) restrictions on 58 commercial marine species to prevent juvenile depletion: Indian oil sardine (Sardinella longiceps) MLS is 10 cm, Indian mackerel (Rastrelliger kanagurta) MLS is 14 cm, and Squid (Uroteuthis duvaucelii) dorsal mantle MLS is 8 cm. Catching, transporting, or selling fish below these sizes is a cognizable offense incurring vessel impoundment and statutory penalties up to ₹2,50,000. Additionally, night trawling between 18:00 hrs and 06:00 hrs is strictly banned in all territorial waters within 12 NM.",
+    "relevanceScore": 0.96,
+    "officialUrl": "https://fisheries.kerala.gov.in/kmfra",
+    "complianceRule": "KMFRA Mandate: Zero landings of undersized pelagic fish below MLS thresholds; total night trawling ban from 18:00 to 06:00 hrs.",
+    "coast": "west",
+    "applicableStates": [
+      "Kerala"
+    ],
+    "vesselClass": "all",
+    "jurisdiction": "Territorial_Waters",
+    "topicCategory": "Oceanographic Productivity"
+  },
+  {
+    "id": "KARMFR-LIGHT-BAN-2026",
+    "title": "Karnataka Marine Fishing Regulation Act: Artificial LED Light Fishing Ban & 10 km Inshore Reservation",
+    "sourceAuthority": "Department of Fisheries, Government of Karnataka",
+    "documentType": "Maritime Regulation",
+    "publicationDate": "2026-02-04",
+    "excerpt": "Under the Karnataka Marine Fishing Regulation Act, the inshore zone extending up to 10 km from the coastline (or up to 10 fathom depth) is reserved exclusively for traditional canoes and non-mechanized motorized craft. Pair trawling, bull trawling, and the use of artificial high-intensity LED light fishing or electrical generators to attract pelagic shoals is completely banned across Karnataka territorial waters. Around Netrani Island (Pigeon Island, Murdeshwar), coral reef ecosystems are protected under a 3 NM exclusion zone for mechanized trawl nets.",
+    "relevanceScore": 0.94,
+    "officialUrl": "https://fisheries.karnataka.gov.in/rules",
+    "complianceRule": "Karnataka MFRA Order: Absolute ban on artificial light fishing and bull trawling; 10 km inshore buffer reserved for traditional artisanal gear.",
+    "coast": "west",
+    "applicableStates": [
+      "Karnataka"
+    ],
+    "vesselClass": "all",
+    "jurisdiction": "Territorial_Waters",
+    "topicCategory": "Vessel Safety Standards"
+  },
+  {
+    "id": "MHMFR-PURSE-SEINE-2026",
+    "title": "Maharashtra Marine Fishing Regulation Act: Purse Seine Zoning & 12 NM Monsoon Trawl Prohibition",
+    "sourceAuthority": "Department of Fisheries, Government of Maharashtra",
+    "documentType": "Maritime Regulation",
+    "publicationDate": "2026-01-18",
+    "excerpt": "Under the Maharashtra Marine Fishing Regulation Act (MMFRA) 1981, mechanized purse-seine vessels are strictly prohibited from operating inside 12 nautical miles from the baseline along the entire Maharashtra coastline, preserving inshore pelagic stocks for artisanal dol-netters and gillnetters. Annual monsoon fishing ban along the Maharashtra coast runs strictly from June 1 to July 31. Trawlers must register at designated fishing harbors (Sassoon Dock, Kasara, Mirkarwada, Ratnagiri) and carry active AIS/VMS transponders.",
+    "relevanceScore": 0.95,
+    "officialUrl": "https://fisheries.maharashtra.gov.in",
+    "complianceRule": "MMFRA Regulation: Purse-seine operations prohibited inside 12 NM; annual monsoon trawl ban enforced from June 1 to July 31.",
+    "coast": "west",
+    "applicableStates": [
+      "Maharashtra"
+    ],
+    "vesselClass": "mechanized",
+    "jurisdiction": "Territorial_Waters",
+    "topicCategory": "Monsoon Trawl Ban"
+  },
+  {
+    "id": "GJMFRA-BORDER-ID-2026",
+    "title": "Gujarat Fisheries Act: International Maritime Boundary Proximity & Biometric Crew Protocols",
+    "sourceAuthority": "Commissioner of Fisheries, Government of Gujarat",
+    "documentType": "Maritime Regulation",
+    "publicationDate": "2026-02-22",
+    "excerpt": "Under the Gujarat Fisheries Rules and Indian Coast Guard security directives, all fishing vessels registered in Gujarat operating near the Gulf of Kutch and Saurashtra coast must maintain at least a 5 nautical mile buffer south of the Notional International Maritime Boundary Line (IMBL) with Pakistan. Entry into sensitive creeks (Sir Creek, Kori Creek) without prior Indian Coast Guard clearance is strictly prohibited. Every crew member must carry an original Aadhaar/Marine Biometric Card, and vessels operating beyond 5 NM must have a colored registration hull band and registered DAT/AIS transponder.",
+    "relevanceScore": 0.95,
+    "officialUrl": "https://coffisheries.gujarat.gov.in",
+    "complianceRule": "Gujarat Maritime Directive: Maintain minimum 5 NM buffer south of IMBL; 100% biometric ID verification for all crew onboard.",
+    "coast": "west",
+    "applicableStates": [
+      "Gujarat"
+    ],
+    "vesselClass": "all",
+    "jurisdiction": "MZI_EEZ",
+    "topicCategory": "Vessel Safety Standards"
+  },
+  {
+    "id": "GOA-MFRA-ESTUARY-2026",
+    "title": "Goa Marine Fishing Regulation Act: Estuarine Trawling Prohibition & 5 km Coastal Reserve",
+    "sourceAuthority": "Directorate of Fisheries, Government of Goa",
+    "documentType": "Maritime Regulation",
+    "publicationDate": "2026-01-28",
+    "excerpt": "The Goa Marine Fishing Regulation Act 1980 strictly reserves the coastal sea up to 5 km from shore for traditional canoe fishermen (Ramponkars). Mechanized trawling and purse-seining are completely prohibited within this 5 km zone and inside all inland river estuaries (Mandovi, Zuari, Chapora, and Sal rivers). The uniform 61-day West Coast monsoon trawl ban applies from June 1 to July 31 across all Goan ports (Malim, Cutbona, Vasco).",
+    "relevanceScore": 0.93,
+    "officialUrl": "https://fisheries.goa.gov.in",
+    "complianceRule": "Goa MFRA Directive: 5 km coastal zone and all river estuaries reserved strictly for Ramponkar traditional gear; mechanized ban Jun 1 to Jul 31.",
+    "coast": "west",
+    "applicableStates": [
+      "Goa"
+    ],
+    "vesselClass": "all",
+    "jurisdiction": "Territorial_Waters",
+    "topicCategory": "Monsoon Trawl Ban"
+  },
+  {
+    "id": "IMD-CYCLONE-4STAGE-2026",
+    "title": "IMD Cyclone Alert 4-Stage Warning Protocol for Maritime Communities",
+    "sourceAuthority": "IMD (India Meteorological Department)",
+    "documentType": "Cyclone Bulletin",
+    "publicationDate": "2026-01-08",
+    "excerpt": "The India Meteorological Department issues marine cyclone warnings through a standardized 4-stage alert structure: (1) Stage 1 - Pre-Cyclone Watch: Issued 72 hours in advance of cyclonic development; alerts state disaster and port authorities; (2) Stage 2 - Cyclone Alert: Issued 48 hours in advance; mandates return of fishing vessels to shore and suspends distant sea operations; (3) Stage 3 - Cyclone Warning: Issued 24 hours in advance; specifies exact landfall point, wind speeds, and storm surge estimates; all harbor operations halt; (4) Stage 4 - Post-Landfall Outlook: Issued 12 hours prior to landfall until cyclone weakens into a depression over land.",
+    "relevanceScore": 0.97,
+    "officialUrl": "https://mausam.imd.gov.in/cyclone-stages",
+    "complianceRule": "IMD Protocol: Stage 2 (48h) mandates immediate recall of all offshore vessels; Stage 3 (24h) suspends all port and harbour operations.",
+    "coast": "all",
+    "applicableStates": [
+      "all"
+    ],
+    "vesselClass": "all",
+    "jurisdiction": "Inshore_Harbor",
+    "topicCategory": "Severe Weather Protocol"
+  },
+  {
+    "id": "INCOIS-SWELL-KALLAKKADAL-2026",
+    "title": "INCOIS Swell Surge & Kallakkadal Early Warning Alert System for Southern Peninsular Coast",
+    "sourceAuthority": "INCOIS (Indian National Centre for Ocean Information Services)",
+    "documentType": "Ocean State Forecast",
+    "publicationDate": "2026-02-17",
+    "excerpt": "Kallakkadal (flash swell surge waves) occurs primarily along the coasts of Kerala, Lakshadweep, South Tamil Nadu, and South Andhra Pradesh without local wind warning, triggered by distant southern ocean storms (40°S–60°S Roaring Forties). INCOIS early warning broadcasts classify swell surges: Yellow Alert (Swell wave height 2.0-2.5m, period > 16s), Orange Alert (Hs 2.5-3.5m, dangerous beach breakers), Red Alert (Hs > 3.5m, beach inundation and boat destruction). During Orange and Red Alerts, fishermen must anchor boats at designated fishing harbors and suspend all beach landing craft launchings.",
+    "relevanceScore": 0.96,
+    "officialUrl": "https://incois.gov.in/portal/kallakkadal",
+    "complianceRule": "Swell Surge Rule: Orange/Red swell alert mandates total cessation of beach landing craft launching and evacuation of low-lying beaches.",
+    "coast": "all",
+    "applicableStates": [
+      "Kerala",
+      "Tamil Nadu",
+      "Andhra Pradesh"
+    ],
+    "vesselClass": "artisanal",
+    "jurisdiction": "Inshore_Harbor",
+    "topicCategory": "Severe Weather Protocol"
+  },
+  {
+    "id": "DGS-LSA-EQUIP-NOTICE-2026",
+    "title": "Directorate General of Shipping Marine Notice: Mandatory Life Saving Appliances (LSA) on Mechanized Vessels",
+    "sourceAuthority": "Directorate General of Shipping (Ministry of Ports, Shipping and Waterways)",
+    "documentType": "Maritime Regulation",
+    "publicationDate": "2025-10-15",
+    "excerpt": "Under Merchant Shipping (Safety of Fishing Vessels) Rules, all mechanized and motorized fishing vessels must be surveyed annually and certified to carry: (1) One SOLAS-approved Lifejacket fitted with whistle and retro-reflective tape per person onboard; (2) At least two SOLAS Lifebuoys with 30m buoyant lifelines; (3) Six red parachute rocket flares and four hand flares packed in watertight container; (4) One efficient first-aid kit; (5) An approved magnetic steering compass and navigation lights (port red, starboard green, masthead white) for night operations. Failure to produce valid LSA certificate incurs port clearance refusal and vessel impoundment.",
+    "relevanceScore": 0.91,
+    "officialUrl": "https://dgshipping.gov.in/notices/lsa-fishing",
+    "complianceRule": "DGS Mandate: Vessel must possess valid annual survey certificate and 100% compliant SOLAS lifejackets, lifebuoys, and distress pyrotechnics.",
+    "coast": "all",
+    "applicableStates": [
+      "all"
+    ],
+    "vesselClass": "all",
+    "jurisdiction": "Territorial_Waters",
+    "topicCategory": "Vessel Safety Standards"
+  },
+  {
+    "id": "WPA-SCHED1-MARINE-2026",
+    "title": "Wildlife Protection Act Schedule I: Strictly Protected Marine Species & Accidental Bycatch Disentanglement",
+    "sourceAuthority": "MoEFCC & Wildlife Crime Control Bureau (WCCB)",
+    "documentType": "Maritime Regulation",
+    "publicationDate": "2026-01-02",
+    "excerpt": "Under Schedule I of the Wildlife Protection Act 1972, total protection is granted to vulnerable marine fauna: Dugong (Dugong dugon), Whale Shark (Rhincodon typus), all Sea Turtles (Olive Ridley, Green, Leatherback, Hawksbill, Loggerhead), Sawfishes (Pristidae), and Seahorses (Syngnathidae). Intentional capture, killing, or commercial trading carries mandatory imprisonment of 3 to 7 years. In case of accidental entanglements in trawl or gill nets, fishers must immediately cut net mesh to release the animal alive, document GPS coordinates, and notify the local Forest / Fisheries Range Officer to claim net replacement compensation under the Central Marine Bycatch Scheme.",
+    "relevanceScore": 0.93,
+    "officialUrl": "https://wccb.gov.in/marine-species",
+    "complianceRule": "Conservation Directive: Mandatory immediate release of Schedule I marine bycatch (turtles, whale sharks, dugongs); reporting required for net compensation.",
+    "coast": "all",
+    "applicableStates": [
+      "all"
+    ],
+    "vesselClass": "all",
+    "jurisdiction": "MZI_EEZ",
+    "topicCategory": "Marine Protected Areas"
+  },
+  {
+    "id": "NAVAREA-VIII-NAVWARN-2026",
+    "title": "NAVAREA VIII Indian Ocean Navigational Warnings & Maritime Safety Information (MSI)",
+    "sourceAuthority": "Chief Hydrographer to the Government of India (National Hydrographic Office)",
+    "documentType": "Maritime Regulation",
+    "publicationDate": "2026-02-20",
+    "excerpt": "NAVAREA VIII broadcasts authoritative Navigational Warnings and Maritime Safety Information (MSI) across the North Indian Ocean via SafetyNET and NAVTEX. Hazards broadcast include: drifting deep-sea oceanographic buoys, unlit submerged shipwrecks, offshore oil rig positioning moves, submarine communication cable protection corridors, and naval firing exercises. Masters of fishing crafts must monitor NAVTEX 518 kHz and plot reported exclusion zones on nautical charts prior to voyage commencement.",
+    "relevanceScore": 0.9,
+    "officialUrl": "https://hydrobharat.gov.in/navarea",
+    "complianceRule": "Navigation Safety: Continuous monitoring of NAVTEX 518 kHz; strict avoidance of active naval firing sectors and submarine cable exclusion zones.",
+    "coast": "all",
+    "applicableStates": [
+      "all"
+    ],
+    "vesselClass": "all",
+    "jurisdiction": "MZI_EEZ",
+    "topicCategory": "Vessel Safety Standards"
+  },
+  {
+    "id": "CMFRI-MLS-NATIONAL-2026",
+    "title": "CMFRI National Minimum Legal Size (MLS) Advisory to Combat Growth Overfishing",
+    "sourceAuthority": "CMFRI (Central Marine Fisheries Research Institute)",
+    "documentType": "Scientific Protocol",
+    "publicationDate": "2026-02-08",
+    "excerpt": "Growth overfishing occurs when fish are harvested before reaching the size of sexual maturity (L50), collapsing reproductive replenishment. CMFRI scientific studies recommend strict national MLS benchmarks: Indian oil sardine (100 mm), Indian mackerel (140 mm), Ribbonfish (Lepturacanthus savala, 460 mm), King Seer (Scomberomorus commerson, 370 mm), Silver pomfret (Pampus argenteus, 130 mm), and Giant tiger prawn (Penaeus monodon, 150 mm). Enforcing square-mesh cod ends (minimum 35mm) on trawl nets allows juvenile escapement, generating an estimated 25-40% gain in annual biomass yield.",
+    "relevanceScore": 0.94,
+    "officialUrl": "https://cmfri.org.in/mls-guidelines",
+    "complianceRule": "Harvest Directive: Mandatory square mesh cod-ends (>35mm) on demersal trawls to eliminate juvenile recruitment mortality.",
+    "coast": "all",
+    "applicableStates": [
+      "all"
+    ],
+    "vesselClass": "mechanized",
+    "jurisdiction": "MZI_EEZ",
+    "topicCategory": "Oceanographic Productivity"
+  },
+  {
+    "id": "ICG-VHF-CHANNELS-DIRECTORY",
+    "title": "Indian Coast Guard Coastal Radio Stations Directory & Maritime VHF Calling Frequencies",
+    "sourceAuthority": "Indian Coast Guard (Ministry of Defence)",
+    "documentType": "Maritime Regulation",
+    "publicationDate": "2026-01-15",
+    "excerpt": "Indian Coast Guard Coastal Communication Network maintains continuous watch on designated maritime frequencies: (1) International Distress & Calling: VHF Channel 16 (156.800 MHz) and DSC Channel 70 (156.525 MHz); (2) Coast Guard Operational Working Channels: Channel 06 (156.300 MHz, inter-ship safety) and Channel 13 (156.650 MHz, bridge-to-bridge navigational safety); (3) Medium Frequency (MF) Distress: 2182 kHz. In distress, transmit three MAYDAY calls on Ch 16, state vessel identity, GPS latitude/longitude, nature of emergency, and number of lives onboard.",
+    "relevanceScore": 0.96,
+    "officialUrl": "https://indiancoastguard.gov.in/vhf-directory",
+    "complianceRule": "Radio Protocol: Channel 16 reserved exclusively for distress, urgency, and initial calling; switch immediately to Ch 06 or Ch 13 for operational traffic.",
+    "coast": "all",
+    "applicableStates": [
+      "all"
+    ],
+    "vesselClass": "all",
+    "jurisdiction": "Territorial_Waters",
+    "topicCategory": "Search and Rescue"
+  },
+  {
+    "id": "MPA-MALVAN-SINDHUDURG-2026",
+    "title": "Malvan Marine Wildlife Sanctuary & Sindhudurg Coral Reef Geofence Regulations",
+    "sourceAuthority": "Maharashtra Forest Department & MoEFCC",
+    "documentType": "Maritime Regulation",
+    "publicationDate": "2026-01-22",
+    "excerpt": "The Malvan Marine Wildlife Sanctuary covers 29.12 sq km off Sindhudurg coast, including Sindhudurg fort reef waters and Padamgad island. Core sanctuary zone (3.18 sq km): Total ban on all commercial and mechanized fishing, coral extraction, and bottom anchoring. Buffer zone (25.94 sq km): Traditional non-mechanized hook-and-line and gillnet fishing by local artisanal fishers permitted. Mechanized trawlers entering the core zone face vessel seizure under Section 51 of Wildlife Protection Act.",
+    "relevanceScore": 0.92,
+    "officialUrl": "https://mahaforest.gov.in/malvan-sanctuary",
+    "complianceRule": "Malvan Geofence: Zero mechanized fishing within 3.18 sq km core; non-mechanized artisanal fishing restricted to buffer zone.",
+    "coast": "west",
+    "applicableStates": [
+      "Maharashtra"
+    ],
+    "vesselClass": "all",
+    "jurisdiction": "MPA_Sanctuary",
+    "topicCategory": "Marine Protected Areas"
+  },
+  {
+    "id": "MPA-SUNDARBANS-AQUATIC-2026",
+    "title": "Sundarbans Biosphere Reserve Aquatic Zone & Mangrove Estuary Fishery Regulations",
+    "sourceAuthority": "Sundarbans Tiger Reserve Directorate & West Bengal Forest Department",
+    "documentType": "Maritime Regulation",
+    "publicationDate": "2026-02-05",
+    "excerpt": "The Sundarbans Biosphere Reserve aquatic ecosystem enforces strict zoning: (1) Core National Park Area (1330 sq km): Total prohibition of commercial fishing, crab collection, and motorboat transit in tidal creeks; (2) Buffer Reserve Forest Channels: Regulated fishing permitted only with valid Boat License Certificates (BLC) and Department of Forest permits; (3) Mechanized trawlers prohibited in all inner delta channels and creeks within 10 km of the mangrove shoreline to safeguard delta nursery habitats.",
+    "relevanceScore": 0.93,
+    "officialUrl": "https://sundarbanbiosphere.org",
+    "complianceRule": "Sundarbans Geofence: Total entry ban in core aquatic creeks; mandatory BLC permit for buffer channels; no mechanized trawling within 10 km.",
+    "coast": "east",
+    "applicableStates": [
+      "West Bengal"
+    ],
+    "vesselClass": "all",
+    "jurisdiction": "MPA_Sanctuary",
+    "topicCategory": "Marine Protected Areas"
+  },
+  {
+    "id": "MPA-GULF-OF-MANNAR-2026",
+    "title": "Gulf of Mannar Marine National Park & Biosphere Reserve Conservation Directives",
+    "sourceAuthority": "Gulf of Mannar Biosphere Reserve Trust (GOMBRT) & Tamil Nadu Forest Dept",
+    "documentType": "Maritime Regulation",
+    "publicationDate": "2026-01-19",
+    "excerpt": "The Gulf of Mannar Marine National Park encompasses 21 uninhabited coral islands between Mandapam and Tuticorin across 560 sq km. Core coral reef and seagrass beds: Absolute prohibition of mechanized trawling, purse-seining, seaweed harvesting, and dynamite/cyanide fishing. Artisanal country crafts may navigate peripheral channels but cannot land on the protected islands. Vessels causing damage to coral reefs incur criminal prosecution under the Indian Wildlife Protection Act.",
+    "relevanceScore": 0.94,
+    "officialUrl": "https://forests.tn.gov.in/gombrt",
+    "complianceRule": "Gulf of Mannar Geofence: Absolute prohibition of bottom trawling around all 21 coral islands; zero landing on core national park islands.",
+    "coast": "east",
+    "applicableStates": [
+      "Tamil Nadu"
+    ],
+    "vesselClass": "all",
+    "jurisdiction": "MPA_Sanctuary",
+    "topicCategory": "Marine Protected Areas"
+  },
+  {
+    "id": "INCOIS-PFZ-VALIDATION-PROTOCOL",
+    "title": "INCOIS-CMFRI Operational Protocol for Oceanographic PFZ Utilization and Fuel Conservation",
+    "sourceAuthority": "INCOIS & CMFRI",
+    "documentType": "Scientific Protocol",
+    "publicationDate": "2026-02-11",
+    "excerpt": "Potential Fishing Zone (PFZ) validation protocols demonstrate that fishing along satellite-identified oceanographic SST gradients (0.7°C–1.5°C) and chlorophyll thermal fronts results in: (1) 2 to 3.5 times higher catch rates for pelagic shoals (sardine, mackerel, tuna); (2) 30% to 70% reduction in vessel search time; (3) 15% to 30% reduction in diesel consumption per voyage. However, PFZ coordinates within 5 km of an active Marine Protected Area or falling inside the annual Monsoon Ban window are legally null and void for harvesting.",
+    "relevanceScore": 0.93,
+    "officialUrl": "https://incois.gov.in/portal/pfz",
+    "complianceRule": "PFZ Directive: Harvest PFZ frontal features for maximum fuel efficiency, but verify that coordinates lie outside MPAs and Monsoon Ban geofences.",
+    "coast": "all",
+    "applicableStates": [
+      "all"
+    ],
+    "vesselClass": "all",
+    "jurisdiction": "MZI_EEZ",
+    "topicCategory": "Oceanographic Productivity"
+  },
+  {
+    "id": "IMO-COLREG-RULE10-TSS-2026",
+    "title": "IMO COLREGs Rule 10: Traffic Separation Schemes (TSS) and Fishing Vessel Interaction",
+    "sourceAuthority": "IMO (International Maritime Organization)",
+    "documentType": "Maritime Regulation",
+    "publicationDate": "2025-08-20",
+    "excerpt": "Under IMO International Regulations for Preventing Collisions at Sea (COLREGs) Rule 10, designated Traffic Separation Schemes (TSS) off Mumbai High, Gulf of Kutch, and southern tip of Sri Lanka/Kanyakumari manage dense commercial container and tanker traffic. Rule 10(i) dictates: A vessel engaged in fishing shall not impede the passage of any vessel following a traffic lane. Fishing vessels must not anchor within TSS lanes or in separation zones between opposing traffic flows.",
+    "relevanceScore": 0.88,
+    "officialUrl": "https://www.imo.org/en/About/Conventions/Pages/COLREG.aspx",
+    "complianceRule": "Navigation Rule: Fishing craft shall not impede commercial traffic inside TSS lanes or anchor in separation zones.",
+    "coast": "all",
+    "applicableStates": [
+      "all"
+    ],
+    "vesselClass": "all",
+    "jurisdiction": "MZI_EEZ",
+    "topicCategory": "Vessel Safety Standards"
+  },
+  {
+    "id": "MZI-EEZ-ACT-1981-SOVEREIGNTY",
+    "title": "Maritime Zones of India (MZI) Act: Sovereign Jurisdiction, Territorial Limits and Penalties",
+    "sourceAuthority": "Ministry of External Affairs & Indian Navy",
+    "documentType": "Maritime Regulation",
+    "publicationDate": "2025-05-12",
+    "excerpt": "The Maritime Zones of India (Regulation of Fishing by Foreign Vessels) Act 1981 defines India's maritime zones: (1) Territorial Waters: 12 nautical miles from baseline; (2) Contiguous Zone: 24 nautical miles; (3) Exclusive Economic Zone (EEZ): 200 nautical miles covering 2.02 million sq km. Foreign fishing vessels found operating without valid permit in India's EEZ face vessel confiscation, impoundment of all equipment and catch, and crew prosecution under Section 10 and 12 with statutory fines up to ₹15,00,000.",
+    "relevanceScore": 0.9,
+    "officialUrl": "https://mea.gov.in/mzi-act-1981",
+    "complianceRule": "Sovereign Rule: Zero foreign fishing permits inside 200 NM Indian EEZ; all domestic crafts must carry valid state registration certificate.",
+    "coast": "all",
+    "applicableStates": [
+      "all"
+    ],
+    "vesselClass": "all",
+    "jurisdiction": "MZI_EEZ",
+    "topicCategory": "Vessel Safety Standards"
+  },
+  {
+    "id": "INCOIS-TSUNAMI-EARLY-WARN-2026",
+    "title": "INCOIS Indian Tsunami Early Warning Centre (ITEWC): Coastal Evacuation & Harbor Defense Protocol",
+    "sourceAuthority": "ITEWC / INCOIS (Ministry of Earth Sciences)",
+    "documentType": "Ocean State Forecast",
+    "publicationDate": "2026-01-14",
+    "excerpt": "The Indian Tsunami Early Warning Centre (ITEWC) operates 24/7 monitoring bottom pressure recorders and tide gauges across the Indian Ocean. In the event of an undersea megathrust earthquake (Mw > 6.5) triggering a tsunami warning: (1) Vessels docked at piers or jetties must immediately evacuate all crew ashore to high ground (> 10m above sea level); (2) Vessels already operating in deep water (> 100m depth) must remain at sea, as tsunami wave amplitudes in deep water are benign (< 1m) but grow catastrophic in shallow coastal shoals.",
+    "relevanceScore": 0.92,
+    "officialUrl": "https://incois.gov.in/portal/tsunami",
+    "complianceRule": "Tsunami Protocol: In-harbor crafts must evacuate crew to high ground; deep-sea vessels (>100m depth) must remain offshore away from coastal breakers.",
+    "coast": "all",
+    "applicableStates": [
+      "all"
+    ],
+    "vesselClass": "all",
+    "jurisdiction": "Inshore_Harbor",
+    "topicCategory": "Severe Weather Protocol"
+  },
+  {
+    "id": "IMD-SQUALL-BEAUFORT-GALE-2026",
+    "title": "IMD Marine Squall Scale, Douglas Sea State and Small Craft Advisory Criteria",
+    "sourceAuthority": "IMD (India Meteorological Department)",
+    "documentType": "Cyclone Bulletin",
+    "publicationDate": "2026-02-02",
+    "excerpt": "The India Meteorological Department defines marine squalls and operational thresholds: (1) Squally Weather: Sudden wind increase by at least 16 knots reaching 22 kts or more and lasting at least 1 minute; (2) Gale Force Wind: Sustained speeds 34 to 47 knots (Beaufort Force 8 to 9), Douglas Sea State 5 to 6 (wave height 3.0 to 5.0m). When squally winds exceeding 25 knots or wave heights exceeding 2.2m are forecast, IMD issues a Small Craft Advisory mandating all artisanal and motorized traditional crafts remain in port.",
+    "relevanceScore": 0.95,
+    "officialUrl": "https://mausam.imd.gov.in/marine-scales",
+    "complianceRule": "Weather Directive: Small Craft Advisory triggered when wind > 25 kts or wave height > 2.2m; mandatory harbor shelter for artisanal boats.",
+    "coast": "all",
+    "applicableStates": [
+      "all"
+    ],
+    "vesselClass": "artisanal",
+    "jurisdiction": "Territorial_Waters",
+    "topicCategory": "Severe Weather Protocol"
+  }
+]

@@ -1,4 +1,4 @@
-import { MARINE_EVIDENCE_CORPUS } from '../src/data/coastalData.ts';
+import { MARINE_EVIDENCE_CORPUS } from '../../../frontend/src/data/coastalData.ts';
 
 const baseUrl = process.env.ORCA_RAG_API_URL || 'http://127.0.0.1:8001';
 const apiKey = process.env.RAG_INGEST_API_KEY || 'orca-rag-internal-key';

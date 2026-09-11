@@ -95,7 +95,7 @@ export interface OperationalDecision { decision: 'PROCEED' | 'CAUTION' | 'AVOID'
 export interface SafeRouteSummary { status: 'ROUTE_FOUND' | 'ROUTE_UNAVAILABLE' | 'ROUTE_BLOCKED' | 'ROUTE_NOT_REQUESTED'; destinationLabel?: string; distanceKm?: number; directDistanceKm?: number; routeEfficiencyPct?: number; waypointCount: number; waypoints?: any[]; avoidedConstraints?: string[]; origin?: any; destination?: any; warnings: string[]; rationale: string; source: string; }
 export interface AudioAlertPayload {
   phrase: string;
-  cueType: 'SIREN_CRITICAL' | 'CHIME_WARNING' | 'NOTIFICATION_INFO' | 'VOICE_BRIEFING';
+  cueType: 'SIREN_CRITICAL' | 'CHIME_WARNING' | 'NOTIFICATION_INFO' | 'VOICE_BRIEFING' | 'SILENT';
   isCritical: boolean;
   language: LanguageCode;
 }
@@ -182,12 +182,24 @@ export interface DarkVesselAlert {
   recommendedAction: string;
 }
 
+export interface AlertSummary {
+  hasCriticalAlerts: boolean;
+  alertCount: number;
+  alerts: Array<{
+    id: string;
+    title: string;
+    severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+    message: string;
+  }>;
+}
+
 export interface DarkVesselAnalysis {
   timestamp: string;
   surveillanceMode?: 'INCOIS_BUOY_SAR_CORRELATION' | 'HISTORICAL_ORBITAL_METADATA';
   totalTrackedVessels: number;
   activeAisVessels: number;
   darkVesselCount: number;
+  highRiskEncounter?: boolean;
   sentinel1PassTime: string;
   sarOverpassId?: string;
   targetVessels: VesselTarget[];

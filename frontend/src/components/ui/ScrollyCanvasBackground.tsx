@@ -8,12 +8,14 @@ interface ScrollyCanvasBackgroundProps {
 }
 
 const TOTAL_FRAMES = 1076;
+const DISK_FRAMES = 301;
 
 function getFrameUrl(index: number): string {
-  // index is 0-based (0 to 1075); frame files in ./public/bg are 1-based (frame_0001.webp to frame_1076.webp)
-  const frameNum = Math.min(TOTAL_FRAMES, Math.max(1, index + 1));
+  // Interpolate index (0 to 1075) smoothly across available disk files (frame_0001.avif to frame_0301.avif)
+  const normalizedIndex = Math.min(TOTAL_FRAMES - 1, Math.max(0, index));
+  const frameNum = Math.min(DISK_FRAMES, Math.floor((normalizedIndex / (TOTAL_FRAMES - 1)) * (DISK_FRAMES - 1)) + 1);
   const padded = String(frameNum).padStart(4, "0");
-  return `/bg/frame_${padded}.webp`;
+  return `/bg/frame_${padded}.avif`;
 }
 
 export const ScrollyCanvasBackground: React.FC<ScrollyCanvasBackgroundProps> = ({
