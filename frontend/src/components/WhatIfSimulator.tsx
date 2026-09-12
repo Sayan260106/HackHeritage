@@ -2,15 +2,10 @@ import React, { useState } from 'react';
 import { 
   SlidersHorizontal, 
   RotateCcw, 
-  Play, 
-  ShieldAlert, 
-  ShieldCheck, 
-  AlertTriangle, 
   Waves, 
   Wind, 
   Clock, 
-  Navigation2,
-  Cpu
+  Navigation2
 } from 'lucide-react';
 import { LocationInfo, WeatherData, OceanData, SatelliteData, RiskPrediction, LanguageCode } from '../types';
 import { calculateMarineRisk } from '../utils/marineRiskEngine';
@@ -117,46 +112,46 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({
   const getTheme = (level: string) => {
     switch (level) {
       case 'LOW':
-        return { color: 'text-emerald-400', bg: 'bg-emerald-500/20 border-emerald-500/50', bar: 'from-emerald-500 to-teal-400' };
+        return { color: 'text-emerald-700', bg: 'bg-emerald-50 text-emerald-700 border-emerald-300', bar: 'from-emerald-400 to-teal-500' };
       case 'MODERATE':
-        return { color: 'text-amber-400', bg: 'bg-amber-500/20 border-amber-500/50', bar: 'from-amber-500 to-yellow-400' };
+        return { color: 'text-amber-700', bg: 'bg-amber-50 text-amber-800 border-amber-300', bar: 'from-amber-400 to-amber-500' };
       case 'HIGH':
-        return { color: 'text-rose-400', bg: 'bg-rose-500/20 border-rose-500/50', bar: 'from-rose-500 to-orange-400' };
+        return { color: 'text-rose-700', bg: 'bg-rose-50 text-rose-700 border-rose-300', bar: 'from-orange-400 to-rose-500' };
       case 'EXTREME':
       default:
-        return { color: 'text-red-400', bg: 'bg-red-500/20 border-red-500/60', bar: 'from-red-600 to-rose-600' };
+        return { color: 'text-red-700', bg: 'bg-red-50 text-red-700 border-red-300', bar: 'from-rose-500 to-red-600' };
     }
   };
 
   const theme = getTheme(simRisk.riskLevel);
 
   return (
-    <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-5">
+    <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-sm space-y-5 text-slate-800">
       
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">
-          <SlidersHorizontal className="h-4 w-4 text-cyan-400" />
-          <h3 className="text-sm font-bold text-slate-100 uppercase tracking-wider font-mono">
+          <SlidersHorizontal className="h-4 w-4 text-sky-600" />
+          <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider font-mono">
             {dict.simulatorTitle}
           </h3>
         </div>
         <button
           onClick={resetToBaseline}
-          className="flex items-center space-x-1 text-xs font-semibold text-slate-400 hover:text-white bg-slate-950 px-2.5 py-1 rounded-lg border border-slate-800 hover:bg-slate-800 transition-all cursor-pointer"
+          className="flex items-center space-x-1 text-xs font-semibold text-slate-600 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200 transition-all cursor-pointer shadow-2xs"
         >
-          <RotateCcw className="h-3 w-3" />
+          <RotateCcw className="h-3 w-3 text-sky-600" />
           <span>{dict.resetLiveFeed}</span>
         </button>
       </div>
 
-      <p className="text-xs text-slate-300">
+      <p className="text-xs text-slate-600 leading-relaxed">
         Simulate severe weather onset or calm conditions. Adjust parameters below or pick a preset to observe real-time recalculation of the calibrated XGBoost marine risk score and vessel permissions.
       </p>
 
       {/* Quick Scenario Presets */}
       <div className="space-y-1.5">
-        <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold">
+        <span className="text-[10px] font-mono uppercase tracking-wider text-slate-500 font-bold">
           Quick Operational Presets:
         </span>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -164,12 +159,12 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({
             <button
               key={idx}
               onClick={() => applyPreset(p.values)}
-              className="px-2.5 py-2 rounded-xl border border-slate-800 bg-slate-950/80 hover:bg-slate-800/80 hover:border-cyan-500/50 transition-all text-left group cursor-pointer"
+              className="px-3 py-2 rounded-xl border border-slate-200 bg-slate-50/80 hover:bg-sky-50 hover:border-sky-300 transition-all text-left group cursor-pointer shadow-2xs"
             >
-              <div className="text-xs font-bold text-slate-200 group-hover:text-cyan-300 transition-colors">
+              <div className="text-xs font-bold text-slate-800 group-hover:text-sky-700 transition-colors">
                 {p.label}
               </div>
-              <div className="text-[10px] text-slate-400 font-mono mt-0.5">
+              <div className="text-[10px] text-slate-500 font-mono mt-0.5">
                 {p.desc}
               </div>
             </button>
@@ -181,16 +176,16 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         
         {/* Controls (7 Cols) */}
-        <div className="lg:col-span-7 space-y-4 bg-slate-950/70 p-4 rounded-xl border border-slate-800">
+        <div className="lg:col-span-7 space-y-4 bg-slate-50/70 p-4 rounded-xl border border-slate-200 shadow-2xs">
           
           {/* Wave Height Slider */}
           <div className="space-y-1.5">
             <div className="flex justify-between text-xs font-mono">
-              <span className="text-slate-300 flex items-center gap-1">
-                <Waves className="h-3.5 w-3.5 text-cyan-400" />
+              <span className="text-slate-700 font-semibold flex items-center gap-1">
+                <Waves className="h-3.5 w-3.5 text-sky-600" />
                 <span>{dict.significantWave}</span>
               </span>
-              <span className="font-bold text-cyan-400">{simWaveHeight.toFixed(1)} meters</span>
+              <span className="font-bold text-sky-700">{simWaveHeight.toFixed(1)} meters</span>
             </div>
             <input
               type="range"
@@ -199,7 +194,7 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({
               step="0.1"
               value={simWaveHeight}
               onChange={(e) => setSimWaveHeight(parseFloat(e.target.value))}
-              className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400"
+              className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-sky-600"
             />
             <div className="flex justify-between text-[10px] text-slate-500 font-mono">
               <span>0.2m ({dict.calm})</span>
@@ -211,11 +206,11 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({
           {/* Swell Wave Period */}
           <div className="space-y-1.5">
             <div className="flex justify-between text-xs font-mono">
-              <span className="text-slate-300 flex items-center gap-1">
-                <Clock className="h-3.5 w-3.5 text-indigo-400" />
+              <span className="text-slate-700 font-semibold flex items-center gap-1">
+                <Clock className="h-3.5 w-3.5 text-sky-600" />
                 <span>{dict.swellPeriod}</span>
               </span>
-              <span className="font-bold text-indigo-400">{simSwellPeriod.toFixed(0)} seconds</span>
+              <span className="font-bold text-sky-700">{simSwellPeriod.toFixed(0)} seconds</span>
             </div>
             <input
               type="range"
@@ -224,7 +219,7 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({
               step="1"
               value={simSwellPeriod}
               onChange={(e) => setSimSwellPeriod(parseInt(e.target.value))}
-              className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-400"
+              className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-sky-600"
             />
             <div className="flex justify-between text-[10px] text-slate-500 font-mono">
               <span>5s ({dict.shortChop})</span>
@@ -236,11 +231,11 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({
           {/* Wind Speed & Gusts */}
           <div className="space-y-1.5">
             <div className="flex justify-between text-xs font-mono">
-              <span className="text-slate-300 flex items-center gap-1">
-                <Wind className="h-3.5 w-3.5 text-sky-400" />
+              <span className="text-slate-700 font-semibold flex items-center gap-1">
+                <Wind className="h-3.5 w-3.5 text-sky-600" />
                 <span>{dict.windGusts}</span>
               </span>
-              <span className="font-bold text-sky-400">{simWindSpeed.toFixed(0)} kts (Gust {simWindGust.toFixed(0)})</span>
+              <span className="font-bold text-sky-700">{simWindSpeed.toFixed(0)} kts (Gust {simWindGust.toFixed(0)})</span>
             </div>
             <input
               type="range"
@@ -253,7 +248,7 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({
                 setSimWindSpeed(spd);
                 setSimWindGust(Math.round(spd * 1.4));
               }}
-              className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-sky-400"
+              className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-sky-600"
             />
             <div className="flex justify-between text-[10px] text-slate-500 font-mono">
               <span>5 kts ({dict.gentle})</span>
@@ -265,11 +260,11 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({
           {/* Ocean Currents */}
           <div className="space-y-1.5">
             <div className="flex justify-between text-xs font-mono">
-              <span className="text-slate-300 flex items-center gap-1">
-                <Navigation2 className="h-3.5 w-3.5 text-teal-400" />
+              <span className="text-slate-700 font-semibold flex items-center gap-1">
+                <Navigation2 className="h-3.5 w-3.5 text-teal-600" />
                 <span>{dict.tidalCurrent}</span>
               </span>
-              <span className="font-bold text-teal-400">{simCurrent.toFixed(1)} knots</span>
+              <span className="font-bold text-teal-700">{simCurrent.toFixed(1)} knots</span>
             </div>
             <input
               type="range"
@@ -278,7 +273,7 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({
               step="0.1"
               value={simCurrent}
               onChange={(e) => setSimCurrent(parseFloat(e.target.value))}
-              className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-teal-400"
+              className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-teal-600"
             />
             <div className="flex justify-between text-[10px] text-slate-500 font-mono">
               <span>0.5 kts ({dict.mild})</span>
@@ -290,14 +285,14 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({
         </div>
 
         {/* Real-time Dynamic Outcome Card (5 Cols) */}
-        <div className="lg:col-span-5 bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3 flex flex-col justify-between">
+        <div className="lg:col-span-5 bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3 flex flex-col justify-between">
           
           <div className="space-y-3">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-              <span className="text-xs font-bold text-slate-300 font-mono uppercase">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+              <span className="text-xs font-bold text-slate-800 font-mono uppercase">
                 Simulated Risk Output
               </span>
-              <span className={`px-2.5 py-0.5 rounded-md text-xs font-extrabold uppercase border ${theme.bg}`}>
+              <span className={`px-2.5 py-0.5 rounded-md text-xs font-bold uppercase border ${theme.bg}`}>
                 {simRisk.riskLevel}
               </span>
             </div>
@@ -305,10 +300,10 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({
             {/* Score Progress Gauge */}
             <div className="space-y-1">
               <div className="flex justify-between text-xs font-mono">
-                <span className="text-slate-400">{dict.calculatedScore}</span>
+                <span className="text-slate-500">{dict.calculatedScore}</span>
                 <span className={`font-black text-base ${theme.color}`}>{simRisk.riskScore} / 100</span>
               </div>
-              <div className="w-full bg-slate-900 h-3 rounded-full overflow-hidden">
+              <div className="w-full bg-slate-100 h-3 rounded-full overflow-hidden">
                 <div 
                   className={`h-full bg-gradient-to-r ${theme.bar} rounded-full transition-all duration-300`}
                   style={{ width: `${simRisk.riskScore}%` }}
@@ -317,20 +312,20 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({
             </div>
 
             {/* Simulated Recommendation */}
-            <div className="space-y-1 bg-slate-900/60 p-2.5 rounded-lg border border-slate-800/80">
-              <div className="text-[11px] font-bold text-slate-200">
+            <div className="space-y-1 bg-slate-50 p-2.5 rounded-lg border border-slate-200 shadow-2xs">
+              <div className="text-[11px] font-bold text-slate-800">
                 Simulated Directive:
               </div>
-              <p className="text-xs text-slate-300 leading-snug">
+              <p className="text-xs text-slate-600 leading-snug">
                 {simRisk.primaryRecommendation}
               </p>
             </div>
 
             {/* 2D Hazard Envelope Matrix Grid */}
-            <div className="space-y-1.5 pt-2 border-t border-slate-800">
-              <div className="flex items-center justify-between text-[10px] font-mono text-slate-400">
+            <div className="space-y-1.5 pt-2 border-t border-slate-100">
+              <div className="flex items-center justify-between text-[10px] font-mono text-slate-500 font-semibold">
                 <span>Hs vs Wind Hazard Matrix</span>
-                <span className="text-cyan-400">● Active Position</span>
+                <span className="text-sky-700">● Active Position</span>
               </div>
               <div className="grid grid-cols-5 gap-1 text-[9px] font-mono text-center">
                 {/* Wave rows from high to low */}
@@ -346,15 +341,15 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({
                         waveThreshold > 2.0 || windThreshold > 20 ? 'HIGH' :
                         waveThreshold > 1.3 || windThreshold > 12 ? 'MODERATE' : 'LOW';
 
-                      const cellBg = cellRisk === 'EXTREME' ? 'bg-red-950/80 text-red-300 border-red-800/60' :
-                        cellRisk === 'HIGH' ? 'bg-rose-950/80 text-rose-300 border-rose-800/60' :
-                        cellRisk === 'MODERATE' ? 'bg-amber-950/80 text-amber-300 border-amber-800/60' :
-                        'bg-emerald-950/80 text-emerald-300 border-emerald-800/60';
+                      const cellBg = cellRisk === 'EXTREME' ? 'bg-red-50 text-red-700 border-red-200' :
+                        cellRisk === 'HIGH' ? 'bg-rose-50 text-rose-700 border-rose-200' :
+                        cellRisk === 'MODERATE' ? 'bg-amber-50 text-amber-800 border-amber-200' :
+                        'bg-emerald-50 text-emerald-700 border-emerald-200';
 
                       return (
                         <div 
                           key={`${waveThreshold}-${windThreshold}`}
-                          className={`p-1 rounded border transition-all ${cellBg} ${isCurrentCell ? 'ring-2 ring-cyan-400 ring-offset-1 ring-offset-slate-950 font-bold scale-105 z-10' : 'opacity-75'}`}
+                          className={`p-1 rounded border transition-all ${cellBg} ${isCurrentCell ? 'ring-2 ring-sky-600 ring-offset-1 ring-offset-white font-bold scale-105 z-10' : 'opacity-80'}`}
                           title={`Hs: ~${waveThreshold}m | Wind: ~${windThreshold}kts`}
                         >
                           {waveThreshold}m
@@ -367,7 +362,7 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({
             </div>
           </div>
 
-          <div className="text-[11px] font-mono text-slate-500 pt-1 border-t border-slate-800 flex items-center justify-between">
+          <div className="text-[11px] font-mono text-slate-500 pt-1 border-t border-slate-100 flex items-center justify-between">
             <span>Model: {simRisk.modelVersion}</span>
             <span>Realtime Safety Curve</span>
           </div>

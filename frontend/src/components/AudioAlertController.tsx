@@ -171,10 +171,10 @@ export const AudioAlertController: React.FC<AudioAlertControllerProps> = ({
   return (
     <>
       <div
-        className={`flex flex-wrap items-center justify-between gap-3 px-3.5 py-2 rounded-xl bg-slate-950/90 border transition-all ${
+        className={`flex flex-wrap items-center justify-between gap-3 px-3.5 py-2 rounded-xl bg-white border transition-all ${
           isAudioActive
-            ? 'border-rose-500/60 shadow-lg shadow-rose-500/20 ring-1 ring-rose-500/40'
-            : 'border-slate-800 shadow-md'
+            ? 'border-rose-300 shadow-md ring-1 ring-rose-300'
+            : 'border-slate-200/90 shadow-2xs'
         } ${className}`}
       >
         {/* Left: Audio Status & Controls */}
@@ -182,12 +182,12 @@ export const AudioAlertController: React.FC<AudioAlertControllerProps> = ({
           <button
             onClick={handleToggleMute}
             title={isMuted ? 'Unmute Maritime Audio Alerts' : 'Mute Maritime Audio Alerts'}
-            className={`p-2 rounded-lg transition-all flex items-center justify-center ${
+            className={`p-2 rounded-lg transition-all flex items-center justify-center cursor-pointer ${
               isMuted
-                ? 'bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-slate-200 border border-slate-700'
+                ? 'bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-800 border border-slate-200'
                 : isAudioActive
-                ? 'bg-rose-500 text-slate-950 shadow-md shadow-rose-500/40 animate-pulse font-bold'
-                : 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 hover:bg-cyan-500/30'
+                ? 'bg-rose-500 text-white shadow-md shadow-rose-500/30 animate-pulse font-bold'
+                : 'bg-sky-50 text-sky-700 border border-sky-200 hover:bg-sky-100'
             }`}
           >
             {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
@@ -195,36 +195,36 @@ export const AudioAlertController: React.FC<AudioAlertControllerProps> = ({
 
           <div className="flex flex-col min-w-0">
             <div className="flex items-center space-x-1.5">
-              <span className="text-xs font-bold text-slate-200 tracking-wide flex items-center gap-1 font-mono">
-                <Radio className={`h-3 w-3 ${isAudioActive ? 'text-rose-400 animate-spin' : 'text-cyan-400'}`} />
+              <span className="text-xs font-bold text-slate-800 tracking-wide flex items-center gap-1 font-mono">
+                <Radio className={`h-3 w-3 ${isAudioActive ? 'text-rose-600 animate-spin' : 'text-sky-600'}`} />
                 <span>MARITIME AUDIO:</span>
               </span>
               <span
                 className={`text-[10px] font-mono font-bold px-1.5 py-0.2 rounded border ${
                   isMuted
-                    ? 'bg-slate-900 text-slate-400 border-slate-700'
+                    ? 'bg-slate-100 text-slate-600 border-slate-200'
                     : isAudioActive
-                    ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 animate-pulse'
-                    : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                    ? 'bg-rose-50 text-rose-700 border-rose-200 animate-pulse'
+                    : 'bg-emerald-50 text-emerald-700 border-emerald-200'
                 }`}
               >
                 {isMuted ? 'MUTED' : isAudioActive ? (isPlayingSiren ? 'SIREN ACTIVE' : 'VOICE ACTIVE') : 'ARMED'}
               </span>
             </div>
-            <span className="text-[11px] text-slate-400 truncate max-w-[260px] sm:max-w-xs font-sans">
+            <span className="text-[11px] text-slate-500 truncate max-w-[260px] sm:max-w-xs font-sans">
               {lastActionText}
             </span>
           </div>
         </div>
 
         {/* Center: Live Equalizer Soundwave Animation */}
-        <div className="flex items-center space-x-1 h-5 px-2 bg-slate-900/80 rounded-md border border-slate-800">
+        <div className="flex items-center space-x-1 h-5 px-2 bg-slate-100 rounded-md border border-slate-200">
           {[1, 2, 3, 4, 5].map((bar) => {
             const heights = isAudioActive
               ? isPlayingSiren
-                ? ['h-5 bg-rose-400', 'h-3 bg-rose-500', 'h-4 bg-orange-400', 'h-2 bg-rose-500', 'h-5 bg-rose-400']
-                : ['h-3 bg-cyan-400', 'h-5 bg-cyan-300', 'h-2 bg-emerald-400', 'h-4 bg-cyan-400', 'h-3 bg-cyan-300']
-              : ['h-1.5 bg-slate-700', 'h-2 bg-slate-700', 'h-1.5 bg-slate-700', 'h-2 bg-slate-700', 'h-1.5 bg-slate-700'];
+                ? ['h-5 bg-rose-500', 'h-3 bg-rose-600', 'h-4 bg-amber-500', 'h-2 bg-rose-600', 'h-5 bg-rose-500']
+                : ['h-3 bg-sky-500', 'h-5 bg-sky-600', 'h-2 bg-emerald-500', 'h-4 bg-sky-500', 'h-3 bg-sky-600']
+              : ['h-1.5 bg-slate-300', 'h-2 bg-slate-300', 'h-1.5 bg-slate-300', 'h-2 bg-slate-300', 'h-1.5 bg-slate-300'];
             return (
               <div
                 key={bar}
@@ -237,12 +237,12 @@ export const AudioAlertController: React.FC<AudioAlertControllerProps> = ({
         {/* Indic AI Gateway Settings Trigger */}
         <button
           onClick={() => setShowConfigModal(true)}
-          className="hidden sm:flex items-center gap-1.5 px-2 py-1 rounded-md bg-slate-900 hover:bg-slate-800/80 border border-slate-700/60 hover:border-cyan-500/50 text-[10px] font-mono text-cyan-300 transition-all cursor-pointer"
+          className="hidden sm:flex items-center gap-1.5 px-2 py-1 rounded-md bg-slate-50 hover:bg-slate-100 border border-slate-200 text-[10px] font-mono text-slate-700 transition-all cursor-pointer shadow-2xs"
           title="Configure Bhashini & Sarvam Indic AI Gateway"
         >
-          <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-pulse" />
+          <span className="h-1.5 w-1.5 rounded-full bg-sky-500 animate-pulse" />
           <span>Indic AI: {config.preferredEngine.toUpperCase()}</span>
-          <Settings className="h-3 w-3 text-slate-400 ml-0.5" />
+          <Settings className="h-3 w-3 text-slate-500 ml-0.5" />
         </button>
 
         {/* Right: Controls (Test Button & Halt) */}
@@ -251,10 +251,10 @@ export const AudioAlertController: React.FC<AudioAlertControllerProps> = ({
             <button
               onClick={handleReplayBriefing}
               disabled={isAudioActive}
-              className="px-2.5 py-1.5 rounded-lg text-xs font-bold font-mono text-emerald-300 bg-emerald-950/60 hover:bg-emerald-900/60 border border-emerald-700/50 hover:border-emerald-500 flex items-center space-x-1.5 transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+              className="px-2.5 py-1.5 rounded-lg text-xs font-bold font-mono text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 flex items-center space-x-1.5 transition-all active:scale-95 disabled:opacity-50 cursor-pointer shadow-2xs"
               title="Replay spoken regional voice alert"
             >
-              <RotateCcw className="h-3 w-3 text-emerald-400" />
+              <RotateCcw className="h-3 w-3 text-emerald-600" />
               <span>Replay Voice Alert</span>
             </button>
           )}
@@ -262,19 +262,19 @@ export const AudioAlertController: React.FC<AudioAlertControllerProps> = ({
           <button
             onClick={handleTestAlert}
             disabled={isAudioActive}
-            className="px-2.5 py-1.5 rounded-lg text-xs font-bold font-mono text-cyan-300 bg-cyan-950/60 hover:bg-cyan-900/60 border border-cyan-700/50 hover:border-cyan-500 flex items-center space-x-1.5 transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+            className="px-2.5 py-1.5 rounded-lg text-xs font-bold font-mono text-sky-800 bg-sky-50 hover:bg-sky-100 border border-sky-200 flex items-center space-x-1.5 transition-all active:scale-95 disabled:opacity-50 cursor-pointer shadow-2xs"
           >
-            <Sparkles className="h-3 w-3 text-cyan-400" />
+            <Sparkles className="h-3 w-3 text-sky-600" />
             <span>Test Siren &amp; Voice ({language.toUpperCase()})</span>
           </button>
 
           {isAudioActive && (
             <button
               onClick={handleStopAll}
-              className="px-2 py-1.5 rounded-lg text-xs font-bold font-mono text-rose-300 bg-rose-950/80 hover:bg-rose-900/80 border border-rose-700/60 flex items-center space-x-1 transition-all active:scale-95 cursor-pointer"
+              className="px-2 py-1.5 rounded-lg text-xs font-bold font-mono text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 flex items-center space-x-1 transition-all active:scale-95 cursor-pointer shadow-2xs"
               title="Silence active siren or voice immediately"
             >
-              <Square className="h-3 w-3 fill-current text-rose-400" />
+              <Square className="h-3 w-3 fill-current text-rose-600" />
               <span>Silence</span>
             </button>
           )}
@@ -283,38 +283,38 @@ export const AudioAlertController: React.FC<AudioAlertControllerProps> = ({
 
       {/* Indic Voice Gateway Configuration Modal */}
       {showConfigModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-slate-900 border border-slate-700 rounded-xl p-5 max-w-md w-full shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white border border-slate-200 rounded-xl p-5 max-w-md w-full shadow-2xl space-y-4 text-slate-800">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center space-x-2">
-                <Sparkles className="h-5 w-5 text-cyan-400" />
-                <h3 className="text-sm font-bold text-slate-100 font-mono tracking-wide">
+                <Sparkles className="h-5 w-5 text-sky-600" />
+                <h3 className="text-sm font-bold text-slate-900 font-mono tracking-wide">
                   Indic AI Voice Gateway
                 </h3>
               </div>
               <button
                 onClick={() => setShowConfigModal(false)}
-                className="text-slate-400 hover:text-slate-200 p-1"
+                className="text-slate-400 hover:text-slate-700 p-1 cursor-pointer"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
             {/* Currently Active Engine Status */}
-            <div className="p-3 rounded-lg bg-emerald-950/60 border border-emerald-500/40 flex items-start gap-2.5">
-              <CheckCircle className="h-4 w-4 text-emerald-400 mt-0.5 shrink-0" />
+            <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 flex items-start gap-2.5">
+              <CheckCircle className="h-4 w-4 text-emerald-600 mt-0.5 shrink-0" />
               <div className="text-xs space-y-0.5">
-                <div className="text-emerald-300 font-bold font-mono">✅ Voice System is Active & Working</div>
-                <div className="text-slate-400">
+                <div className="text-emerald-800 font-bold font-mono">✅ Voice System is Active & Working</div>
+                <div className="text-slate-600">
                   All 10 languages (Bengali, Tamil, Telugu, Odia, Malayalam, Gujarati, Marathi, Kannada, Hindi, English) are generating real audio via the built-in Indic TTS engine.
                 </div>
-                <div className="text-cyan-400 font-mono text-[10px] mt-1">Active Engine: INDIC-STREAM (Google Translate TTS — Free, No Key Needed)</div>
+                <div className="text-sky-700 font-mono text-[10px] mt-1">Active Engine: INDIC-STREAM (Google Translate TTS — Free, No Key Needed)</div>
               </div>
             </div>
 
             <div className="space-y-3 text-xs">
               <div>
-                <label className="block text-slate-300 font-mono mb-1">Voice Engine Mode</label>
+                <label className="block text-slate-700 font-mono mb-1 font-semibold">Voice Engine Mode</label>
                 <select
                   value={config.preferredEngine}
                   onChange={(e) =>
@@ -323,7 +323,7 @@ export const AudioAlertController: React.FC<AudioAlertControllerProps> = ({
                       preferredEngine: e.target.value as IndicVoiceConfig['preferredEngine'],
                     })
                   }
-                  className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200 font-mono text-xs focus:ring-1 focus:ring-cyan-500"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-800 font-mono text-xs focus:ring-1 focus:ring-sky-500"
                 >
                   <option value="auto">Auto — Best Available (Recommended ✓)</option>
                   <option value="sarvam">Sarvam AI Bulbul:v1 (requires API key)</option>
@@ -337,43 +337,43 @@ export const AudioAlertController: React.FC<AudioAlertControllerProps> = ({
 
               {/* Optional Advanced API Keys — collapsed by default */}
               <details className="group">
-                <summary className="cursor-pointer text-slate-400 hover:text-slate-200 font-mono text-[11px] flex items-center gap-1 select-none list-none">
+                <summary className="cursor-pointer text-slate-500 hover:text-slate-800 font-mono text-[11px] flex items-center gap-1 select-none list-none">
                   <span className="group-open:rotate-90 transition-transform inline-block">▶</span>
                   <span>Advanced: Optional API Keys (leave empty — not required)</span>
                 </summary>
-                <div className="mt-2 space-y-2 pl-3 border-l border-slate-700">
-                  <p className="text-[10px] text-amber-400/80">
+                <div className="mt-2 space-y-2 pl-3 border-l border-slate-200">
+                  <p className="text-[10px] text-amber-700 font-semibold">
                     ⚠️ Only fill these if you have a Sarvam AI or Bhashini account. The system works perfectly without them.
                   </p>
                   <div>
-                    <label className="block text-slate-400 font-mono mb-1">Sarvam AI API Key <span className="text-slate-600">(optional)</span></label>
+                    <label className="block text-slate-600 font-mono mb-1">Sarvam AI API Key <span className="text-slate-400">(optional)</span></label>
                     <input
                       type="password"
                       placeholder="Leave empty — not required"
                       value={config.sarvamApiKey || ''}
                       onChange={(e) => setConfigState({ ...config, sarvamApiKey: e.target.value })}
-                      className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200 font-mono text-xs focus:ring-1 focus:ring-cyan-500"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-800 font-mono text-xs focus:ring-1 focus:ring-sky-500"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="block text-slate-400 font-mono mb-1">Bhashini API Key <span className="text-slate-600">(optional)</span></label>
+                      <label className="block text-slate-600 font-mono mb-1">Bhashini API Key <span className="text-slate-400">(optional)</span></label>
                       <input
                         type="password"
                         placeholder="Leave empty"
                         value={config.bhashiniApiKey || ''}
                         onChange={(e) => setConfigState({ ...config, bhashiniApiKey: e.target.value })}
-                        className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200 font-mono text-xs focus:ring-1 focus:ring-cyan-500"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-800 font-mono text-xs focus:ring-1 focus:ring-sky-500"
                       />
                     </div>
                     <div>
-                      <label className="block text-slate-400 font-mono mb-1">Bhashini User ID <span className="text-slate-600">(optional)</span></label>
+                      <label className="block text-slate-600 font-mono mb-1">Bhashini User ID <span className="text-slate-400">(optional)</span></label>
                       <input
                         type="text"
                         placeholder="Leave empty"
                         value={config.bhashiniUserId || ''}
                         onChange={(e) => setConfigState({ ...config, bhashiniUserId: e.target.value })}
-                        className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200 font-mono text-xs focus:ring-1 focus:ring-cyan-500"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-800 font-mono text-xs focus:ring-1 focus:ring-sky-500"
                       />
                     </div>
                   </div>
@@ -382,19 +382,19 @@ export const AudioAlertController: React.FC<AudioAlertControllerProps> = ({
             </div>
 
             {saveMessage && (
-              <div className="text-xs text-emerald-400 font-mono text-center">{saveMessage}</div>
+              <div className="text-xs text-emerald-700 font-mono text-center font-bold">{saveMessage}</div>
             )}
 
-            <div className="flex items-center justify-end space-x-2 pt-2 border-t border-slate-800">
+            <div className="flex items-center justify-end space-x-2 pt-2 border-t border-slate-100">
               <button
                 onClick={() => setShowConfigModal(false)}
-                className="px-3 py-1.5 rounded-lg text-xs font-mono text-slate-400 hover:text-slate-200 border border-slate-700"
+                className="px-3 py-1.5 rounded-lg text-xs font-mono text-slate-500 hover:text-slate-800 border border-slate-200 cursor-pointer"
               >
                 Close
               </button>
               <button
                 onClick={handleSaveConfig}
-                className="px-3.5 py-1.5 rounded-lg text-xs font-mono font-bold bg-cyan-500 text-slate-950 hover:bg-cyan-400 transition-all shadow-md"
+                className="px-3.5 py-1.5 rounded-lg text-xs font-mono font-bold bg-sky-600 text-white hover:bg-sky-700 transition-all shadow-xs cursor-pointer"
               >
                 Save &amp; Apply
               </button>

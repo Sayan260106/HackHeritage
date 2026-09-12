@@ -4,6 +4,7 @@ interface OrcaWaveLogoProps {
   size?: 'sm' | 'md' | 'lg' | 'custom';
   className?: string;
   variant?: 'console' | 'home' | 'sidebar';
+  theme?: 'dark' | 'light';
 }
 
 /**
@@ -15,10 +16,14 @@ export const OrcaWaveLogo: React.FC<OrcaWaveLogoProps> = ({
   size = 'md',
   className = '',
   variant = 'console',
+  theme,
 }) => {
   const uniqueId = useId().replace(/:/g, '');
   const maskId = `orca-fade-mask-${uniqueId}`;
   const gradId = `orca-fade-grad-${uniqueId}`;
+
+  // Automatically detect light mode if variant is sidebar or theme is light
+  const isLight = theme === 'light' || (theme === undefined && variant === 'sidebar');
 
   // Dimensions based on size preset
   const sizeClasses = {
@@ -28,12 +33,14 @@ export const OrcaWaveLogo: React.FC<OrcaWaveLogoProps> = ({
     custom: '',
   }[size];
 
-  // Harmonious backdrop styling depending on variant
-  const variantStyles = {
-    home: 'border border-cyan-400/40 bg-black/30 backdrop-blur-sm shadow-sm hover:border-cyan-400/80',
-    sidebar: 'border border-shoal/35 bg-abyssal/60 hover:border-shoal/60',
-    console: 'border border-cyan-400/40 bg-gradient-to-br from-cyan-950/80 via-slate-950/90 to-blue-950/80 shadow-lg shadow-cyan-500/15 hover:border-cyan-400/70',
-  }[variant];
+  // Harmonious backdrop styling depending on variant & theme
+  const variantStyles = isLight
+    ? 'border border-sky-400/50 bg-gradient-to-br from-sky-500 via-sky-600 to-teal-600 shadow-sm shadow-sky-600/25 hover:border-sky-300 hover:shadow-md hover:shadow-sky-500/35'
+    : {
+        home: 'border border-cyan-400/40 bg-black/30 backdrop-blur-sm shadow-sm hover:border-cyan-400/80',
+        sidebar: 'border border-shoal/35 bg-abyssal/60 hover:border-shoal/60',
+        console: 'border border-cyan-400/40 bg-gradient-to-br from-cyan-950/80 via-slate-950/90 to-blue-950/80 shadow-lg shadow-cyan-500/15 hover:border-cyan-400/70',
+      }[variant];
 
   // Mathematical smooth sine wave path (wavelength L = 24px)
   // Repeating for 7 full periods so translation is 100% continuous and seamless
@@ -77,34 +84,34 @@ export const OrcaWaveLogo: React.FC<OrcaWaveLogoProps> = ({
 
         {/* Group with edge fade mask applied */}
         <g mask={`url(#${maskId})`}>
-          {/* Wave Tier 1: Top Crest (Deep sky cyan, swiftest current) */}
+          {/* Wave Tier 1: Top Crest (Pure white in light mode, sky cyan in dark mode) */}
           <path
             d={generateWaveD(11)}
-            stroke="#38bdf8"
-            strokeWidth="1.9"
+            stroke={isLight ? '#ffffff' : '#38bdf8'}
+            strokeWidth={isLight ? '2.2' : '1.9'}
             strokeLinecap="round"
             className="orca-wave-stream-1"
-            opacity="0.9"
+            opacity={isLight ? '1' : '0.9'}
           />
 
-          {/* Wave Tier 2: Middle Swell (Bioluminescent emerald-teal, core current) */}
+          {/* Wave Tier 2: Middle Swell (Luminous cyan in light mode, emerald-teal in dark mode) */}
           <path
             d={generateWaveD(18)}
-            stroke="#2dd4bf"
-            strokeWidth="2.1"
+            stroke={isLight ? '#a5f3fc' : '#2dd4bf'}
+            strokeWidth={isLight ? '2.4' : '2.1'}
             strokeLinecap="round"
             className="orca-wave-stream-2"
-            opacity="0.95"
+            opacity={isLight ? '1' : '0.95'}
           />
 
-          {/* Wave Tier 3: Lower Surge (Deep indigo-blue, gentle tide) */}
+          {/* Wave Tier 3: Lower Surge (Bright mint-teal in light mode, indigo in dark mode) */}
           <path
             d={generateWaveD(25)}
-            stroke="#818cf8"
-            strokeWidth="1.9"
+            stroke={isLight ? '#99f6e4' : '#818cf8'}
+            strokeWidth={isLight ? '2.2' : '1.9'}
             strokeLinecap="round"
             className="orca-wave-stream-3"
-            opacity="0.85"
+            opacity={isLight ? '0.95' : '0.85'}
           />
         </g>
       </svg>

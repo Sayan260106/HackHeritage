@@ -95,40 +95,39 @@ export const RiskCard: React.FC<RiskCardProps> = ({
     setIsPlayingAudio(false);
   };
 
-  // Semantic styles for Risk Level (Minimalist Premium UI)
+  // Semantic styles for Risk Level (Minimalist Premium Light UI)
   const getRiskTheme = (level: string) => {
-    // Base elegant glass container for all states
-    const baseBg = 'bg-[#090d16]/80 border-slate-800/60 text-slate-300';
+    const baseBg = 'bg-white border-slate-200/90 text-slate-800';
     
     switch (level) {
       case 'LOW':
         return {
           bg: baseBg,
           badgeBg: 'badge-neon-low',
-          icon: <ShieldCheck className="h-5 w-5 text-emerald-400" />,
-          gaugeColor: '#34d399',
+          icon: <ShieldCheck className="h-5 w-5 text-emerald-600" />,
+          gaugeColor: '#059669',
         };
       case 'MODERATE':
         return {
           bg: baseBg,
           badgeBg: 'badge-neon-moderate',
-          icon: <AlertTriangle className="h-5 w-5 text-amber-400" />,
-          gaugeColor: '#fbbf24',
+          icon: <AlertTriangle className="h-5 w-5 text-amber-500" />,
+          gaugeColor: '#d97706',
         };
       case 'HIGH':
         return {
           bg: baseBg,
           badgeBg: 'badge-neon-high',
-          icon: <AlertTriangle className="h-5 w-5 text-orange-400" />,
-          gaugeColor: '#fb923c',
+          icon: <AlertTriangle className="h-5 w-5 text-orange-500" />,
+          gaugeColor: '#ea580c',
         };
       case 'EXTREME':
       default:
         return {
           bg: baseBg,
           badgeBg: 'badge-neon-extreme',
-          icon: <AlertOctagon className="h-5 w-5 text-rose-500" />,
-          gaugeColor: '#e11d48',
+          icon: <AlertOctagon className="h-5 w-5 text-rose-600" />,
+          gaugeColor: '#dc2626',
         };
     }
   };
@@ -136,9 +135,9 @@ export const RiskCard: React.FC<RiskCardProps> = ({
   const theme = getRiskTheme(risk.riskLevel);
 
   return (
-    <div className={`rounded-2xl border ${theme.bg} p-6 shadow-2xl shadow-black/40 space-y-6 transition-all backdrop-blur-md`}>
+    <div className={`rounded-2xl border ${theme.bg} p-6 shadow-sm space-y-6 transition-all`}>
       
-      {/* ADVISORY BANNER (Premium Minimalist Strip) */}
+      {/* ADVISORY BANNER (Clean Light Marine Strip) */}
       {(() => {
         // Geofence breach overrides weather risk
         const hasGeofenceBreach =
@@ -152,19 +151,19 @@ export const RiskCard: React.FC<RiskCardProps> = ({
 
         // Determine sleek banner style
         const bannerClass = hasGeofenceBreach
-          ? 'bg-rose-950/40 border-l-4 border-l-rose-500 border-y border-y-rose-900/30 border-r border-r-rose-900/30 text-rose-200'
+          ? 'bg-rose-50 border-l-4 border-l-rose-500 border-y border-y-rose-200 border-r border-r-rose-200 text-rose-950'
           : hasGeofenceCaution
-          ? 'bg-amber-950/40 border-l-4 border-l-amber-500 border-y border-y-amber-900/30 border-r border-r-amber-900/30 text-amber-200'
+          ? 'bg-amber-50 border-l-4 border-l-amber-500 border-y border-y-amber-200 border-r border-r-amber-200 text-amber-950'
           : risk.riskLevel === 'LOW'
-          ? 'bg-emerald-950/30 border-l-4 border-l-emerald-500 border-y border-y-emerald-900/30 border-r border-r-emerald-900/30 text-emerald-200'
+          ? 'bg-emerald-50 border-l-4 border-l-emerald-500 border-y border-y-emerald-200 border-r border-r-emerald-200 text-emerald-950'
           : risk.riskLevel === 'MODERATE'
-          ? 'bg-amber-950/40 border-l-4 border-l-amber-500 border-y border-y-amber-900/30 border-r border-r-amber-900/30 text-amber-200'
-          : 'bg-rose-950/40 border-l-4 border-l-rose-500 border-y border-y-rose-900/30 border-r border-r-rose-900/30 text-rose-200';
+          ? 'bg-amber-50 border-l-4 border-l-amber-500 border-y border-y-amber-200 border-r border-r-amber-200 text-amber-950'
+          : 'bg-rose-50 border-l-4 border-l-rose-500 border-y border-y-rose-200 border-r border-r-rose-200 text-rose-950';
 
         const bannerIcon = hasGeofenceBreach
-          ? <AlertOctagon className="h-5 w-5 text-rose-500" />
+          ? <AlertOctagon className="h-5 w-5 text-rose-600" />
           : hasGeofenceCaution
-          ? <AlertTriangle className="h-5 w-5 text-amber-400" />
+          ? <AlertTriangle className="h-5 w-5 text-amber-600" />
           : theme.icon;
 
         // Banner headline
@@ -189,13 +188,13 @@ export const RiskCard: React.FC<RiskCardProps> = ({
           : risk.primaryRecommendation;
 
         return (
-          <div className={`p-4 rounded-xl border-2 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left ${bannerClass}`}>
+          <div className={`p-4 rounded-xl border flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left ${bannerClass}`}>
             <div className="flex items-center space-x-3">
-              <div className="p-2.5 rounded-full bg-slate-950/40 shrink-0">
+              <div className="p-2.5 rounded-xl bg-white/80 shadow-xs shrink-0">
                 {bannerIcon}
               </div>
               <div>
-                <span className="text-[10px] font-mono uppercase tracking-widest opacity-80 block">
+                <span className="text-[10px] font-mono uppercase tracking-widest font-bold opacity-75 block">
                   {location.name} • {hasGeofenceBreach ? 'Geofence Breach Alert' : hasGeofenceCaution ? 'Boundary Proximity Alert' : 'Official Sea Advisory'}
                 </span>
                 <h2 className="text-xl sm:text-2xl font-black tracking-tight leading-none mt-0.5">
@@ -212,13 +211,13 @@ export const RiskCard: React.FC<RiskCardProps> = ({
           id="btn-risk-audio-narration"
           onClick={handleToggleAudio}
           title={isPlayingAudio ? 'Stop audio' : 'Listen to marine risk summary'}
-          className={`w-full sm:w-auto min-h-[52px] px-5 py-3 rounded-xl text-xs sm:text-sm font-bold border transition-all flex items-center justify-center space-x-2 shrink-0 ${
+          className={`w-full sm:w-auto min-h-[50px] px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold border transition-all flex items-center justify-center space-x-2 shrink-0 ${
             isPlayingAudio
-              ? 'bg-cyan-400 text-slate-950 border-cyan-300 shadow-lg shadow-cyan-400/50 animate-pulse'
-              : 'bg-slate-900 hover:bg-slate-800 text-slate-100 border-slate-600 active:scale-95'
+              ? 'bg-sky-600 text-white border-sky-600 shadow-md shadow-sky-600/30 animate-pulse'
+              : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-300 shadow-2xs active:scale-95'
           }`}
         >
-          {isPlayingAudio ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5 text-cyan-400" />}
+          {isPlayingAudio ? <VolumeX className="h-5 w-5 text-white" /> : <Volume2 className="h-5 w-5 text-sky-600" />}
           <span>{isPlayingAudio ? 'Stop Audio' : '🔊 Listen Warning'}</span>
         </button>
           </div>
@@ -229,19 +228,19 @@ export const RiskCard: React.FC<RiskCardProps> = ({
       <div className="flex items-start justify-between pt-1">
         <div>
           <div className="flex items-center space-x-2">
-            <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400">
+            <span className="text-[11px] font-mono uppercase tracking-wider text-slate-500 font-semibold">
               {dict.machineLearningAssessment}
             </span>
-            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-900 border border-slate-700 text-slate-400">
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200 text-slate-600 font-semibold">
               {risk.modelVersion}
             </span>
           </div>
-          <h3 className="text-xl font-extrabold text-slate-100 flex items-center gap-2 mt-1">
+          <h3 className="text-xl font-extrabold text-slate-900 flex items-center gap-2 mt-1">
             <span>{location.name}</span>
           </h3>
-          <p className="text-xs text-slate-400 flex items-center gap-1.5 mt-0.5 font-mono">
-            <Clock className="h-3 w-3 text-cyan-400" />
-            <span>{dict.targetWindow}: {timeWindow.requestedText === 'Current Conditions' ? dict.currentConditions : timeWindow.requestedText}</span>
+          <p className="text-xs text-slate-500 flex items-center gap-1.5 mt-0.5 font-mono">
+            <Clock className="h-3 w-3 text-sky-600" />
+            <span>{dict.targetWindow}: {timeWindow?.requestedText === 'Current Conditions' ? dict.currentConditions : timeWindow?.requestedText || 'Current'}</span>
           </p>
         </div>
 
@@ -251,9 +250,9 @@ export const RiskCard: React.FC<RiskCardProps> = ({
             id="btn-print-advisory-bulletin"
             onClick={() => window.print()}
             title="Print Official Safety Bulletin"
-            className="flex items-center space-x-1.5 min-h-[44px] px-3.5 py-2 rounded-xl text-xs font-semibold border border-slate-700 bg-slate-900/90 hover:bg-slate-800 text-slate-200 transition-all"
+            className="flex items-center space-x-1.5 min-h-[42px] px-3.5 py-2 rounded-xl text-xs font-semibold border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 shadow-2xs transition-all"
           >
-            <Printer className="h-4 w-4 text-cyan-400" />
+            <Printer className="h-4 w-4 text-sky-600" />
             <span className="hidden sm:inline">Print Bulletin</span>
           </button>
 
@@ -262,28 +261,28 @@ export const RiskCard: React.FC<RiskCardProps> = ({
             id="btn-risk-audio-narration"
             onClick={handleToggleAudio}
             title={isPlayingAudio ? 'Stop audio' : 'Listen to marine risk summary'}
-            className={`flex items-center space-x-1.5 min-h-[44px] px-3 py-2 rounded-xl text-xs font-semibold border transition-all ${
+            className={`flex items-center space-x-1.5 min-h-[42px] px-3.5 py-2 rounded-xl text-xs font-semibold border transition-all ${
               isPlayingAudio
-                ? 'bg-cyan-500 text-slate-950 border-cyan-400 animate-pulse shadow-md shadow-cyan-500/50'
-                : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700'
+                ? 'bg-sky-600 text-white border-sky-600 animate-pulse shadow-md shadow-sky-600/30'
+                : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200 shadow-2xs'
             }`}
           >
-            {isPlayingAudio ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4 text-cyan-400" />}
+            {isPlayingAudio ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4 text-sky-600" />}
             <span className="hidden sm:inline">{isPlayingAudio ? (dict.listening || 'Speaking...') : (dict.listenAudio || 'Listen Audio')}</span>
           </button>
         </div>
       </div>
 
       {/* Main Score & Categorical Card */}
-      <div className="flex flex-col md:flex-row gap-6 items-center md:items-start bg-[#0b121f]/50 border border-slate-800/40 rounded-xl p-6 shadow-inner">
+      <div className="flex flex-col md:flex-row gap-6 items-center md:items-start bg-slate-50/80 border border-slate-200/80 rounded-2xl p-6 shadow-xs">
         
         {/* Score Circular Gauge */}
-        <div className="flex items-center space-x-6 md:border-r border-slate-800/60 md:pr-6 shrink-0">
+        <div className="flex items-center space-x-6 md:border-r border-slate-200 md:pr-6 shrink-0">
           <div className="relative w-16 h-16 shrink-0 flex items-center justify-center">
             {/* SVG Circle Progress */}
             <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
               <path
-                className="text-slate-800/40"
+                className="text-slate-200"
                 strokeWidth="2.5"
                 stroke="currentColor"
                 fill="none"
@@ -300,33 +299,33 @@ export const RiskCard: React.FC<RiskCardProps> = ({
               />
             </svg>
             <div className="absolute flex flex-col items-center justify-center mt-0.5">
-              <span className="text-lg font-bold text-white font-mono tabular-nums leading-none tracking-tight">{risk.riskScore}</span>
+              <span className="text-lg font-bold text-slate-900 font-mono tabular-nums leading-none tracking-tight">{risk.riskScore}</span>
             </div>
           </div>
 
           <div className="flex flex-col justify-center space-y-1.5">
             <div className="flex items-center space-x-2">
-              <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest border ${theme.badgeBg}`}>
+              <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border ${theme.badgeBg}`}>
                 {risk.riskLevel === 'LOW' ? dict.lowRisk : risk.riskLevel === 'MODERATE' ? dict.moderateRisk : risk.riskLevel === 'HIGH' ? dict.highRisk : dict.extremeRisk}
               </span>
             </div>
             <div className="text-[10px] text-slate-500 font-mono flex items-center gap-1.5 uppercase tracking-wider">
               <Cpu className="h-3 w-3 text-slate-400" />
-              <span>Model Conf: <span className="text-slate-300 tabular-nums font-semibold">{risk.confidenceScore}%</span></span>
+              <span>Model Conf: <span className="text-slate-700 tabular-nums font-bold">{risk.confidenceScore}%</span></span>
             </div>
           </div>
         </div>
 
         {/* Primary Verdict & Safety Recommendation */}
         <div className="space-y-2 flex-1 pt-1">
-          <div className="text-[10px] uppercase tracking-widest font-semibold text-slate-500 flex items-center gap-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-slate-400/50"></span>
+          <div className="text-[10px] uppercase tracking-wider font-bold text-slate-500 flex items-center gap-2">
+            <span className="h-1.5 w-1.5 rounded-full bg-sky-500"></span>
             <span>{dict.primaryDirective}</span>
           </div>
-          <p className="text-sm font-medium text-slate-200 leading-relaxed max-w-xl">
+          <p className="text-sm font-semibold text-slate-900 leading-relaxed max-w-xl">
             {risk.primaryRecommendation}
           </p>
-          <p className="text-xs text-slate-400/80 leading-relaxed line-clamp-2 max-w-xl font-mono mt-2">
+          <p className="text-xs text-slate-600 leading-relaxed line-clamp-2 max-w-xl font-mono mt-1">
             {risk.safetySummary}
           </p>
         </div>
@@ -334,18 +333,18 @@ export const RiskCard: React.FC<RiskCardProps> = ({
 
       {/* Geofencing & Boundary Security Alert Banner */}
       {geofenceAnalysis && (
-        <div className={`rounded-xl p-3.5 border space-y-2.5 text-xs transition-all ${
+        <div className={`rounded-2xl p-4 border space-y-2.5 text-xs transition-all ${
           geofenceAnalysis.status === 'RESTRICTED_BREACH'
-            ? 'bg-red-950/60 border-red-600/80 text-red-200 shadow-[0_0_18px_rgba(239,68,68,0.25)]'
+            ? 'bg-rose-50 border-rose-200 text-rose-950 shadow-xs'
             : geofenceAnalysis.status === 'CAUTION'
-            ? 'bg-amber-950/50 border-amber-500/60 text-amber-200 shadow-[0_0_12px_rgba(245,158,11,0.15)]'
-            : 'bg-slate-900/60 border-slate-800 text-slate-300'
+            ? 'bg-amber-50 border-amber-200 text-amber-950 shadow-xs'
+            : 'bg-emerald-50/70 border-emerald-200 text-emerald-950 shadow-xs'
         }`}>
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-2 font-bold">
               <ShieldAlert className={`h-4 w-4 shrink-0 ${
-                geofenceAnalysis.status === 'RESTRICTED_BREACH' ? 'text-red-400 animate-pulse' :
-                geofenceAnalysis.status === 'CAUTION' ? 'text-amber-400' : 'text-emerald-400'
+                geofenceAnalysis.status === 'RESTRICTED_BREACH' ? 'text-rose-600 animate-pulse' :
+                geofenceAnalysis.status === 'CAUTION' ? 'text-amber-600' : 'text-emerald-600'
               }`} />
               <span className="uppercase tracking-wider font-mono text-[11px]">
                 {geofenceAnalysis.status === 'RESTRICTED_BREACH' ? '🚨 Sovereign Maritime Incursion Alert' :
@@ -353,51 +352,51 @@ export const RiskCard: React.FC<RiskCardProps> = ({
                  '🛡️ Sovereign Maritime Boundary Clearance'}
               </span>
             </div>
-            <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-black uppercase ${
-              geofenceAnalysis.status === 'RESTRICTED_BREACH' ? 'bg-red-600 text-white animate-pulse' :
-              geofenceAnalysis.status === 'CAUTION' ? 'bg-amber-500 text-slate-950' :
-              'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
+            <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold uppercase ${
+              geofenceAnalysis.status === 'RESTRICTED_BREACH' ? 'bg-rose-600 text-white animate-pulse' :
+              geofenceAnalysis.status === 'CAUTION' ? 'bg-amber-100 text-amber-900 border border-amber-300' :
+              'bg-emerald-100 text-emerald-900 border border-emerald-300'
             }`}>
               {geofenceAnalysis.status}
             </span>
           </div>
 
-          <p className="text-xs leading-relaxed font-medium">
+          <p className="text-xs leading-relaxed font-medium text-slate-700">
             {geofenceAnalysis.activeAlerts.length > 0 
               ? geofenceAnalysis.activeAlerts[0].warningMessage 
               : `Vessel has clear operational waters. Operating point is ${geofenceAnalysis.nearestImbl?.distanceNm ?? '>15'} NM from the nearest International Maritime Boundary Line (${geofenceAnalysis.nearestImbl?.boundaryName.split('(')[0] || 'IMBL'}).`}
           </p>
 
           {/* Detailed Boundary Proximity Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 border-t border-slate-800/80 text-[11px] font-mono">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 border-t border-slate-200 text-[11px] font-mono">
             {geofenceAnalysis.nearestImbl && (
-              <div className="bg-slate-950/60 p-2 rounded-lg border border-slate-800/60 space-y-0.5">
-                <div className="flex items-center justify-between text-slate-300 font-bold">
+              <div className="bg-white p-2.5 rounded-xl border border-slate-200 space-y-0.5 shadow-2xs">
+                <div className="flex items-center justify-between text-slate-800 font-bold">
                   <span className="truncate max-w-[150px]">{geofenceAnalysis.nearestImbl.boundaryName.split('(')[0]}</span>
-                  <span className={geofenceAnalysis.nearestImbl.hasCrossedBorder ? 'text-red-400 font-black animate-pulse' : geofenceAnalysis.nearestImbl.distanceNm <= 3.0 ? 'text-red-400 font-black' : geofenceAnalysis.nearestImbl.distanceNm <= 8.0 ? 'text-amber-400' : 'text-slate-300'}>
+                  <span className={geofenceAnalysis.nearestImbl.hasCrossedBorder ? 'text-rose-600 font-black animate-pulse' : geofenceAnalysis.nearestImbl.distanceNm <= 3.0 ? 'text-rose-600 font-black' : geofenceAnalysis.nearestImbl.distanceNm <= 8.0 ? 'text-amber-600' : 'text-slate-700'}>
                     {geofenceAnalysis.nearestImbl.hasCrossedBorder ? `CROSSED (${geofenceAnalysis.nearestImbl.distanceNm} NM)` : `${geofenceAnalysis.nearestImbl.distanceNm} NM`}
                   </span>
                 </div>
-                <div className="text-[10px] text-slate-400 flex items-center justify-between">
+                <div className="text-[10px] text-slate-500 flex items-center justify-between">
                   <span>{geofenceAnalysis.nearestImbl.hasCrossedBorder ? 'Return Heading' : 'Bearing'}: {geofenceAnalysis.nearestImbl.bearingDeg ?? 0}°</span>
-                  <span className={geofenceAnalysis.nearestImbl.hasCrossedBorder ? 'text-red-400 font-bold' : 'text-cyan-400/80'}>{geofenceAnalysis.nearestImbl.hasCrossedBorder ? 'BORDER BREACH' : geofenceAnalysis.nearestImbl.severity.replace('_', ' ')}</span>
+                  <span className={geofenceAnalysis.nearestImbl.hasCrossedBorder ? 'text-rose-600 font-bold' : 'text-sky-700'}>{geofenceAnalysis.nearestImbl.hasCrossedBorder ? 'BORDER BREACH' : geofenceAnalysis.nearestImbl.severity.replace('_', ' ')}</span>
                 </div>
               </div>
             )}
 
             {geofenceAnalysis.nearestMpa && (
-              <div className="bg-slate-950/60 p-2 rounded-lg border border-slate-800/60 space-y-0.5">
-                <div className="flex items-center justify-between text-slate-300 font-bold">
+              <div className="bg-white p-2.5 rounded-xl border border-slate-200 space-y-0.5 shadow-2xs">
+                <div className="flex items-center justify-between text-slate-800 font-bold">
                   <span className="truncate max-w-[150px]">{geofenceAnalysis.nearestMpa.boundaryName.split(' ')[0]} Sanctuary</span>
-                  <span className={(geofenceAnalysis.nearestMpa.isInside || geofenceAnalysis.nearestMpa.distanceNm === 0) ? 'text-red-400 font-black animate-pulse' : geofenceAnalysis.nearestMpa.distanceNm <= 3.0 ? 'text-amber-400' : 'text-emerald-400'}>
+                  <span className={(geofenceAnalysis.nearestMpa.isInside || geofenceAnalysis.nearestMpa.distanceNm === 0) ? 'text-rose-600 font-black animate-pulse' : geofenceAnalysis.nearestMpa.distanceNm <= 3.0 ? 'text-amber-600' : 'text-emerald-600 font-bold'}>
                     {(geofenceAnalysis.nearestMpa.isInside || geofenceAnalysis.nearestMpa.distanceNm === 0)
                       ? `INSIDE (${geofenceAnalysis.nearestMpa.insideDepthNm ?? geofenceAnalysis.nearestMpa.distanceNm} NM)`
                       : `${geofenceAnalysis.nearestMpa.distanceNm} NM`}
                   </span>
                 </div>
-                <div className="text-[10px] text-slate-400 flex items-center justify-between">
+                <div className="text-[10px] text-slate-500 flex items-center justify-between">
                   <span>{(geofenceAnalysis.nearestMpa.isInside || geofenceAnalysis.nearestMpa.distanceNm === 0) ? `Escape Heading: ${geofenceAnalysis.nearestMpa.escapeBearingDeg ?? geofenceAnalysis.nearestMpa.bearingDeg ?? 0}°` : 'Ecological Buffer'}</span>
-                  <span className={(geofenceAnalysis.nearestMpa.isInside || geofenceAnalysis.nearestMpa.distanceNm === 0) ? 'text-red-400 font-bold' : 'text-emerald-400/80'}>
+                  <span className={(geofenceAnalysis.nearestMpa.isInside || geofenceAnalysis.nearestMpa.distanceNm === 0) ? 'text-rose-600 font-bold' : 'text-emerald-700'}>
                     {(geofenceAnalysis.nearestMpa.isInside || geofenceAnalysis.nearestMpa.distanceNm === 0) ? 'SANCTUARY INVASION' : geofenceAnalysis.nearestMpa.severity.replace('_', ' ')}
                   </span>
                 </div>
@@ -411,41 +410,41 @@ export const RiskCard: React.FC<RiskCardProps> = ({
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
         
         {/* Permitted Craft Types */}
-        <div className="bg-emerald-950/30 border border-emerald-900/40 rounded-xl p-3 space-y-1.5">
-          <div className="flex items-center space-x-1.5 font-bold text-emerald-400">
-            <CheckCircle2 className="h-3.5 w-3.5" />
+        <div className="bg-emerald-50/80 border border-emerald-200 rounded-2xl p-4 space-y-1.5 shadow-2xs">
+          <div className="flex items-center space-x-1.5 font-bold text-emerald-800">
+            <CheckCircle2 className="h-4 w-4 text-emerald-600" />
             <span>{dict.permittedVessels}</span>
           </div>
-          <ul className="space-y-1 text-slate-300 text-[11px]">
+          <ul className="space-y-1 text-slate-700 text-[11px] pt-1">
             {risk.safeCraftTypes.length > 0 ? (
               risk.safeCraftTypes.map((craft, i) => (
                 <li key={i} className="flex items-center space-x-1.5">
-                  <span className="h-1 w-1 rounded-full bg-emerald-400 shrink-0"></span>
-                  <span>{craft}</span>
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0"></span>
+                  <span className="font-medium">{craft}</span>
                 </li>
               ))
             ) : (
-              <li className="text-slate-400 italic">{dict.noCraftsCleared}</li>
+              <li className="text-slate-500 italic">{dict.noCraftsCleared}</li>
             )}
           </ul>
         </div>
 
         {/* Restricted / Embargoed Craft Types */}
-        <div className="bg-rose-950/30 border border-rose-900/40 rounded-xl p-3 space-y-1.5">
-          <div className="flex items-center space-x-1.5 font-bold text-rose-400">
-            <XCircle className="h-3.5 w-3.5" />
+        <div className="bg-rose-50/80 border border-rose-200 rounded-2xl p-4 space-y-1.5 shadow-2xs">
+          <div className="flex items-center space-x-1.5 font-bold text-rose-800">
+            <XCircle className="h-4 w-4 text-rose-600" />
             <span>{dict.restrictedVessels}</span>
           </div>
-          <ul className="space-y-1 text-slate-300 text-[11px]">
+          <ul className="space-y-1 text-slate-700 text-[11px] pt-1">
             {risk.restrictedCraftTypes.length > 0 ? (
               risk.restrictedCraftTypes.map((craft, i) => (
                 <li key={i} className="flex items-center space-x-1.5">
-                  <span className="h-1 w-1 rounded-full bg-rose-400 shrink-0"></span>
-                  <span>{craft}</span>
+                  <span className="h-1.5 w-1.5 rounded-full bg-rose-500 shrink-0"></span>
+                  <span className="font-medium">{craft}</span>
                 </li>
               ))
             ) : (
-              <li className="text-emerald-400/80 italic">{dict.noRestrictions}</li>
+              <li className="text-emerald-700 italic">{dict.noRestrictions}</li>
             )}
           </ul>
         </div>
@@ -453,20 +452,20 @@ export const RiskCard: React.FC<RiskCardProps> = ({
       </div>
 
       {/* Actionable Safety Bulletins Checklist */}
-      <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-3 space-y-2">
-        <div className="text-xs font-bold text-slate-200 flex items-center justify-between">
+      <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-2.5 shadow-2xs">
+        <div className="text-xs font-bold text-slate-800 flex items-center justify-between">
           <span className="flex items-center gap-1.5">
-            <FileText className="h-3.5 w-3.5 text-cyan-400" />
+            <FileText className="h-4 w-4 text-sky-600" />
             <span>{dict.recommendations}</span>
           </span>
-          <span className="text-[10px] font-mono text-cyan-400">
+          <span className="text-[10px] font-mono font-semibold text-slate-500">
             {dict.validUntil}: {new Date(risk.validUntil).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </span>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-slate-300">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-slate-700">
           {risk.actionableAdvisories.map((advisory, idx) => (
-            <div key={idx} className="flex items-start space-x-2 bg-slate-900/60 p-2 rounded-lg border border-slate-800/60">
-              <span className="text-cyan-400 font-bold font-mono shrink-0">#{idx + 1}</span>
+            <div key={idx} className="flex items-start space-x-2 bg-white p-2.5 rounded-xl border border-slate-200 shadow-2xs">
+              <span className="text-sky-700 font-bold font-mono shrink-0">#{idx + 1}</span>
               <span className="leading-snug">{advisory}</span>
             </div>
           ))}

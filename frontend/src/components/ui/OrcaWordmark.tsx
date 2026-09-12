@@ -6,6 +6,7 @@ interface OrcaWordmarkProps {
   className?: string;
   badge?: string;
   subtitle?: string;
+  theme?: 'dark' | 'light';
 }
 
 /**
@@ -29,8 +30,10 @@ export const OrcaWordmark: React.FC<OrcaWordmarkProps> = ({
   className = '',
   badge = 'v2.4',
   subtitle,
+  theme = 'dark',
 }) => {
   const [sweepKey, setSweepKey] = useState(0);
+  const isLight = theme === 'light';
 
   // Sizing tiers
   const sizeMap = {
@@ -64,48 +67,48 @@ export const OrcaWordmark: React.FC<OrcaWordmarkProps> = ({
           <div className="orca-reveal-content flex items-baseline gap-2">
             
             {/* ORCA-X Tactical Typography */}
-            <span className={`orca-tactical-text font-display font-black tracking-wider uppercase flex items-center text-white ${sizeMap.text}`}>
+            <span className={`orca-tactical-text font-display font-black tracking-wider uppercase flex items-center ${isLight ? 'text-slate-900' : 'text-white'} ${sizeMap.text}`}>
               
               {/* O — with tactical center sonar pip */}
-              <span className="relative inline-block font-extrabold text-white group-hover:text-cyan-200 transition-colors">
+              <span className={`orca-letter-o relative inline-block font-extrabold transition-colors ${isLight ? 'text-slate-900 group-hover:text-sky-600' : 'text-white group-hover:text-cyan-200'}`}>
                 O
-                <span className="orca-sonar-center-pip" />
+                <span className={`orca-sonar-center-pip ${isLight ? '!bg-sky-600' : ''}`} />
               </span>
 
               {/* R */}
-              <span className="inline-block font-bold text-slate-100 group-hover:text-cyan-100 transition-colors">
+              <span className={`orca-letter-r inline-block font-bold transition-colors ${isLight ? 'text-slate-800 group-hover:text-sky-700' : 'text-slate-100 group-hover:text-cyan-100'}`}>
                 R
               </span>
 
               {/* C */}
-              <span className="inline-block font-bold text-slate-100 group-hover:text-teal-100 transition-colors">
+              <span className={`orca-letter-c inline-block font-bold transition-colors ${isLight ? 'text-slate-800 group-hover:text-teal-700' : 'text-slate-100 group-hover:text-teal-100'}`}>
                 C
               </span>
 
               {/* A */}
-              <span className="inline-block font-bold text-slate-100 group-hover:text-teal-200 transition-colors">
+              <span className={`orca-letter-a inline-block font-bold transition-colors ${isLight ? 'text-slate-800 group-hover:text-teal-700' : 'text-slate-100 group-hover:text-teal-200'}`}>
                 A
               </span>
 
               {/* Telemetry Node Hyphen */}
               <span className="inline-flex items-center px-0.5">
-                <span className="inline-block w-2.5 h-[2.5px] rounded-full bg-cyan-400 shadow-[0_0_8px_#38bdf8]" />
+                <span className={`orca-letter-hyphen inline-block w-2.5 h-[2.5px] rounded-full ${isLight ? 'bg-sky-500 shadow-[0_0_8px_rgba(2,132,199,0.6)]' : 'bg-cyan-400 shadow-[0_0_8px_#38bdf8]'}`} />
               </span>
 
               {/* X — with rotating tactical radar reticle */}
-              <span className="relative inline-block font-extrabold text-cyan-300 group-hover:text-cyan-100 transition-colors">
+              <span className={`orca-letter-x relative inline-block font-extrabold transition-colors ${isLight ? 'text-sky-600 group-hover:text-sky-800' : 'text-cyan-300 group-hover:text-cyan-100'}`}>
                 X
                 {/* Rotating radar scope reticle */}
-                <span className="orca-x-radar-reticle" />
+                <span className={`orca-x-radar-reticle ${isLight ? '!border-sky-500/70' : ''}`} />
                 {/* Tactical target brackets */}
-                <span className="orca-x-target-corner orca-x-tl" />
-                <span className="orca-x-target-corner orca-x-br" />
+                <span className={`orca-x-target-corner orca-x-tl ${isLight ? '!border-sky-500' : ''}`} />
+                <span className={`orca-x-target-corner orca-x-br ${isLight ? '!border-sky-500' : ''}`} />
               </span>
             </span>
 
             {/* Version Badge (revealed simultaneously with ORCA-X under the satellite swath) */}
             {badge && (
-              <span className={`font-mono uppercase tracking-[0.16em] rounded bg-cyan-950/85 border border-cyan-500/50 text-cyan-300 shadow-sm shadow-cyan-950/70 group-hover:border-cyan-400 group-hover:text-cyan-100 transition-all ${sizeMap.badge} ${sizeMap.badgePad}`}>
+              <span className={`orca-wordmark-badge font-mono uppercase tracking-[0.16em] rounded transition-all ${isLight ? 'bg-sky-50 border border-sky-300 text-sky-800 font-bold shadow-2xs group-hover:border-sky-400 group-hover:bg-sky-100' : 'bg-cyan-950/85 border border-cyan-500/50 text-cyan-300 shadow-sm shadow-cyan-950/70 group-hover:border-cyan-400 group-hover:text-cyan-100'} ${sizeMap.badge} ${sizeMap.badgePad}`}>
                 {badge}
               </span>
             )}
@@ -195,7 +198,7 @@ export const OrcaWordmark: React.FC<OrcaWordmarkProps> = ({
       </div>
 
       {/* ── Under-Text Hydrophone Ocean Acoustic Frequency Ribbon ── */}
-      <div className="relative w-full h-[3px] overflow-hidden rounded-full bg-slate-950/90 border border-cyan-950/80 mt-1 shadow-inner">
+      <div className={`orca-hydrophone-track-container relative w-full h-[3px] overflow-hidden rounded-full mt-1 ${isLight ? 'bg-slate-200 border border-slate-300/80 shadow-2xs' : 'bg-slate-950/90 border border-cyan-950/80 shadow-inner'}`}>
         {/* Deep ocean acoustic wave track */}
         <div className="orca-hydrophone-wave-track" />
         {/* Traveling Sonar Pulse Ping Node */}
@@ -203,23 +206,23 @@ export const OrcaWordmark: React.FC<OrcaWordmarkProps> = ({
       </div>
 
       {/* ── In-Flow Tactical Telemetry Readout (Connecting Satellite SAR with Hydrophone Array) ── */}
-      <div className="flex items-center justify-between gap-1.5 mt-0.5 font-mono text-[8px] uppercase tracking-[0.12em] text-cyan-400/90 pointer-events-none w-full">
+      <div className={`orca-telemetry-readout flex items-center justify-between gap-1.5 mt-0.5 font-mono text-[8px] uppercase tracking-[0.12em] pointer-events-none w-full ${isLight ? 'text-slate-600' : 'text-cyan-400/90'}`}>
         <span className="flex items-center gap-1 shrink-0">
           <span className="relative flex h-1.5 w-1.5 shrink-0">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400/80" />
-            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-300" />
+            <span className={`absolute inline-flex h-full w-full animate-ping rounded-full ${isLight ? 'bg-emerald-500/80' : 'bg-emerald-400/80'}`} />
+            <span className={`relative inline-flex h-1.5 w-1.5 rounded-full ${isLight ? 'bg-emerald-600' : 'bg-emerald-300'}`} />
           </span>
-          <span className="font-semibold text-cyan-300">SENTINEL SAR</span>
+          <span className={`orca-telem-accent font-semibold ${isLight ? 'text-sky-700 font-bold' : 'text-cyan-300'}`}>SENTINEL SAR</span>
         </span>
-        <span className="text-slate-600 font-bold">·</span>
-        <span className="shrink-0 text-slate-300">42.4 kHz</span>
-        <span className="text-slate-600 font-bold">·</span>
-        <span className="shrink-0 text-cyan-200 font-bold tracking-wider">18°54&apos;N</span>
+        <span className={`${isLight ? 'text-slate-300' : 'text-slate-600'} font-bold`}>·</span>
+        <span className={`shrink-0 ${isLight ? 'text-slate-600 font-medium' : 'text-slate-300'}`}>42.4 kHz</span>
+        <span className={`${isLight ? 'text-slate-300' : 'text-slate-600'} font-bold`}>·</span>
+        <span className={`shrink-0 font-bold tracking-wider ${isLight ? 'text-teal-700' : 'text-cyan-200'}`}>18°54&apos;N</span>
       </div>
 
       {/* Subtitle / Telemetry Legend */}
       {subtitle && (
-        <p className={`mt-0.5 truncate font-mono tracking-[0.14em] text-fathom group-hover:text-slate-300 transition-colors ${sizeMap.sub}`}>
+        <p className={`orca-subtitle-text mt-0.5 truncate font-mono tracking-[0.14em] transition-colors ${isLight ? 'text-slate-500 font-semibold group-hover:text-slate-800' : 'text-fathom group-hover:text-slate-300'} ${sizeMap.sub}`}>
           {subtitle}
         </p>
       )}

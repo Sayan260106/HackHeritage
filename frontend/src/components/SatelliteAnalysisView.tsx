@@ -157,21 +157,21 @@ export const SatelliteAnalysisView: React.FC<SatelliteAnalysisViewProps> = ({ sa
     refreshSatellite(false);
   }, [location.latitude, location.longitude]);
   const statusClass = currentSatellite.status === 'LIVE'
-    ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+    ? 'text-emerald-700 bg-emerald-50 border-emerald-200'
     : currentSatellite.status === 'DEGRADED'
-      ? 'text-amber-400 bg-amber-500/10 border-amber-500/20'
-      : 'text-slate-400 bg-slate-800/50 border-slate-700';
+      ? 'text-amber-800 bg-amber-50 border-amber-200'
+      : 'text-slate-600 bg-slate-100 border-slate-200';
 
   return (
-    <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-5">
+    <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-sm space-y-5 text-slate-800">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div className="flex items-center space-x-2">
-          <Satellite className="h-5 w-5 text-cyan-400" />
+          <Satellite className="h-5 w-5 text-sky-600" />
           <div>
-            <h3 className="text-sm font-bold text-slate-100 uppercase tracking-wider font-mono">
+            <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider font-mono">
               {dict.satelliteLayer}
             </h3>
-            <p className="text-xs text-slate-400 font-mono">{currentSatellite.satelliteName}</p>
+            <p className="text-xs text-slate-500 font-mono">{currentSatellite.satelliteName}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -179,12 +179,12 @@ export const SatelliteAnalysisView: React.FC<SatelliteAnalysisViewProps> = ({ sa
             type="button"
             onClick={() => refreshSatellite(true)}
             disabled={isRefreshing}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-500/25 px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-cyan-300 transition-colors hover:border-cyan-400/60 hover:bg-cyan-500/10 disabled:cursor-wait disabled:opacity-60"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-sky-300 px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-sky-700 bg-sky-50 transition-colors hover:bg-sky-100 disabled:cursor-wait disabled:opacity-60 shadow-2xs"
           >
-            <RefreshCw className={`h-3 w-3 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-3 w-3 ${isRefreshing ? 'animate-spin text-sky-600' : ''}`} />
             {isRefreshing ? satelliteUi.refreshing || 'Refreshing' : satelliteUi.refresh || 'Refresh'}
           </button>
-          <span className={`text-[11px] font-mono px-2.5 py-1 rounded-lg border ${statusClass}`}>
+          <span className={`text-[11px] font-mono font-bold px-2.5 py-1 rounded-lg border ${statusClass}`}>
             {currentSatellite.status}
           </span>
         </div>
@@ -192,26 +192,26 @@ export const SatelliteAnalysisView: React.FC<SatelliteAnalysisViewProps> = ({ sa
 
       {currentSatellite.observations.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-3">
-            <div className="text-[10px] uppercase tracking-wider text-slate-500">{dict.platform}</div>
-            <div className="text-sm font-bold text-slate-200 mt-1">{currentSatellite.platform || dict.notReported}</div>
+          <div className="bg-slate-50/80 border border-slate-200 rounded-xl p-3 shadow-2xs">
+            <div className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">{dict.platform}</div>
+            <div className="text-sm font-bold text-slate-800 mt-1">{currentSatellite.platform || dict.notReported}</div>
           </div>
-          <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-3">
-            <div className="text-[10px] uppercase tracking-wider text-slate-500">{dict.acquisition}</div>
-            <div className="text-sm font-bold text-slate-200 mt-1 flex items-center gap-1">
-              <Clock className="h-3.5 w-3.5 text-cyan-400" />
+          <div className="bg-slate-50/80 border border-slate-200 rounded-xl p-3 shadow-2xs">
+            <div className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">{dict.acquisition}</div>
+            <div className="text-sm font-bold text-slate-800 mt-1 flex items-center gap-1">
+              <Clock className="h-3.5 w-3.5 text-sky-600" />
               {currentSatellite.acquisitionTime ? new Date(currentSatellite.acquisitionTime).toLocaleString('en-IN', { timeZone: 'UTC' }) + ' UTC' : dict.unavailable}
             </div>
           </div>
-          <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-3">
-            <div className="text-[10px] uppercase tracking-wider text-slate-500">{dict.cloudCover}</div>
-            <div className="text-sm font-bold text-slate-200 mt-1">
+          <div className="bg-slate-50/80 border border-slate-200 rounded-xl p-3 shadow-2xs">
+            <div className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">{dict.cloudCover}</div>
+            <div className="text-sm font-bold text-slate-800 mt-1">
               {typeof currentSatellite.cloudCoverPct === 'number' ? `${formatValue(currentSatellite.cloudCoverPct, 0)}%` : dict.notReported}
             </div>
           </div>
         </div>
       ) : (
-        <div className="rounded-xl border border-slate-800 bg-slate-950/70 p-4 text-xs text-slate-400">
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-500">
           No live Copernicus Sentinel product is available for this exact location window right now.
         </div>
       )}
@@ -223,7 +223,7 @@ export const SatelliteAnalysisView: React.FC<SatelliteAnalysisViewProps> = ({ sa
       </div>
 
       {refreshError && (
-        <div className="rounded-xl border border-amber-500/25 bg-amber-500/5 p-3 text-[11px] text-amber-200">
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-[11px] text-amber-800">
           {refreshError}
         </div>
       )}
@@ -235,34 +235,34 @@ export const SatelliteAnalysisView: React.FC<SatelliteAnalysisViewProps> = ({ sa
           ))}
         </div>
       ) : (
-        <div className="rounded-xl border border-slate-800 bg-slate-950/70 p-3 text-[11px] leading-relaxed text-slate-400">
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-[11px] leading-relaxed text-slate-500">
           {satelliteUi.derivedUnavailable}
         </div>
       )}
 
-      <div className="bg-slate-950/70 border border-cyan-500/20 rounded-xl p-4 space-y-3">
+      <div className="bg-slate-50/80 border border-sky-200 rounded-xl p-4 space-y-3">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <h4 className="text-xs font-bold text-slate-200">{satelliteUi.liveProducts}</h4>
+            <h4 className="text-xs font-bold text-slate-800">{satelliteUi.liveProducts}</h4>
             <p className="text-[11px] text-slate-500">{satelliteUi.catalogue} · latest returned Sentinel products</p>
           </div>
-          <span className="text-[10px] font-mono text-cyan-400">{satelliteUi.updated || 'Updated'} {new Date(currentSatellite.processingTime).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' })}</span>
+          <span className="text-[10px] font-mono text-sky-700 font-bold">{satelliteUi.updated || 'Updated'} {new Date(currentSatellite.processingTime).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' })}</span>
         </div>
         <p className="text-[11px] text-slate-500">{satelliteUi.realOnly || 'Only real Copernicus catalogue observations are shown. No synthetic satellite measurements are generated.'}</p>
         {currentSatellite.observations.length === 0 ? (
-          <p className="text-[11px] text-slate-400">{satelliteUi.noProducts}</p>
+          <p className="text-[11px] text-slate-500">{satelliteUi.noProducts}</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
             {currentSatellite.observations.map((observation) => (
-              <div key={observation.productId} className="border border-slate-800 bg-slate-900/70 rounded-lg p-3 space-y-1.5">
+              <div key={observation.productId} className="border border-slate-200 bg-white rounded-lg p-3 space-y-1.5 shadow-2xs">
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <div className="text-xs font-semibold text-slate-200">{observation.collectionTitle}</div>
-                    <div className="text-[10px] text-cyan-300 font-mono break-all">{observation.productId}</div>
+                    <div className="text-xs font-semibold text-slate-800">{observation.collectionTitle}</div>
+                    <div className="text-[10px] text-sky-700 font-mono break-all">{observation.productId}</div>
                   </div>
-                  {observation.productUrl && <a href={observation.productUrl} target="_blank" rel="noreferrer" className="text-[10px] text-cyan-400"><ExternalLink className="h-3 w-3" /></a>}
+                  {observation.productUrl && <a href={observation.productUrl} target="_blank" rel="noreferrer" className="text-[10px] text-sky-600 hover:text-sky-800"><ExternalLink className="h-3 w-3" /></a>}
                 </div>
-                <div className="text-[10px] text-slate-400 grid grid-cols-2 gap-1">
+                <div className="text-[10px] text-slate-600 grid grid-cols-2 gap-1">
                   <span>{dict.acquisition}: {observation.acquisitionTime ? new Date(observation.acquisitionTime).toLocaleString('en-IN', { timeZone: 'UTC' }) : dict.unavailable}</span>
                   <span>{satelliteUi.age}: {formatAge(observation.observationAgeHours ?? ageHoursFromIso(observation.acquisitionTime))}</span>
                   <span>{dict.cloudCover}: {typeof observation.cloudCoverPct === 'number' ? `${observation.cloudCoverPct.toFixed(0)}%` : dict.notReported}</span>
@@ -290,19 +290,19 @@ export const SatelliteAnalysisView: React.FC<SatelliteAnalysisViewProps> = ({ sa
 
       {/* INCOIS / ISRO Potential Fishing Zone (PFZ) Satellite Synthesis */}
       {typeof currentSatellite.chlorophyllConcentrationMgM3 === 'number' && typeof currentSatellite.sstC === 'number' && (
-        <div className="bg-gradient-to-r from-emerald-950/40 via-slate-900/60 to-cyan-950/40 border border-emerald-500/30 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="bg-gradient-to-r from-emerald-50 via-sky-50 to-white border border-emerald-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
           <div className="space-y-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+              <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
                 INCOIS / ISRO PFZ SYNTHESIS
               </span>
-              <span className="text-xs font-semibold text-slate-200">
+              <span className="text-xs font-bold text-slate-800">
                 {currentSatellite.chlorophyllConcentrationMgM3 >= 0.3 && currentSatellite.chlorophyllConcentrationMgM3 <= 2.2 && currentSatellite.sstC >= 26 && currentSatellite.sstC <= 31
                   ? 'Favourable Potential Fishing Zone (PFZ) Conditions'
                   : 'Sub-Optimal Potential Fishing Zone (PFZ) Conditions'}
               </span>
             </div>
-            <p className="text-[11px] text-slate-400 leading-relaxed">
+            <p className="text-[11px] text-slate-600 leading-relaxed">
               Satellite Chlorophyll-a ({currentSatellite.chlorophyllConcentrationMgM3.toFixed(2)} mg/m³) intersects with sea surface temperature ({currentSatellite.sstC.toFixed(1)}°C).
               {typeof currentSatellite.cloudCoverPct === 'number' && currentSatellite.cloudCoverPct > 50
                 ? ` Optical confidence reduced due to ${currentSatellite.cloudCoverPct.toFixed(0)}% cloud coverage.`
@@ -313,7 +313,7 @@ export const SatelliteAnalysisView: React.FC<SatelliteAnalysisViewProps> = ({ sa
             href={`https://browser.dataspace.copernicus.eu/?zoom=10&lat=${location.latitude.toFixed(4)}&lng=${location.longitude.toFixed(4)}`}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 transition-colors shrink-0"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-bold bg-sky-600 hover:bg-sky-700 text-white transition-colors shrink-0 shadow-xs"
           >
             <span>Explore in Copernicus Browser</span>
             <ExternalLink className="h-3 w-3" />
@@ -321,27 +321,27 @@ export const SatelliteAnalysisView: React.FC<SatelliteAnalysisViewProps> = ({ sa
         </div>
       )}
 
-      <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-4 space-y-2">
+      <div className="bg-slate-50/80 border border-slate-200 rounded-xl p-4 space-y-2">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <div className="text-xs font-bold text-slate-200">{dict.observationProvenance}</div>
+            <div className="text-xs font-bold text-slate-800">{dict.observationProvenance}</div>
             <div className="text-[11px] text-slate-500">{location.name} · {currentSatellite.latitude.toFixed(4)}, {currentSatellite.longitude.toFixed(4)}</div>
           </div>
           {currentSatellite.productUrl && (
-            <a href={currentSatellite.productUrl} target="_blank" rel="noreferrer" className="text-[11px] text-cyan-400 flex items-center gap-1">
+            <a href={currentSatellite.productUrl} target="_blank" rel="noreferrer" className="text-[11px] text-sky-700 hover:text-sky-900 font-semibold flex items-center gap-1">
               {dict.product} <ExternalLink className="h-3 w-3" />
             </a>
           )}
         </div>
-        <div className="text-[11px] text-slate-400">Source: {currentSatellite.source}</div>
+        <div className="text-[11px] text-slate-600">Source: {currentSatellite.source}</div>
         {currentSatellite.productId && <div className="text-[10px] font-mono text-slate-500 break-all">{currentSatellite.productId}</div>}
       </div>
 
       {currentSatellite.warnings.length > 0 && (
-        <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3 space-y-1">
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 space-y-1">
           {currentSatellite.warnings.map((warning, index) => (
-            <div key={index} className="text-[11px] text-amber-300 flex gap-2">
-              <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+            <div key={index} className="text-[11px] text-amber-800 flex gap-2">
+              <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0 text-amber-600" />
               <span>{warning}</span>
             </div>
           ))}
@@ -353,26 +353,26 @@ export const SatelliteAnalysisView: React.FC<SatelliteAnalysisViewProps> = ({ sa
 
 const Metric: React.FC<{ title: string; icon: React.ReactNode; value: string; unit: string; note: string; badge?: string }> = ({ title, icon, value, unit, note, badge }) => {
   return (
-    <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-3 space-y-1.5 hover:border-cyan-500/30 transition-colors">
+    <div className="bg-white border border-slate-200 rounded-xl p-3 space-y-1.5 hover:border-sky-300 shadow-2xs transition-colors">
       <div className="flex items-center justify-between gap-1">
-        <div className="flex items-center gap-1 text-[11px] text-slate-400 font-medium truncate">{icon}<span className="truncate">{title}</span></div>
-        {badge && <span className="text-[8px] font-mono px-1 py-0.5 rounded bg-cyan-950/90 text-cyan-300 border border-cyan-800/40 shrink-0">{badge}</span>}
+        <div className="flex items-center gap-1 text-[11px] text-slate-600 font-medium truncate">{icon}<span className="truncate font-semibold">{title}</span></div>
+        {badge && <span className="text-[8px] font-mono px-1 py-0.5 rounded bg-sky-50 text-sky-700 border border-sky-200 shrink-0 font-bold">{badge}</span>}
       </div>
       <div className="flex items-baseline gap-1">
-        <span className="text-xl font-black text-slate-100 font-mono">{value}</span>
-        <span className="text-xs text-slate-400">{unit}</span>
+        <span className="text-xl font-black text-slate-900 font-mono">{value}</span>
+        <span className="text-xs text-slate-500 font-medium">{unit}</span>
       </div>
-      <p className="text-[10px] text-slate-500 leading-tight pt-1 border-t border-slate-800/80">{note}</p>
+      <p className="text-[10px] text-slate-500 leading-tight pt-1 border-t border-slate-100">{note}</p>
     </div>
   );
 };
 
 const RealMetric: React.FC<{ title: string; icon: React.ReactNode; value: string; note: string }> = ({ title, icon, value, note }) => {
   return (
-    <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-3.5 space-y-1.5">
-      <div className="flex items-center gap-1 text-xs text-slate-400 font-medium">{icon}<span>{title}</span></div>
-      <div className="text-2xl font-black text-slate-100 font-mono">{value}</div>
-      <p className="text-[10px] text-slate-500 leading-tight pt-1 border-t border-slate-800/80">{note}</p>
+    <div className="bg-white border border-slate-200 rounded-xl p-3.5 space-y-1.5 shadow-2xs hover:border-sky-300 transition-all">
+      <div className="flex items-center gap-1 text-xs text-slate-600 font-semibold">{icon}<span>{title}</span></div>
+      <div className="text-2xl font-black text-slate-900 font-mono">{value}</div>
+      <p className="text-[10px] text-slate-500 leading-tight pt-1 border-t border-slate-100">{note}</p>
     </div>
   );
 };
@@ -380,13 +380,13 @@ const RealMetric: React.FC<{ title: string; icon: React.ReactNode; value: string
 const StatusCard: React.FC<{ title: string; active?: boolean; unavailable: boolean; icon: React.ReactNode; language: LanguageCode }> = ({ title, active, unavailable, icon, language }) => {
   const text = unavailable ? 'Not derived from available observations' : active ? 'Detected by satellite processing' : 'No anomaly detected';
   return (
-    <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-3 flex items-center space-x-3">
-      <div className={`p-2 rounded-lg ${unavailable ? 'bg-slate-800 text-slate-500' : active ? 'bg-amber-500/20 text-amber-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
-        {unavailable ? icon : active ? icon : <CheckCircle className="h-4 w-4" />}
+    <div className="bg-white border border-slate-200 rounded-xl p-3 flex items-center space-x-3 shadow-2xs">
+      <div className={`p-2 rounded-lg ${unavailable ? 'bg-slate-100 text-slate-400' : active ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'}`}>
+        {unavailable ? icon : active ? icon : <CheckCircle className="h-4 w-4 text-emerald-600" />}
       </div>
       <div>
-        <div className="font-bold text-slate-200">{title}</div>
-              <div className="text-[11px] text-slate-400">{localizeSatelliteText(text, language)}</div>
+        <div className="font-bold text-slate-800">{title}</div>
+        <div className="text-[11px] text-slate-500">{localizeSatelliteText(text, language)}</div>
       </div>
     </div>
   );
