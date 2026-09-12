@@ -426,6 +426,14 @@ export const LeftNavbar: React.FC<LeftNavbarProps> = ({
 
           {onExit && <BriefLink onExit={onExit} language={language} />}
 
+          <a
+            href="#/simulator"
+            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-gradient-to-r from-cyan-500/15 via-cyan-500/10 to-teal-500/15 border border-cyan-500/40 text-cyan-900 text-xs font-bold hover:bg-cyan-500/25 transition-all shadow-xs font-mono"
+          >
+            <span className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse" />
+            2G Keypad IVR Simulator
+          </a>
+
           <div className="rounded-2xl border border-slate-200/90 bg-gradient-to-br from-white/95 via-slate-50/80 to-sky-50/20 backdrop-blur-md p-4 shadow-[0_2px_12px_rgba(15,23,42,0.03),inset_0_1px_0_rgba(255,255,255,1)]">
             <div className="flex items-center justify-between">
               <StatusLamp isProcessing={isProcessing} language={language} />

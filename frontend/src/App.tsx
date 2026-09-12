@@ -4,11 +4,10 @@ import { useHashRoute } from "./hooks/useHashRoute";
 import { usePrefersReducedMotion } from "./hooks/usePrefersReducedMotion";
 import SynopsisPage from "./pages/SynopsisPage";
 import ConsolePage from "./pages/ConsolePage";
+import SimulatorPage from "./pages/SimulatorPage";
 
 /**
- * ORCA-X has two destinations: the project brief, and the live console. The
- * transition between them reads as a dive — the outgoing page sinks and dims
- * while the incoming one rises into place.
+ * ORCA-X destinations: project brief, live console, and 2G keypad simulator.
  */
 export default function App() {
   const { route, navigate } = useHashRoute();
@@ -19,15 +18,13 @@ export default function App() {
     document.title =
       route === "console"
         ? "ORCA-X — Live Console"
+        : route === "simulator"
+        ? "ORCA-X — 2G Keypad IVR Simulator"
         : "ORCA-X — Ocean Reasoning & Collaborative AI";
   }, [route]);
 
   /**
-   * Opacity and offset only — deliberately no `filter`. A filter value other
-   * than `none` (including `blur(0px)`) makes the element a containing block
-   * for fixed-position descendants, which would strand the brief's parallax
-   * plate, its depth gauge, the console's mobile drawer and the map's
-   * fullscreen mode. The dive reads fine without it.
+   * Opacity and offset transition.
    */
   const dive = reduced
     ? { initial: false as const, animate: {}, exit: {} }
@@ -50,6 +47,8 @@ export default function App() {
       >
         {route === "console" ? (
           <ConsolePage onExit={() => navigate("brief")} />
+        ) : route === "simulator" ? (
+          <SimulatorPage onExit={() => navigate("console")} />
         ) : (
           <SynopsisPage onEnterConsole={() => navigate("console")} />
         )}

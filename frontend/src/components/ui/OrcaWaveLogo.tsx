@@ -1,10 +1,11 @@
-﻿import React, { useId, useRef, useState, useEffect, useCallback } from 'react';
+import React, { useId, useRef, useState, useEffect, useCallback } from 'react';
 import { hydrophoneEngine } from '../../services/hydrophoneAudio';
 
 interface OrcaWaveLogoProps {
   size?: 'sm' | 'md' | 'lg' | 'custom';
   className?: string;
   variant?: 'console' | 'home' | 'sidebar';
+  theme?: 'light' | 'dark' | string;
 }
 
 interface Particle {

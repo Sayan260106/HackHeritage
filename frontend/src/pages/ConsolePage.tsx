@@ -289,14 +289,24 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
             ORCA-X live console — marine risk advisory for the Indian coast
           </h1>
 
-          {/* Return path to the brief, kept out of the way of the live modules. */}
-          <button
-            onClick={onExit}
-            className="group hidden items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em] text-slate-500 transition-colors hover:text-sky-700 lg:inline-flex"
-          >
-            <ArrowLeft className="h-3.5 w-3.5 transition-transform duration-300 group-hover:-translate-x-1 text-sky-600" />
-            Project brief
-          </button>
+          {/* Return path to the brief and 2G Keypad Simulator button */}
+          <div className="hidden lg:flex items-center space-x-4 mb-2">
+            <button
+              onClick={onExit}
+              className="group items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em] text-slate-500 transition-colors hover:text-sky-700 inline-flex"
+            >
+              <ArrowLeft className="h-3.5 w-3.5 transition-transform duration-300 group-hover:-translate-x-1 text-sky-600" />
+              Project brief
+            </button>
+
+            <a
+              href="#/simulator"
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-cyan-500/10 text-cyan-700 border border-cyan-500/30 hover:bg-cyan-500/20 font-mono text-[11px] font-bold tracking-wide transition-all shadow-sm"
+            >
+              <Radio className="w-3.5 h-3.5 text-cyan-600 animate-pulse" />
+              2G Keypad IVR Simulator
+            </a>
+          </div>
 
           {/* Multi-Port Coastal Hubs Live Status Bar (Apple Segmented Control Dock) */}
           <div ref={portBarRef} className="apple-segmented-track no-scrollbar relative flex items-center space-x-1.5 overflow-x-auto text-xs font-mono">

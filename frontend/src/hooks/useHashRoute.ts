@@ -1,18 +1,17 @@
 import { useCallback, useEffect, useState } from "react";
 
-export type Route = "brief" | "console";
+export type Route = "brief" | "console" | "simulator";
 
-/** `#/console` opens the live console; anything else opens the brief. */
+/** `#/console` opens the live console; `#/simulator` opens 2G keypad simulator; anything else opens brief. */
 function readRoute(): Route {
-  return window.location.hash.replace(/^#\/?/, "") === "console"
-    ? "console"
-    : "brief";
+  const hash = window.location.hash.replace(/^#\/?/, "");
+  if (hash === "console") return "console";
+  if (hash === "simulator" || hash === "keypad" || hash === "ivr") return "simulator";
+  return "brief";
 }
 
 /**
- * Two-page routing on the URL hash. Deliberately dependency-free: ORCA-X has
- * exactly two destinations, and a hash keeps the console linkable and
- * back-button friendly without adding a router to the bundle.
+ * Hash-based routing for brief, console, and 2G keypad simulator.
  */
 export function useHashRoute() {
   const [route, setRoute] = useState<Route>(() =>
@@ -26,7 +25,10 @@ export function useHashRoute() {
   }, []);
 
   const navigate = useCallback((next: Route) => {
-    const target = next === "console" ? "#/console" : "#/";
+    let target = "#/";
+    if (next === "console") target = "#/console";
+    if (next === "simulator") target = "#/simulator";
+
     if (window.location.hash === target) {
       setRoute(next);
       return;

@@ -12,6 +12,7 @@ export default defineConfig(() => {
       },
     },
     server: {
+      host: true,
       // The console used to be served by Vite running inside Express, which is
       // why every component fetches a same-origin '/api/...' path. Express is
       // gone, so Vite serves the console itself and forwards those same paths
