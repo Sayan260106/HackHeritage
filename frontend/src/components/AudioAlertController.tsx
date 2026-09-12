@@ -171,10 +171,10 @@ export const AudioAlertController: React.FC<AudioAlertControllerProps> = ({
   return (
     <>
       <div
-        className={`flex flex-wrap items-center justify-between gap-3 px-3.5 py-2 rounded-xl bg-white border transition-all ${
+        className={`flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-white/95 via-sky-50/40 to-white/95 backdrop-blur-xl border transition-all ${
           isAudioActive
-            ? 'border-rose-300 shadow-md ring-1 ring-rose-300'
-            : 'border-slate-200/90 shadow-2xs'
+            ? 'border-rose-300 shadow-md shadow-rose-500/15 ring-2 ring-rose-400/20'
+            : 'border-slate-200/90 shadow-[0_4px_20px_-2px_rgba(2,132,199,0.05),inset_0_1px_0_rgba(255,255,255,1)]'
         } ${className}`}
       >
         {/* Left: Audio Status & Controls */}
@@ -182,12 +182,12 @@ export const AudioAlertController: React.FC<AudioAlertControllerProps> = ({
           <button
             onClick={handleToggleMute}
             title={isMuted ? 'Unmute Maritime Audio Alerts' : 'Mute Maritime Audio Alerts'}
-            className={`p-2 rounded-lg transition-all flex items-center justify-center cursor-pointer ${
+            className={`p-2 rounded-xl transition-all flex items-center justify-center cursor-pointer shadow-2xs ${
               isMuted
                 ? 'bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-800 border border-slate-200'
                 : isAudioActive
                 ? 'bg-rose-500 text-white shadow-md shadow-rose-500/30 animate-pulse font-bold'
-                : 'bg-sky-50 text-sky-700 border border-sky-200 hover:bg-sky-100'
+                : 'bg-sky-500/10 text-sky-700 border border-sky-200/80 hover:bg-sky-500/15'
             }`}
           >
             {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
@@ -195,12 +195,12 @@ export const AudioAlertController: React.FC<AudioAlertControllerProps> = ({
 
           <div className="flex flex-col min-w-0">
             <div className="flex items-center space-x-1.5">
-              <span className="text-xs font-bold text-slate-800 tracking-wide flex items-center gap-1 font-mono">
+              <span className="text-xs font-bold text-slate-800 tracking-wide flex items-center gap-1.5 font-mono">
                 <Radio className={`h-3 w-3 ${isAudioActive ? 'text-rose-600 animate-spin' : 'text-sky-600'}`} />
                 <span>MARITIME AUDIO:</span>
               </span>
               <span
-                className={`text-[10px] font-mono font-bold px-1.5 py-0.2 rounded border ${
+                className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border ${
                   isMuted
                     ? 'bg-slate-100 text-slate-600 border-slate-200'
                     : isAudioActive
@@ -218,13 +218,13 @@ export const AudioAlertController: React.FC<AudioAlertControllerProps> = ({
         </div>
 
         {/* Center: Live Equalizer Soundwave Animation */}
-        <div className="flex items-center space-x-1 h-5 px-2 bg-slate-100 rounded-md border border-slate-200">
+        <div className="flex items-center space-x-1 h-6 px-2.5 bg-slate-100/90 rounded-lg border border-slate-200/80 shadow-inner">
           {[1, 2, 3, 4, 5].map((bar) => {
             const heights = isAudioActive
               ? isPlayingSiren
                 ? ['h-5 bg-rose-500', 'h-3 bg-rose-600', 'h-4 bg-amber-500', 'h-2 bg-rose-600', 'h-5 bg-rose-500']
                 : ['h-3 bg-sky-500', 'h-5 bg-sky-600', 'h-2 bg-emerald-500', 'h-4 bg-sky-500', 'h-3 bg-sky-600']
-              : ['h-1.5 bg-slate-300', 'h-2 bg-slate-300', 'h-1.5 bg-slate-300', 'h-2 bg-slate-300', 'h-1.5 bg-slate-300'];
+              : ['h-1.5 bg-slate-300', 'h-2.5 bg-slate-300', 'h-1.5 bg-slate-300', 'h-2.5 bg-slate-300', 'h-1.5 bg-slate-300'];
             return (
               <div
                 key={bar}
@@ -237,7 +237,7 @@ export const AudioAlertController: React.FC<AudioAlertControllerProps> = ({
         {/* Indic AI Gateway Settings Trigger */}
         <button
           onClick={() => setShowConfigModal(true)}
-          className="hidden sm:flex items-center gap-1.5 px-2 py-1 rounded-md bg-slate-50 hover:bg-slate-100 border border-slate-200 text-[10px] font-mono text-slate-700 transition-all cursor-pointer shadow-2xs"
+          className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white/90 hover:bg-white border border-slate-200/80 text-[10.5px] font-mono text-slate-700 transition-all cursor-pointer shadow-2xs hover:border-sky-300 active:scale-95"
           title="Configure Bhashini & Sarvam Indic AI Gateway"
         >
           <span className="h-1.5 w-1.5 rounded-full bg-sky-500 animate-pulse" />
@@ -251,7 +251,7 @@ export const AudioAlertController: React.FC<AudioAlertControllerProps> = ({
             <button
               onClick={handleReplayBriefing}
               disabled={isAudioActive}
-              className="px-2.5 py-1.5 rounded-lg text-xs font-bold font-mono text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 flex items-center space-x-1.5 transition-all active:scale-95 disabled:opacity-50 cursor-pointer shadow-2xs"
+              className="px-3 py-1.5 rounded-xl text-xs font-semibold font-sans text-emerald-800 bg-emerald-50/90 hover:bg-emerald-100/90 border border-emerald-200 flex items-center space-x-1.5 transition-all active:scale-95 disabled:opacity-50 cursor-pointer shadow-2xs"
               title="Replay spoken regional voice alert"
             >
               <RotateCcw className="h-3 w-3 text-emerald-600" />
@@ -262,9 +262,9 @@ export const AudioAlertController: React.FC<AudioAlertControllerProps> = ({
           <button
             onClick={handleTestAlert}
             disabled={isAudioActive}
-            className="px-2.5 py-1.5 rounded-lg text-xs font-bold font-mono text-sky-800 bg-sky-50 hover:bg-sky-100 border border-sky-200 flex items-center space-x-1.5 transition-all active:scale-95 disabled:opacity-50 cursor-pointer shadow-2xs"
+            className="px-3.5 py-1.5 rounded-xl text-xs font-semibold font-sans text-sky-900 bg-gradient-to-r from-sky-500/10 via-sky-500/15 to-cyan-500/10 hover:from-sky-500/20 hover:to-cyan-500/20 border border-sky-300/80 flex items-center space-x-1.5 transition-all active:scale-95 disabled:opacity-50 cursor-pointer shadow-2xs hover:shadow-xs"
           >
-            <Sparkles className="h-3 w-3 text-sky-600" />
+            <Sparkles className="h-3.5 w-3.5 text-sky-600" />
             <span>Test Siren &amp; Voice ({language.toUpperCase()})</span>
           </button>
 

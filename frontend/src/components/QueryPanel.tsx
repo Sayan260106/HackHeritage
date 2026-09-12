@@ -309,7 +309,7 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
             onChange={(e) => setInputQuery(e.target.value)}
             placeholder={dict.queryPlaceholder}
             disabled={isLoading}
-            className="w-full bg-slate-100/60 hover:bg-white focus:bg-white border border-slate-200/90 rounded-2xl pl-11 pr-28 py-3.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-sky-500/15 focus:border-sky-400 transition-all shadow-2xs font-sans"
+            className="w-full bg-slate-50/70 hover:bg-white focus:bg-white border border-slate-200/90 focus:border-sky-400 rounded-2xl pl-11 pr-32 py-3.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-sky-400/20 transition-all shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)] font-sans"
           />
 
           {/* Voice Microphone & Submit Buttons */}
@@ -321,7 +321,7 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
               title={isListening ? 'Stop listening' : 'Start voice input'}
               className={`p-2 rounded-xl transition-all cursor-pointer ${isListening
                 ? 'bg-rose-500 text-white animate-pulse shadow-md shadow-rose-500/40'
-                : 'bg-white/80 hover:bg-white text-slate-600 border border-slate-200/60 shadow-2xs active:scale-95'
+                : 'bg-white/90 hover:bg-white text-slate-600 border border-slate-200/80 shadow-2xs active:scale-95 hover:text-sky-600'
                 }`}
             >
               {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
@@ -331,7 +331,7 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
               id="btn-submit-query"
               type="submit"
               disabled={isLoading || !inputQuery.trim()}
-              className="bg-sky-600 hover:bg-sky-500 text-white font-semibold px-4 py-2 rounded-xl text-xs transition-all flex items-center space-x-1.5 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_2px_10px_rgba(2,132,199,0.3)] active:scale-95 cursor-pointer font-sans"
+              className="bg-gradient-to-r from-sky-600 via-cyan-600 to-teal-600 hover:from-sky-500 hover:to-teal-500 text-white font-semibold px-4 py-2 rounded-xl text-xs transition-all flex items-center space-x-1.5 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_4px_14px_rgba(2,132,199,0.35)] active:scale-95 cursor-pointer font-sans"
             >
               {isLoading ? (
                 <RefreshCw className="h-3.5 w-3.5 animate-spin" />
@@ -359,9 +359,9 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
         )}
 
         {/* Optional Structured Filters (Location & Time Override) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
 
-          <div className="flex items-center space-x-2 bg-slate-100/60 hover:bg-white border border-slate-200/80 rounded-xl px-3.5 py-2 text-xs text-slate-700 transition-colors">
+          <div className="flex items-center space-x-2 bg-slate-50/80 hover:bg-white border border-slate-200/80 hover:border-sky-300/80 rounded-xl px-3.5 py-2.5 text-xs text-slate-700 transition-all shadow-2xs">
             <MapPin className="h-3.5 w-3.5 text-sky-600 shrink-0" />
             <select
               id="select-coastal-station"
@@ -378,7 +378,7 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
             </select>
           </div>
 
-          <div className="flex items-center space-x-2 bg-slate-100/60 hover:bg-white border border-slate-200/80 rounded-xl px-3.5 py-2 text-xs text-slate-700 transition-colors">
+          <div className="flex items-center space-x-2 bg-slate-50/80 hover:bg-white border border-slate-200/80 hover:border-sky-300/80 rounded-xl px-3.5 py-2.5 text-xs text-slate-700 transition-all shadow-2xs">
             <Clock className="h-3.5 w-3.5 text-sky-600 shrink-0" />
             <select
               id="select-time-window"
@@ -399,14 +399,14 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
       </form>
 
       {/* Suggested Prompt Chips with Tabs */}
-      <div className="space-y-2 pt-1">
+      <div className="space-y-2.5 pt-1">
         <div className="flex items-center justify-between border-b border-slate-200/80 pb-2">
           <div className="flex items-center space-x-1.5">
             <button
               type="button"
               onClick={() => setActivePromptTab('isro')}
-              className={`text-[11px] font-sans font-medium px-3.5 py-1.5 rounded-full transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 ${activePromptTab === 'isro'
-                  ? 'bg-sky-600 text-white shadow-xs'
+              className={`text-[11px] font-sans font-semibold px-3.5 py-1.5 rounded-full transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 ${activePromptTab === 'isro'
+                  ? 'bg-gradient-to-r from-sky-600 to-cyan-600 text-white shadow-xs'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'
                 }`}
             >
@@ -415,8 +415,8 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
             <button
               type="button"
               onClick={() => setActivePromptTab('regional')}
-              className={`text-[11px] font-sans font-medium px-3.5 py-1.5 rounded-full transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 ${activePromptTab === 'regional'
-                  ? 'bg-sky-600 text-white shadow-xs'
+              className={`text-[11px] font-sans font-semibold px-3.5 py-1.5 rounded-full transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 ${activePromptTab === 'regional'
+                  ? 'bg-gradient-to-r from-sky-600 to-cyan-600 text-white shadow-xs'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'
                 }`}
             >
@@ -429,13 +429,13 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
         </div>
 
         {activePromptTab === 'isro' ? (
-          <div className="custom-scrollbar gap-2 py-1.5 overflow-x-auto whitespace-nowrap">
+          <div className="no-scrollbar flex items-center gap-2 py-1.5 overflow-x-auto whitespace-nowrap">
             {ISRO_BENCHMARK_QUERIES.map((q) => (
               <button
                 key={q.id}
                 id={`isro-query-${q.id}`}
                 onClick={() => handleSelectPreset(q.query, 'digha')}
-                className="px-3.5 py-1.5 rounded-full bg-slate-100/70 hover:bg-sky-50 border border-slate-200/80 hover:border-sky-300 text-slate-700 hover:text-sky-900 text-xs font-sans font-medium transition-all flex items-center space-x-2 shrink-0 shadow-2xs cursor-pointer whitespace-nowrap active:scale-95"
+                className="px-3.5 py-1.5 rounded-full bg-white/90 hover:bg-sky-50 border border-slate-200/90 hover:border-sky-300 text-slate-700 hover:text-sky-900 text-xs font-sans font-medium transition-all flex items-center space-x-2 shrink-0 shadow-2xs hover:shadow-xs cursor-pointer whitespace-nowrap active:scale-95"
                 title={q.query}
               >
                 <span className="text-[10px] font-mono font-bold text-sky-700 bg-sky-100 px-2 py-0.5 rounded-full border border-sky-200 shrink-0">
@@ -448,13 +448,13 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
             ))}
           </div>
         ) : (
-          <div className="custom-scrollbar gap-2 py-1.5 overflow-x-auto whitespace-nowrap">
+          <div className="no-scrollbar flex items-center gap-2 py-1.5 overflow-x-auto whitespace-nowrap">
             {samplePrompts.map((p, idx) => (
               <button
                 key={idx}
                 id={`preset-btn-${idx}`}
                 onClick={() => handleSelectPreset(p.text, p.loc)}
-                className="px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-sky-50 border border-slate-200 hover:border-sky-300 text-slate-700 hover:text-sky-900 text-xs font-mono font-semibold transition-all flex items-center space-x-2 shadow-2xs shrink-0 cursor-pointer whitespace-nowrap active:scale-95"
+                className="px-3.5 py-1.5 rounded-xl bg-white/90 hover:bg-sky-50 border border-slate-200/90 hover:border-sky-300 text-slate-700 hover:text-sky-900 text-xs font-mono font-semibold transition-all flex items-center space-x-2 shadow-2xs shrink-0 cursor-pointer whitespace-nowrap active:scale-95"
               >
                 <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0"></span>
                 <span>{p.tag}</span>

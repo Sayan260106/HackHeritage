@@ -196,15 +196,20 @@ const NavList: React.FC<{
               onNavigate?.();
             }}
             className={[
-              'group flex w-full items-center justify-between gap-3 px-3 py-2 text-left transition-all duration-200 rounded-xl active:scale-[0.98]',
+              'group relative flex w-full items-center justify-between gap-3 px-3.5 py-2.5 text-left transition-all duration-200 rounded-xl active:scale-[0.98] cursor-pointer',
               isActive
-                ? 'bg-sky-50 text-sky-900 font-semibold border border-sky-200/80 shadow-2xs'
-                : 'border border-transparent text-slate-600 hover:bg-slate-100/60 hover:text-slate-900'
+                ? 'bg-gradient-to-r from-sky-500/12 via-sky-500/8 to-cyan-500/5 text-sky-950 font-semibold border border-sky-300/70 shadow-xs shadow-sky-500/5'
+                : 'border border-transparent text-slate-600 hover:bg-slate-100/70 hover:text-slate-900'
             ].join(' ')}
           >
+            {isActive && (
+              <span className="absolute -left-0.5 top-1/2 -translate-y-1/2 h-5 w-1 rounded-r-full bg-gradient-to-b from-sky-500 to-cyan-500 shadow-xs shadow-sky-500/50" />
+            )}
             <span className="flex min-w-0 items-center gap-2.5">
-              <span className={`flex h-7 w-7 items-center justify-center rounded-lg transition-colors ${
-                isActive ? 'bg-sky-500 text-white shadow-xs' : 'bg-slate-100/80 text-slate-500 group-hover:bg-slate-200 group-hover:text-slate-700'
+              <span className={`flex h-7 w-7 items-center justify-center rounded-lg transition-all shrink-0 ${
+                isActive 
+                  ? 'bg-gradient-to-br from-sky-500 to-cyan-600 text-white shadow-sm shadow-sky-500/35' 
+                  : 'bg-slate-100/90 text-slate-500 group-hover:bg-slate-200/80 group-hover:text-slate-700'
               }`}>
                 <Icon className="h-3.5 w-3.5" />
               </span>
@@ -220,8 +225,11 @@ const NavList: React.FC<{
 
             {item.badge && (
               <span
-                className={`shrink-0 rounded-full border px-2 py-0.5 font-mono text-[8px] font-bold tracking-wider ${isActive ? 'border-sky-300 bg-sky-100 text-sky-800' : 'border-slate-200 bg-slate-100/80 text-slate-500'
-                  }`}
+                className={`shrink-0 rounded-full border px-2 py-0.5 font-mono text-[8px] font-bold tracking-wider ${
+                  isActive 
+                    ? 'border-sky-300/80 bg-sky-100/80 text-sky-800' 
+                    : 'border-slate-200/80 bg-slate-100/70 text-slate-500'
+                }`}
               >
                 {item.badge}
               </span>
@@ -411,17 +419,17 @@ export const LeftNavbar: React.FC<LeftNavbarProps> = ({
       {/* ---- Desktop sidebar -------------------------------------------- */}
       <aside
         id="left-sidebar-navigation"
-        className="sticky top-0 z-30 hidden h-screen w-64 shrink-0 flex-col justify-between overflow-y-auto no-scrollbar border-r border-slate-200/70 bg-white/80 backdrop-blur-2xl lg:flex xl:w-72 shadow-[0_4px_24px_rgba(0,0,0,0.02)]"
+        className="sticky top-0 z-30 hidden h-screen w-64 shrink-0 flex-col justify-between overflow-y-auto no-scrollbar border-r border-slate-200/80 bg-white/85 backdrop-blur-3xl lg:flex xl:w-72 shadow-[4px_0_30px_rgba(15,23,42,0.03)]"
       >
         <div className="space-y-6 p-5">
           <Wordmark />
 
           {onExit && <BriefLink onExit={onExit} language={language} />}
 
-          <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 backdrop-blur-md p-3.5 shadow-2xs">
+          <div className="rounded-2xl border border-slate-200/90 bg-gradient-to-br from-white/95 via-slate-50/80 to-sky-50/20 backdrop-blur-md p-4 shadow-[0_2px_12px_rgba(15,23,42,0.03),inset_0_1px_0_rgba(255,255,255,1)]">
             <div className="flex items-center justify-between">
               <StatusLamp isProcessing={isProcessing} language={language} />
-              <span className="font-mono text-[8.5px] font-bold tracking-[0.14em] text-emerald-700 bg-emerald-50/90 px-2 py-0.5 rounded-full border border-emerald-200">
+              <span className="font-mono text-[8.5px] font-bold tracking-[0.14em] text-emerald-700 bg-emerald-50/90 px-2 py-0.5 rounded-full border border-emerald-200/80 shadow-2xs">
                 LIVE FEED
               </span>
             </div>
@@ -436,7 +444,7 @@ export const LeftNavbar: React.FC<LeftNavbarProps> = ({
           </div>
         </div>
 
-        <div className="space-y-4 border-t border-slate-200/70 p-5 bg-slate-50/50 backdrop-blur-md">
+        <div className="space-y-4 border-t border-slate-200/80 p-5 bg-slate-50/60 backdrop-blur-md">
           <LanguageField
             id="sidebar-language-selector"
             language={language}
@@ -445,9 +453,9 @@ export const LeftNavbar: React.FC<LeftNavbarProps> = ({
 
           <p className="text-[10.5px] leading-snug text-slate-500 font-sans">{dict.missionSubtitle}</p>
 
-          <div className="flex items-center justify-between border-t border-slate-200/70 pt-4 font-mono text-[9.5px] tracking-wider text-slate-400">
+          <div className="flex items-center justify-between border-t border-slate-200/80 pt-4 font-mono text-[9.5px] tracking-wider text-slate-400">
             <span>INCOIS · IMD · NOAA</span>
-            <span className="flex items-center gap-1 font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 shadow-2xs">
+            <span className="flex items-center gap-1 font-semibold text-emerald-700 bg-emerald-50/90 px-2.5 py-0.5 rounded-full border border-emerald-200 shadow-2xs">
               <ShieldCheck className="h-3 w-3" />
               VERIFIED
             </span>

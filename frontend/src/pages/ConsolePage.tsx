@@ -259,7 +259,14 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
   const failedPort = portError ? COASTAL_LOCATIONS[portError.key] : null;
 
   return (
-    <div className="orca-console flex min-h-screen flex-col bg-[#f8fafc] text-slate-800 lg:flex-row font-sans">
+    <div className="orca-console relative flex min-h-screen flex-col bg-gradient-to-br from-[#f0f6fc] via-[#f8fafc] to-[#edf8f8] text-slate-800 lg:flex-row font-sans overflow-x-hidden selection:bg-cyan-500/20 selection:text-cyan-900">
+      {/* ── Ambient Oceanic Atmosphere Glows (High-End Depth Layer) ── */}
+      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden opacity-70" aria-hidden="true">
+        <div className="absolute -top-40 right-1/4 h-[550px] w-[550px] rounded-full bg-gradient-to-br from-sky-200/35 via-cyan-100/25 to-transparent blur-3xl" />
+        <div className="absolute top-1/3 -left-32 h-[650px] w-[650px] rounded-full bg-gradient-to-tr from-teal-200/20 via-sky-100/20 to-transparent blur-3xl" />
+        <div className="absolute bottom-10 right-10 h-[600px] w-[600px] rounded-full bg-gradient-to-tl from-cyan-200/25 via-sky-200/20 to-transparent blur-3xl" />
+      </div>
+
       <LeftNavbar
         currentTab={currentTab}
         setCurrentTab={setCurrentTab}
@@ -273,7 +280,7 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
         onExit={onExit}
       />
 
-      <div className="flex min-w-0 flex-1 flex-col justify-between pb-20 lg:pb-0">
+      <div className="relative z-10 flex min-w-0 flex-1 flex-col justify-between pb-20 lg:pb-0">
         <main className="mx-auto w-full max-w-7xl flex-1 space-y-6 px-4 py-6 sm:px-6 lg:px-8">
           {/* The console is a wall of live modules with no visible title, which
               leaves a screen-reader user on an unnamed page. This names it
@@ -292,8 +299,8 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
           </button>
 
           {/* Multi-Port Coastal Hubs Live Status Bar (Apple Segmented Control Dock) */}
-          <div ref={portBarRef} className="apple-segmented-track relative flex items-center space-x-1.5 overflow-x-auto horizontal-snap-carousel text-xs font-mono">
-            <span className="text-[11px] text-sky-800 font-bold uppercase tracking-wider shrink-0 flex items-center gap-1.5 px-2 py-1">
+          <div ref={portBarRef} className="apple-segmented-track no-scrollbar relative flex items-center space-x-1.5 overflow-x-auto text-xs font-mono">
+            <span className="text-[11px] text-sky-800 font-bold uppercase tracking-wider shrink-0 flex items-center gap-1.5 px-2.5 py-1">
               <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
               <span className="font-semibold tracking-normal text-slate-800 font-sans">Coastal Ports:</span>
             </span>
