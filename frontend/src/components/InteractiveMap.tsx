@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import {
   Layers,
@@ -93,6 +93,17 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   const dict = MULTILINGUAL_DICTIONARY[language] || MULTILINGUAL_DICTIONARY.en;
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
+  const [routeHudTop, setRouteHudTop] = useState<number>(80);
+  const controlsObserverRef = useRef<ResizeObserver | null>(null);
+  // Measured on attach and on every resize: the stack grows when its rows gain scrollbars.
+  const controlsRef = useCallback((node: HTMLDivElement | null) => {
+    controlsObserverRef.current?.disconnect();
+    if (!node) return;
+    const measure = () => setRouteHudTop(node.offsetTop + node.offsetHeight + 8);
+    measure();
+    controlsObserverRef.current = new ResizeObserver(measure);
+    controlsObserverRef.current.observe(node, { box: 'border-box' });
+  }, []);
   const tileLayerRef = useRef<L.TileLayer | null>(null);
   const satelliteLayerRef = useRef<L.TileLayer | null>(null);
   const seamarksLayerRef = useRef<L.TileLayer | null>(null);
@@ -116,7 +127,8 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   const [pfzFrontlines, setPfzFrontlines] = useState<any | null>(null);
 
   // Safe Routing Navigation State
-  const [routeDestination, setRouteDestination] = useState<{ latitude: number; longitude: number; name?: string } | null>(null);
+  // `auto` asks the server for the nearest real fishing zone instead of sending a point.
+  const [routeDestination, setRouteDestination] = useState<{ latitude: number; longitude: number; name?: string; auto?: boolean } | null>(null);
   const [safeRouteResult, setSafeRouteResult] = useState<any | null>(null);
   const [isCalculatingRoute, setIsCalculatingRoute] = useState<boolean>(false);
   const [showSafeRouteLayer, setShowSafeRouteLayer] = useState<boolean>(true);
@@ -307,7 +319,9 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         origin: { latitude: location.latitude, longitude: location.longitude },
-        destination: { latitude: routeDestination.latitude, longitude: routeDestination.longitude },
+        destination: routeDestination.auto
+          ? null
+          : { latitude: routeDestination.latitude, longitude: routeDestination.longitude },
         riskLevel: riskLevel
       })
     })
@@ -365,6 +379,37 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       document.removeEventListener('fullscreenchange', handleFSChange);
     };
   }, []);
+
+  // Fallback fullscreen has no browser Escape handling or scroll lock of its own.
+  useEffect(() => {
+    if (!isFullscreen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !document.fullscreenElement) setIsFullscreen(false);
+    };
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isFullscreen]);
+
+  // Re-frame an active route once the map has its new size, or it can sit off-screen.
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    const waypoints = safeRouteResult?.waypoints;
+    if (!map || !Array.isArray(waypoints) || waypoints.length === 0) return;
+    const timer = setTimeout(() => {
+      map.invalidateSize();
+      map.fitBounds(L.latLngBounds(waypoints.map((w: any) => [w.latitude, w.longitude])), {
+        padding: [60, 60],
+        maxZoom: 13,
+      });
+    }, 300);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isFullscreen]);
 
   // Initialize Map
   useEffect(() => {
@@ -1513,7 +1558,9 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   return (
     <div
       ref={outerWrapperRef}
-      className={`orca-map-frame relative bg-slate-900 rounded-2xl overflow-hidden shadow-2xl transition-all ${isFullscreen ? 'fixed inset-0 z-[9999] w-screen h-screen rounded-none' : 'h-[440px] sm:h-[480px] lg:h-[540px]'
+      // `relative` must not sit beside `fixed`: Tailwind emits it later, so it won and the
+      // "fullscreen" map stayed in the page flow at screen size.
+      className={`orca-map-frame bg-slate-900 overflow-hidden shadow-2xl transition-all ${isFullscreen ? 'fixed inset-0 z-[9999] w-screen h-screen rounded-none' : 'relative rounded-2xl h-[440px] sm:h-[480px] lg:h-[540px]'
         }`}
     >
       {/* Decorative glowing border frame — purely cosmetic, non-interactive */}
@@ -1527,7 +1574,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       <div className="orca-scanline pointer-events-none absolute inset-0 z-[340] rounded-2xl overflow-hidden" />
 
       {/* Map Header & Controls Overlay — Stacked layout prevents UI collision */}
-      <div className="absolute top-3 left-3 z-[400] flex flex-col items-start gap-2 max-w-[82%] sm:max-w-[88%] lg:max-w-2xl">
+      <div ref={controlsRef} className="absolute top-3 left-3 z-[400] flex flex-col items-start gap-2 max-w-[82%] sm:max-w-[88%] lg:max-w-2xl">
 
         {/* Quick Coastal Hub Jump Menu — All 17 Indian Coastal Hubs */}
         <div className="orca-glass-panel p-1.5 flex items-center space-x-1.5 overflow-x-auto max-w-full scrollbar-thin">
@@ -1645,7 +1692,8 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
                 if (pfzZones && pfzZones.length > 0 && pfzZones[0].geofenceStatus !== 'RESTRICTED') {
                   setRouteDestination({ latitude: pfzZones[0].latitude, longitude: pfzZones[0].longitude, name: `PFZ Zone #${pfzZones[0].rank}` });
                 } else {
-                  setRouteDestination({ latitude: Number((location.latitude + 0.12).toFixed(4)), longitude: Number((location.longitude + 0.15).toFixed(4)), name: 'Offshore Channel Point' });
+                  // A fixed north-east offset landed inland on this coast; the server picks a zone in water.
+                  setRouteDestination({ latitude: location.latitude, longitude: location.longitude, name: 'Nearest fishing zone', auto: true });
                 }
               } else {
                 setShowSafeRouteLayer(!showSafeRouteLayer);
@@ -1847,7 +1895,10 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
 
       {/* Dynamic Safe Navigation Route HUD (Top Left under controls) */}
       {(routeDestination || isCalculatingRoute || safeRouteResult) && (
-        <div className="orca-glass-panel absolute top-20 left-3 z-[400] p-3 max-w-[280px] sm:max-w-[300px] text-xs space-y-2 shadow-2xl border border-emerald-500/60 bg-slate-950/90 rounded-xl">
+        <div
+          style={{ top: routeHudTop }}
+          className="orca-glass-panel absolute left-3 z-[400] p-3 max-w-[280px] sm:max-w-[300px] text-xs space-y-2 shadow-2xl border border-emerald-500/60 bg-slate-950/90 rounded-xl"
+        >
           <div className="flex items-center justify-between border-b border-slate-700/80 pb-1.5">
             <span className="font-mono text-[11px] uppercase font-bold text-emerald-400 flex items-center gap-1.5">
               <Navigation className={`h-3.5 w-3.5 ${isCalculatingRoute ? 'animate-spin text-cyan-400' : 'text-emerald-400'}`} />
@@ -1932,7 +1983,11 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       )}
 
       {/* Map Floating Legend (Bottom Left) */}
-      <div className="orca-glass-panel absolute bottom-3 left-3 z-[400] p-2.5 text-xs space-y-1.5 max-w-[240px] hidden sm:block">
+      {/* The route panel needs this corner in the normal-size map; fullscreen has room for both. */}
+      <div
+        className={`orca-glass-panel absolute bottom-3 left-3 z-[400] p-2.5 text-xs space-y-1.5 max-w-[240px] ${(routeDestination || isCalculatingRoute || safeRouteResult) && !isFullscreen ? 'hidden' : 'hidden sm:block'
+          }`}
+      >
         <div className="flex items-center justify-between text-[11px] font-mono text-slate-400 uppercase border-b border-slate-700/60 pb-1">
           <span className="flex items-center gap-1">
             <Layers className="h-3 w-3 text-cyan-400" />
