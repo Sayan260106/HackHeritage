@@ -411,7 +411,7 @@ export const LeftNavbar: React.FC<LeftNavbarProps> = ({
       {/* ---- Desktop sidebar -------------------------------------------- */}
       <aside
         id="left-sidebar-navigation"
-        className="sticky top-0 z-30 hidden h-screen w-64 shrink-0 flex-col justify-between overflow-y-auto border-r border-slate-200/70 bg-white/80 backdrop-blur-2xl lg:flex xl:w-72 shadow-[0_4px_24px_rgba(0,0,0,0.02)]"
+        className="sticky top-0 z-30 hidden h-screen w-64 shrink-0 flex-col justify-between overflow-y-auto no-scrollbar border-r border-slate-200/70 bg-white/80 backdrop-blur-2xl lg:flex xl:w-72 shadow-[0_4px_24px_rgba(0,0,0,0.02)]"
       >
         <div className="space-y-6 p-5">
           <Wordmark />
