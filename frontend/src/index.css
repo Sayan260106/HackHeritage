@@ -1518,6 +1518,20 @@ html.lenis, html.lenis body {
     inset 0 1px 0 rgba(255, 255, 255, 1);
 }
 
+/* ── Hide scrollbars cleanly while preserving scroll functionality ── */
+.no-scrollbar::-webkit-scrollbar,
+#left-sidebar-navigation::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.no-scrollbar,
+#left-sidebar-navigation {
+  -ms-overflow-style: none !important; /* IE and Edge */
+  scrollbar-width: none !important; /* Firefox */
+}
+
 
 
 
