@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { AlertCircle, ArrowLeft, RefreshCw, MessageSquare, Activity, Radio, Navigation, CheckCircle2, MapPin, X } from "lucide-react";
+import { AlertCircle, ArrowLeft, RefreshCw, MessageSquare, Activity, Radio, Navigation, CheckCircle2, MapPin, X, Sparkles } from "lucide-react";
 import { ConsoleErrorBoundary } from "../components/ConsoleErrorBoundary";
 import { LeftNavbar } from "../components/LeftNavbar";
 import { InteractiveMap } from "../components/InteractiveMap";
@@ -291,11 +291,11 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
             Project brief
           </button>
 
-          {/* Multi-Port Coastal Hubs Live Status Bar (Section 2C: Touch-Snap Carousel) */}
-          <div ref={portBarRef} className="relative flex items-center space-x-2 overflow-x-auto horizontal-snap-carousel py-2.5 px-4 bg-white border border-slate-200/90 rounded-2xl text-xs font-mono shadow-sm">
-            <span className="text-[11px] text-sky-800 font-bold uppercase tracking-wider shrink-0 flex items-center gap-1.5 px-1">
+          {/* Multi-Port Coastal Hubs Live Status Bar (Apple Segmented Control Dock) */}
+          <div ref={portBarRef} className="apple-segmented-track relative flex items-center space-x-1.5 overflow-x-auto horizontal-snap-carousel text-xs font-mono">
+            <span className="text-[11px] text-sky-800 font-bold uppercase tracking-wider shrink-0 flex items-center gap-1.5 px-2 py-1">
               <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span>Coastal Ports:</span>
+              <span className="font-semibold tracking-normal text-slate-800 font-sans">Coastal Ports:</span>
             </span>
             {PORT_BAR_KEYS.map((key) => {
               const loc = COASTAL_LOCATIONS[key];
@@ -314,27 +314,27 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
                   aria-pressed={activePortKey === key}
                   aria-busy={isPending}
                   title={hasError ? `Could not load ${loc.name}: ${portError?.message}` : `${loc.name}, ${loc.state}`}
-                  className={`min-h-[42px] px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all duration-200 flex items-center gap-1.5 shrink-0 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 ${
+                  className={`apple-segmented-item min-h-[38px] px-3.5 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5 shrink-0 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 ${
                     isPending
-                      ? 'bg-sky-50 text-sky-700 border border-sky-400 ring-2 ring-sky-300 shadow-sm'
+                      ? 'bg-sky-100/90 text-sky-800 border border-sky-300 shadow-sm animate-pulse'
                       : isActive
-                      ? `bg-sky-600 text-white shadow-md shadow-sky-600/25 font-bold border border-sky-600 ${isLeaving ? 'opacity-50' : ''}`
+                      ? `apple-segmented-item-active ${isLeaving ? 'opacity-60' : ''}`
                       : hasError
-                      ? 'bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-100'
-                      : 'bg-slate-50 text-slate-700 hover:text-sky-700 hover:bg-sky-50/70 border border-slate-200 hover:border-sky-300'
+                      ? 'bg-rose-50/80 text-rose-700 border border-rose-200 hover:bg-rose-100'
+                      : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
                   {isPending ? (
-                    <RefreshCw className="h-3.5 w-3.5 animate-spin text-sky-600" aria-hidden />
+                    <RefreshCw className="h-3 w-3 animate-spin text-sky-600" aria-hidden />
                   ) : isActive ? (
-                    <CheckCircle2 className="h-3.5 w-3.5 text-white" aria-hidden />
+                    <CheckCircle2 className="h-3.5 w-3.5 text-sky-600" aria-hidden />
                   ) : hasError ? (
                     <AlertCircle className="h-3.5 w-3.5 text-rose-500" aria-hidden />
                   ) : (
-                    <MapPin className="h-3.5 w-3.5 text-slate-400" aria-hidden />
+                    <MapPin className="h-3 w-3 text-slate-400" aria-hidden />
                   )}
-                  <span>{loc.name.split(' ')[0]}</span>
-                  <span className={`text-[10px] font-mono ${isActive ? 'text-sky-100' : 'text-slate-400'}`}>
+                  <span className="font-sans font-medium">{loc.name.split(' ')[0]}</span>
+                  <span className={`text-[10px] font-mono ${isActive ? 'text-sky-600 font-semibold' : 'text-slate-400'}`}>
                     {isPending ? 'loading…' : `(${loc.latitude.toFixed(1)}°N)`}
                   </span>
                 </button>
@@ -344,10 +344,10 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
             <button
               onClick={() => setIsHealthModalOpen(true)}
               title="Inspect multi-service connectivity & fallback health"
-              className="ml-auto shrink-0 flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-3.5 py-2 text-xs font-mono text-slate-700 hover:text-sky-700 shadow-xs transition-all active:scale-95"
+              className="ml-auto shrink-0 flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-white/90 hover:bg-white px-3.5 py-1.5 text-xs font-sans text-slate-700 hover:text-sky-700 shadow-2xs transition-all active:scale-95"
             >
               <Activity className="h-3.5 w-3.5 text-emerald-500 animate-pulse" />
-              <span className="hidden sm:inline font-semibold">System Diagnostics</span>
+              <span className="hidden sm:inline font-medium">System Diagnostics</span>
             </button>
           </div>
 
@@ -681,24 +681,49 @@ export const ConsolePage: React.FC<ConsolePageProps> = ({ onExit }) => {
           language={language}
         />
 
-        {/* Floating Multi-Turn Marine Chat Drawer Button */}
-        <button
+        {/* Apple Intelligence-Grade Floating Multi-Turn Marine Chat Dock */}
+        <div
           onClick={() => setIsChatDrawerOpen(true)}
-          className="fixed bottom-6 right-6 z-40 flex items-center gap-2.5 rounded-2xl border border-sky-200 bg-white px-4 py-3 text-xs font-bold font-mono text-sky-800 shadow-xl shadow-slate-300/60 backdrop-blur-md hover:bg-sky-50 hover:text-sky-900 hover:scale-105 active:scale-95 transition-all group"
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setIsChatDrawerOpen(true); }}
+          className="apple-chat-dock-wrapper group"
+          title="Open ORCA Multi-Turn Marine Reasoning Copilot"
         >
-          <div className="relative">
-            <MessageSquare className="h-4 w-4 text-sky-600 group-hover:animate-bounce" />
-            {chatTurns.length > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-sky-500 text-[9px] font-black text-white shadow-sm">
-                {chatTurns.length}
+          <div className="apple-chat-dock-inner">
+            {/* Apple Intelligence / Siri Iridescent Glowing Icon */}
+            <div className="relative flex items-center justify-center">
+              <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-sky-400 via-teal-300 to-indigo-400 opacity-60 blur-xs group-hover:opacity-100 transition-opacity" />
+              <div className="relative flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-sky-500 to-teal-600 text-white shadow-sm">
+                <MessageSquare className="h-3.5 w-3.5 transition-transform duration-300 group-hover:scale-110" />
+              </div>
+              {chatTurns.length > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500 text-[9px] font-black text-white shadow-sm ring-2 ring-white">
+                  {chatTurns.length}
+                </span>
+              )}
+            </div>
+
+            {/* Typography */}
+            <div className="flex flex-col text-left">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-semibold tracking-tight text-slate-900 group-hover:text-sky-700 transition-colors">
+                  Multi-Turn Chat
+                </span>
+                <span className="flex h-1.5 w-1.5 rounded-full bg-sky-500 animate-pulse" />
+              </div>
+              <span className="text-[10px] font-medium text-slate-500">
+                Ocean Reasoning Copilot
               </span>
-            )}
+            </div>
+
+            {/* Apple Intelligence Session Pill */}
+            <div className="apple-pill ml-1 flex items-center gap-1 rounded-full border border-sky-200/80 bg-sky-50/90 px-2.5 py-1 text-[10px] font-semibold text-sky-800 shadow-2xs">
+              <Sparkles className="h-2.5 w-2.5 text-sky-600" />
+              <span>{chatTurns.length > 0 ? `${chatTurns.length} Turns` : 'AI Session'}</span>
+            </div>
           </div>
-          <span>Multi-Turn Chat</span>
-          <span className="rounded-md bg-sky-50 px-1.5 py-0.5 text-[9px] text-sky-700 border border-sky-200 font-semibold">
-            {chatTurns.length > 0 ? `${chatTurns.length} Turns` : 'AI Session'}
-          </span>
-        </button>
+        </div>
 
         {/* Multi-Turn Contextual Chat Drawer */}
         <MarineChatDrawer

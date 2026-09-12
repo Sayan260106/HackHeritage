@@ -181,7 +181,7 @@ const NavList: React.FC<{
     simulator: dict.simulatorTitle
   };
   return (
-    <nav className="space-y-1">
+    <nav className="space-y-1.5">
       {navItems.map((item) => {
         const Icon = item.icon;
         const isActive = currentTab === item.id;
@@ -196,22 +196,23 @@ const NavList: React.FC<{
               onNavigate?.();
             }}
             className={[
-              'group flex w-full items-center justify-between gap-3 border-l-[3px] py-2.5 pl-3.5 pr-3 text-left transition-all duration-200 rounded-r-xl',
+              'group flex w-full items-center justify-between gap-3 px-3 py-2 text-left transition-all duration-200 rounded-xl active:scale-[0.98]',
               isActive
-                ? 'border-sky-600 bg-sky-50 text-sky-900 font-bold shadow-xs'
-                : 'border-transparent text-slate-600 hover:border-sky-300 hover:bg-slate-50 hover:text-slate-900'
+                ? 'bg-sky-50 text-sky-900 font-semibold border border-sky-200/80 shadow-2xs'
+                : 'border border-transparent text-slate-600 hover:bg-slate-100/60 hover:text-slate-900'
             ].join(' ')}
           >
-            <span className="flex min-w-0 items-center gap-3">
-              <Icon
-                className={`h-4 w-4 shrink-0 transition-colors ${isActive ? 'text-sky-600' : 'text-slate-400 group-hover:text-sky-600'
-                  }`}
-              />
+            <span className="flex min-w-0 items-center gap-2.5">
+              <span className={`flex h-7 w-7 items-center justify-center rounded-lg transition-colors ${
+                isActive ? 'bg-sky-500 text-white shadow-xs' : 'bg-slate-100/80 text-slate-500 group-hover:bg-slate-200 group-hover:text-slate-700'
+              }`}>
+                <Icon className="h-3.5 w-3.5" />
+              </span>
               <span className="min-w-0">
-                <span className="block truncate text-[12.5px] font-semibold leading-tight">
+                <span className="block truncate text-xs font-semibold leading-tight font-sans tracking-tight">
                   {labels[item.id]}
                 </span>
-                <span className="mt-0.5 block truncate text-[10.5px] leading-tight text-slate-500">
+                <span className="mt-0.5 block truncate text-[10.5px] leading-tight text-slate-500 font-sans">
                   {descriptions[item.id]}
                 </span>
               </span>
@@ -219,7 +220,7 @@ const NavList: React.FC<{
 
             {item.badge && (
               <span
-                className={`shrink-0 rounded-md border px-1.5 py-0.5 font-mono text-[8.5px] font-bold tracking-wider ${isActive ? 'border-sky-300 bg-sky-100 text-sky-800' : 'border-slate-200 bg-slate-100 text-slate-500'
+                className={`shrink-0 rounded-full border px-2 py-0.5 font-mono text-[8px] font-bold tracking-wider ${isActive ? 'border-sky-300 bg-sky-100 text-sky-800' : 'border-slate-200 bg-slate-100/80 text-slate-500'
                   }`}
               >
                 {item.badge}
@@ -410,17 +411,17 @@ export const LeftNavbar: React.FC<LeftNavbarProps> = ({
       {/* ---- Desktop sidebar -------------------------------------------- */}
       <aside
         id="left-sidebar-navigation"
-        className="sticky top-0 z-30 hidden h-screen w-64 shrink-0 flex-col justify-between overflow-y-auto border-r border-slate-200/90 bg-white lg:flex xl:w-72 shadow-xs"
+        className="sticky top-0 z-30 hidden h-screen w-64 shrink-0 flex-col justify-between overflow-y-auto border-r border-slate-200/70 bg-white/80 backdrop-blur-2xl lg:flex xl:w-72 shadow-[0_4px_24px_rgba(0,0,0,0.02)]"
       >
         <div className="space-y-6 p-5">
           <Wordmark />
 
           {onExit && <BriefLink onExit={onExit} language={language} />}
 
-          <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-3.5 shadow-2xs">
+          <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 backdrop-blur-md p-3.5 shadow-2xs">
             <div className="flex items-center justify-between">
               <StatusLamp isProcessing={isProcessing} language={language} />
-              <span className="font-mono text-[8.5px] font-bold tracking-[0.14em] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+              <span className="font-mono text-[8.5px] font-bold tracking-[0.14em] text-emerald-700 bg-emerald-50/90 px-2 py-0.5 rounded-full border border-emerald-200">
                 LIVE FEED
               </span>
             </div>
@@ -430,23 +431,23 @@ export const LeftNavbar: React.FC<LeftNavbarProps> = ({
           </div>
 
           <div>
-            <p className="font-mono text-[10px] uppercase tracking-wider text-slate-400 font-bold mb-2.5 pl-2">{dict.modules}</p>
+            <p className="font-sans text-[10px] uppercase tracking-wider text-slate-400 font-semibold mb-2.5 pl-2">{dict.modules}</p>
             <NavList currentTab={currentTab} setCurrentTab={setCurrentTab} language={language} />
           </div>
         </div>
 
-        <div className="space-y-4 border-t border-slate-200 p-5 bg-slate-50/40">
+        <div className="space-y-4 border-t border-slate-200/70 p-5 bg-slate-50/50 backdrop-blur-md">
           <LanguageField
             id="sidebar-language-selector"
             language={language}
             setLanguage={setLanguage}
           />
 
-          <p className="text-[10.5px] leading-snug text-slate-500">{dict.missionSubtitle}</p>
+          <p className="text-[10.5px] leading-snug text-slate-500 font-sans">{dict.missionSubtitle}</p>
 
-          <div className="flex items-center justify-between border-t border-slate-200 pt-4 font-mono text-[9.5px] tracking-wider text-slate-400">
+          <div className="flex items-center justify-between border-t border-slate-200/70 pt-4 font-mono text-[9.5px] tracking-wider text-slate-400">
             <span>INCOIS · IMD · NOAA</span>
-            <span className="flex items-center gap-1 font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+            <span className="flex items-center gap-1 font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 shadow-2xs">
               <ShieldCheck className="h-3 w-3" />
               VERIFIED
             </span>

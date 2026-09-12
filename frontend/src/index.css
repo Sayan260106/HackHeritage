@@ -1362,6 +1362,163 @@ html.lenis, html.lenis body {
   font-weight: 600 !important;
 }
 
+/* ============================================================================
+   APPLE-GRADE PREMIUM CONSOLE DESIGN SYSTEM (macOS & iOS 18 / Apple Intelligence)
+   ============================================================================ */
+
+/* ── SF Pro Typography smoothing ── */
+.orca-console {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "SF Pro", "Inter Tight", system-ui, sans-serif !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Apple Liquid Glass Panels & Cards ── */
+.orca-console .apple-glass-card {
+  background: rgba(255, 255, 255, 0.86);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 
+    0 4px 20px -2px rgba(15, 23, 42, 0.04),
+    0 1px 3px 0 rgba(15, 23, 42, 0.02),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  transition: all 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.orca-console .apple-glass-card:hover {
+  box-shadow: 
+    0 8px 30px -4px rgba(15, 23, 42, 0.07),
+    0 2px 6px 0 rgba(15, 23, 42, 0.03),
+    inset 0 1px 0 rgba(255, 255, 255, 1);
+}
+
+/* ── Apple Segmented Control ── */
+.orca-console .apple-segmented-track {
+  background: rgba(241, 245, 249, 0.78);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  border-radius: 1.25rem;
+  padding: 0.35rem;
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.orca-console .apple-segmented-item {
+  border-radius: 0.95rem;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  font-weight: 500;
+  border: 1px solid transparent;
+}
+
+.orca-console .apple-segmented-item:hover {
+  background: rgba(255, 255, 255, 0.6);
+  color: #0f172a;
+}
+
+.orca-console .apple-segmented-item-active {
+  background: #ffffff !important;
+  color: #0369a1 !important;
+  font-weight: 600 !important;
+  border: 1px solid rgba(2, 132, 199, 0.22) !important;
+  box-shadow: 
+    0 3px 12px -1px rgba(2, 132, 199, 0.12),
+    0 1px 3px 0 rgba(15, 23, 42, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 1) !important;
+}
+
+/* ── Apple Intelligence Siri-Inspired Multi-Turn Chat Button ── */
+@keyframes apple-siri-shimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.orca-console .apple-chat-dock-wrapper {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  z-index: 50;
+  background: linear-gradient(
+    135deg,
+    rgba(56, 189, 248, 0.85) 0%,
+    rgba(45, 212, 191, 0.75) 35%,
+    rgba(99, 102, 241, 0.7) 70%,
+    rgba(56, 189, 248, 0.85) 100%
+  );
+  background-size: 300% 300%;
+  animation: apple-siri-shimmer 7s ease infinite;
+  padding: 1.5px;
+  border-radius: 9999px;
+  box-shadow: 
+    0 10px 32px -2px rgba(2, 132, 199, 0.26),
+    0 2px 8px rgba(0, 0, 0, 0.05),
+    0 0 16px 2px rgba(56, 189, 248, 0.15);
+  transition: all 0.26s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+}
+
+.orca-console .apple-chat-dock-wrapper:hover {
+  transform: translateY(-3px) scale(1.025);
+  box-shadow: 
+    0 16px 44px -2px rgba(2, 132, 199, 0.38),
+    0 4px 12px rgba(0, 0, 0, 0.08),
+    0 0 24px 4px rgba(56, 189, 248, 0.28);
+}
+
+.orca-console .apple-chat-dock-wrapper:active {
+  transform: translateY(0) scale(0.97);
+}
+
+.orca-console .apple-chat-dock-inner {
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(28px) saturate(200%);
+  -webkit-backdrop-filter: blur(28px) saturate(200%);
+  border-radius: 9999px;
+  padding: 0.65rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 1);
+}
+
+/* ── Apple System Pill Badges ── */
+.orca-console .apple-pill {
+  border-radius: 9999px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+/* ── Apple Spotlight Search Style ── */
+.orca-console .apple-spotlight-box {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 1.25rem;
+  box-shadow: 
+    0 6px 24px -2px rgba(15, 23, 42, 0.05),
+    0 1px 3px rgba(15, 23, 42, 0.03),
+    inset 0 1px 0 rgba(255, 255, 255, 1);
+  transition: all 0.2s ease;
+}
+
+.orca-console .apple-spotlight-box:focus-within {
+  border-color: #38bdf8;
+  box-shadow: 
+    0 10px 32px -2px rgba(2, 132, 199, 0.12),
+    0 0 0 4px rgba(56, 189, 248, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 1);
+}
+
+
 
 
 

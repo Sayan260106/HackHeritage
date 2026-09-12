@@ -251,13 +251,15 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
   };
 
   return (
-    <div className="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-sm space-y-4">
+    <div className="apple-glass-card rounded-3xl p-5 sm:p-6 space-y-4">
 
       {/* Query Bar Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">
-          <Sparkles className="h-4 w-4 text-sky-600" />
-          <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider font-mono">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-sky-500/10 text-sky-600">
+            <Sparkles className="h-4 w-4" />
+          </div>
+          <h2 className="text-sm font-semibold text-slate-900 tracking-tight font-sans">
             {dict.queryTitle}
           </h2>
         </div>
@@ -266,14 +268,14 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
             <button
               type="button"
               onClick={onOpenChat}
-              className="flex items-center space-x-1.5 bg-sky-50 hover:bg-sky-100 border border-sky-200 text-sky-800 text-xs px-2.5 py-1 rounded-xl transition-all shadow-2xs font-mono cursor-pointer font-medium"
+              className="flex items-center space-x-1.5 bg-sky-50/80 hover:bg-sky-100 border border-sky-200/80 text-sky-800 text-xs px-3 py-1.5 rounded-full transition-all shadow-2xs font-sans font-medium cursor-pointer active:scale-95"
               title="Open Multi-Turn Conversational Reasoning Drawer"
             >
               <MessageSquare className="h-3.5 w-3.5 text-sky-600" />
               <span>Multi-Turn Chat</span>
             </button>
           )}
-          <span className="text-[11px] text-slate-500 flex items-center gap-1.5 font-mono">
+          <span className="text-[11px] text-slate-500 flex items-center gap-1.5 font-sans font-medium">
             <Radio className="h-3 w-3 text-emerald-500 animate-pulse" />
             <span>{dict.languageMode}</span>
           </span>
@@ -284,19 +286,19 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
       <form onSubmit={handleFormSubmit} className="space-y-3">
         {/* Dynamic Indian Regional Script Identification Banner */}
         {detected.language !== 'en' && (
-          <div className="flex items-center justify-between text-[11px] font-mono text-sky-800 bg-sky-50 border border-sky-200 px-3.5 py-1.5 rounded-xl shadow-2xs">
-            <span className="flex items-center gap-1.5">
+          <div className="flex items-center justify-between text-xs font-sans text-sky-900 bg-sky-50/90 border border-sky-200/80 px-4 py-2 rounded-2xl shadow-2xs">
+            <span className="flex items-center gap-2">
               <Sparkles className="h-3.5 w-3.5 text-sky-600 animate-pulse" />
-              <span>Script Identified: <strong className="text-sky-950 font-bold">{detected.nativeName} ({detected.name})</strong></span>
+              <span>Script Identified: <strong>{detected.nativeName} ({detected.name})</strong></span>
             </span>
-            <span className="text-[10px] text-sky-700 bg-sky-100 px-2 py-0.5 rounded-md border border-sky-200 font-semibold">
+            <span className="text-[10px] text-sky-700 bg-white/90 px-2.5 py-0.5 rounded-full border border-sky-200 font-semibold shadow-2xs">
               Auto-Switching Response & Voice
             </span>
           </div>
         )}
 
         <div className="relative flex items-center">
-          <div className="absolute left-3.5 text-slate-400 pointer-events-none">
+          <div className="absolute left-4 text-slate-400 pointer-events-none">
             <Search className="h-4 w-4" />
           </div>
 
@@ -307,19 +309,19 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
             onChange={(e) => setInputQuery(e.target.value)}
             placeholder={dict.queryPlaceholder}
             disabled={isLoading}
-            className="w-full bg-slate-50 hover:bg-white focus:bg-white border border-slate-300 rounded-xl pl-10 pr-24 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent transition-all shadow-xs"
+            className="w-full bg-slate-100/60 hover:bg-white focus:bg-white border border-slate-200/90 rounded-2xl pl-11 pr-28 py-3.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-sky-500/15 focus:border-sky-400 transition-all shadow-2xs font-sans"
           />
 
           {/* Voice Microphone & Submit Buttons */}
-          <div className="absolute right-2 flex items-center space-x-1.5">
+          <div className="absolute right-2.5 flex items-center space-x-2">
             <button
               id="btn-voice-input"
               type="button"
               onClick={toggleListening}
               title={isListening ? 'Stop listening' : 'Start voice input'}
-              className={`p-2 rounded-lg transition-all cursor-pointer ${isListening
+              className={`p-2 rounded-xl transition-all cursor-pointer ${isListening
                 ? 'bg-rose-500 text-white animate-pulse shadow-md shadow-rose-500/40'
-                : 'bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900'
+                : 'bg-white/80 hover:bg-white text-slate-600 border border-slate-200/60 shadow-2xs active:scale-95'
                 }`}
             >
               {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
@@ -329,7 +331,7 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
               id="btn-submit-query"
               type="submit"
               disabled={isLoading || !inputQuery.trim()}
-              className="bg-sky-600 hover:bg-sky-700 text-white font-bold px-3.5 py-2 rounded-lg text-xs transition-all flex items-center space-x-1.5 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-sky-600/30 cursor-pointer"
+              className="bg-sky-600 hover:bg-sky-500 text-white font-semibold px-4 py-2 rounded-xl text-xs transition-all flex items-center space-x-1.5 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_2px_10px_rgba(2,132,199,0.3)] active:scale-95 cursor-pointer font-sans"
             >
               {isLoading ? (
                 <RefreshCw className="h-3.5 w-3.5 animate-spin" />
@@ -345,13 +347,13 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
 
         {/* Speech Listening Feedback or Error */}
         {isListening && (
-          <div className="flex items-center space-x-2 text-xs text-rose-700 bg-rose-50 border border-rose-200 px-3 py-1.5 rounded-xl animate-pulse">
+          <div className="flex items-center space-x-2 text-xs text-rose-700 bg-rose-50/90 border border-rose-200 px-3.5 py-2 rounded-xl animate-pulse font-sans">
             <span className="h-2 w-2 rounded-full bg-rose-500"></span>
             <span>{dict.listening} Speak clearly in your selected language.</span>
           </div>
         )}
         {speechError && (
-          <div className="text-xs text-amber-800 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-xl">
+          <div className="text-xs text-amber-800 bg-amber-50/90 border border-amber-200 px-3.5 py-2 rounded-xl font-sans">
             {speechError}
           </div>
         )}
@@ -359,13 +361,13 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
         {/* Optional Structured Filters (Location & Time Override) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
 
-          <div className="flex items-center space-x-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-700">
+          <div className="flex items-center space-x-2 bg-slate-100/60 hover:bg-white border border-slate-200/80 rounded-xl px-3.5 py-2 text-xs text-slate-700 transition-colors">
             <MapPin className="h-3.5 w-3.5 text-sky-600 shrink-0" />
             <select
               id="select-coastal-station"
               value={selectedLocation}
               onChange={(e) => setSelectedLocation(e.target.value)}
-              className="bg-transparent text-slate-800 text-xs w-full cursor-pointer focus:outline-none"
+              className="bg-transparent text-slate-800 text-xs w-full cursor-pointer focus:outline-none font-sans font-medium"
             >
               <option value="" className="bg-white text-slate-500">{dict.autoLocation}</option>
               {Object.entries(COASTAL_LOCATIONS).map(([key, loc]) => (
@@ -376,13 +378,13 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
             </select>
           </div>
 
-          <div className="flex items-center space-x-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-700">
+          <div className="flex items-center space-x-2 bg-slate-100/60 hover:bg-white border border-slate-200/80 rounded-xl px-3.5 py-2 text-xs text-slate-700 transition-colors">
             <Clock className="h-3.5 w-3.5 text-sky-600 shrink-0" />
             <select
               id="select-time-window"
               value={selectedTime}
               onChange={(e) => setSelectedTime(e.target.value)}
-              className="bg-transparent text-slate-800 text-xs w-full cursor-pointer focus:outline-none"
+              className="bg-transparent text-slate-800 text-xs w-full cursor-pointer focus:outline-none font-sans font-medium"
             >
               <option value="" className="bg-white text-slate-500">{dict.autoTime}</option>
               <option value="current" className="bg-white text-slate-800">{dict.currentNextHours}</option>
@@ -398,31 +400,31 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
 
       {/* Suggested Prompt Chips with Tabs */}
       <div className="space-y-2 pt-1">
-        <div className="flex items-center justify-between border-b border-slate-200 pb-1.5">
+        <div className="flex items-center justify-between border-b border-slate-200/80 pb-2">
           <div className="flex items-center space-x-1.5">
             <button
               type="button"
               onClick={() => setActivePromptTab('isro')}
-              className={`text-[11px] font-mono font-bold px-3 py-1 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${activePromptTab === 'isro'
+              className={`text-[11px] font-sans font-medium px-3.5 py-1.5 rounded-full transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 ${activePromptTab === 'isro'
                   ? 'bg-sky-600 text-white shadow-xs'
-                  : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'
                 }`}
             >
-              <span>🚀 ISRO Benchmark Queries (1–8)</span>
+              <span>🚀 ISRO Benchmarks</span>
             </button>
             <button
               type="button"
               onClick={() => setActivePromptTab('regional')}
-              className={`text-[11px] font-mono font-bold px-3 py-1 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${activePromptTab === 'regional'
+              className={`text-[11px] font-sans font-medium px-3.5 py-1.5 rounded-full transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 ${activePromptTab === 'regional'
                   ? 'bg-sky-600 text-white shadow-xs'
-                  : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'
                 }`}
             >
               <span>🇮🇳 Regional Scenarios</span>
             </button>
           </div>
-          <span className="text-[10px] text-slate-400 font-mono hidden sm:inline-block">
-            ← Scroll →
+          <span className="text-[10px] text-slate-400 font-sans hidden sm:inline-block">
+            ← Scroll suggestions →
           </span>
         </div>
 
@@ -433,13 +435,13 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
                 key={q.id}
                 id={`isro-query-${q.id}`}
                 onClick={() => handleSelectPreset(q.query, 'digha')}
-                className="px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-sky-50 border border-slate-200 hover:border-sky-300 text-slate-700 hover:text-sky-900 text-xs font-mono font-semibold transition-all flex items-center space-x-2 shrink-0 shadow-2xs cursor-pointer whitespace-nowrap active:scale-95"
+                className="px-3.5 py-1.5 rounded-full bg-slate-100/70 hover:bg-sky-50 border border-slate-200/80 hover:border-sky-300 text-slate-700 hover:text-sky-900 text-xs font-sans font-medium transition-all flex items-center space-x-2 shrink-0 shadow-2xs cursor-pointer whitespace-nowrap active:scale-95"
                 title={q.query}
               >
-                <span className="text-[10px] font-mono font-bold text-sky-700 bg-sky-100 px-1.5 py-0.5 rounded-md border border-sky-200 shrink-0">
+                <span className="text-[10px] font-mono font-bold text-sky-700 bg-sky-100 px-2 py-0.5 rounded-full border border-sky-200 shrink-0">
                   {q.id}
                 </span>
-                <span className="text-xs text-slate-800 font-semibold truncate max-w-[220px] sm:max-w-none">
+                <span className="text-xs text-slate-800 font-medium truncate max-w-[220px] sm:max-w-none">
                   {q.short}
                 </span>
               </button>
