@@ -1,0 +1,10 @@
+{
+  "include": [
+    "orca/orca-core"
+  ],
+  "extraPaths": [
+    "orca/orca-core"
+  ],
+  "venvPath": "orca/orca-core",
+  "venv": "venv"
+}
