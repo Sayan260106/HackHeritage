@@ -135,7 +135,7 @@ export const RiskCard: React.FC<RiskCardProps> = ({
   const theme = getRiskTheme(risk.riskLevel);
 
   return (
-    <div className={`rounded-2xl border ${theme.bg} p-6 shadow-sm space-y-6 transition-all`}>
+    <div className="apple-glass-card rounded-3xl p-6 sm:p-7 shadow-[0_8px_32px_-4px_rgba(15,23,42,0.05),inset_0_1px_0_rgba(255,255,255,1)] space-y-6 transition-all">
       
       {/* ADVISORY BANNER (Clean Light Marine Strip) */}
       {(() => {
@@ -151,14 +151,14 @@ export const RiskCard: React.FC<RiskCardProps> = ({
 
         // Determine sleek banner style
         const bannerClass = hasGeofenceBreach
-          ? 'bg-rose-50 border-l-4 border-l-rose-500 border-y border-y-rose-200 border-r border-r-rose-200 text-rose-950'
+          ? 'bg-gradient-to-r from-rose-500/12 via-rose-500/8 to-rose-500/5 border border-rose-300/80 shadow-[0_4px_24px_-2px_rgba(244,63,94,0.12),inset_0_1px_0_rgba(255,255,255,0.9)] text-rose-950'
           : hasGeofenceCaution
-          ? 'bg-amber-50 border-l-4 border-l-amber-500 border-y border-y-amber-200 border-r border-r-amber-200 text-amber-950'
+          ? 'bg-gradient-to-r from-amber-500/12 via-amber-500/8 to-amber-500/5 border border-amber-300/80 shadow-[0_4px_24px_-2px_rgba(245,158,11,0.12),inset_0_1px_0_rgba(255,255,255,0.9)] text-amber-950'
           : risk.riskLevel === 'LOW'
-          ? 'bg-emerald-50 border-l-4 border-l-emerald-500 border-y border-y-emerald-200 border-r border-r-emerald-200 text-emerald-950'
+          ? 'bg-gradient-to-r from-emerald-500/12 via-teal-500/8 to-emerald-500/5 border border-emerald-300/80 shadow-[0_4px_24px_-2px_rgba(16,185,129,0.12),inset_0_1px_0_rgba(255,255,255,0.9)] text-emerald-950'
           : risk.riskLevel === 'MODERATE'
-          ? 'bg-amber-50 border-l-4 border-l-amber-500 border-y border-y-amber-200 border-r border-r-amber-200 text-amber-950'
-          : 'bg-rose-50 border-l-4 border-l-rose-500 border-y border-y-rose-200 border-r border-r-rose-200 text-rose-950';
+          ? 'bg-gradient-to-r from-amber-500/12 via-amber-500/8 to-amber-500/5 border border-amber-300/80 shadow-[0_4px_24px_-2px_rgba(245,158,11,0.12),inset_0_1px_0_rgba(255,255,255,0.9)] text-amber-950'
+          : 'bg-gradient-to-r from-rose-500/12 via-rose-500/8 to-rose-500/5 border border-rose-300/80 shadow-[0_4px_24px_-2px_rgba(244,63,94,0.12),inset_0_1px_0_rgba(255,255,255,0.9)] text-rose-950';
 
         const bannerIcon = hasGeofenceBreach
           ? <AlertOctagon className="h-5 w-5 text-rose-600" />
@@ -188,16 +188,16 @@ export const RiskCard: React.FC<RiskCardProps> = ({
           : risk.primaryRecommendation;
 
         return (
-          <div className={`p-4 rounded-xl border flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left ${bannerClass}`}>
-            <div className="flex items-center space-x-3">
-              <div className="p-2.5 rounded-xl bg-white/80 shadow-xs shrink-0">
+          <div className={`p-5 rounded-2xl border flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left ${bannerClass}`}>
+            <div className="flex items-center space-x-3.5">
+              <div className="p-3 rounded-2xl bg-white/95 shadow-sm border border-white shrink-0">
                 {bannerIcon}
               </div>
               <div>
                 <span className="text-[10px] font-mono uppercase tracking-widest font-bold opacity-75 block">
                   {location.name} • {hasGeofenceBreach ? 'Geofence Breach Alert' : hasGeofenceCaution ? 'Boundary Proximity Alert' : 'Official Sea Advisory'}
                 </span>
-                <h2 className="text-xl sm:text-2xl font-black tracking-tight leading-none mt-0.5">
+                <h2 className="text-xl sm:text-2xl font-black tracking-tight leading-none mt-1">
                   {bannerHeadline}
                 </h2>
                 <p className="text-xs font-semibold opacity-90 mt-1">
@@ -211,10 +211,10 @@ export const RiskCard: React.FC<RiskCardProps> = ({
           id="btn-risk-audio-narration"
           onClick={handleToggleAudio}
           title={isPlayingAudio ? 'Stop audio' : 'Listen to marine risk summary'}
-          className={`w-full sm:w-auto min-h-[50px] px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold border transition-all flex items-center justify-center space-x-2 shrink-0 ${
+          className={`w-full sm:w-auto min-h-[50px] px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-semibold border transition-all flex items-center justify-center space-x-2 shrink-0 cursor-pointer ${
             isPlayingAudio
-              ? 'bg-sky-600 text-white border-sky-600 shadow-md shadow-sky-600/30 animate-pulse'
-              : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-300 shadow-2xs active:scale-95'
+              ? 'bg-gradient-to-r from-sky-600 to-cyan-600 text-white border-sky-500 shadow-md shadow-sky-500/30 animate-pulse'
+              : 'bg-white/95 hover:bg-white text-slate-800 border-slate-200/90 shadow-2xs hover:shadow-xs active:scale-95'
           }`}
         >
           {isPlayingAudio ? <VolumeX className="h-5 w-5 text-white" /> : <Volume2 className="h-5 w-5 text-sky-600" />}

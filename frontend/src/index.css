@@ -544,20 +544,21 @@
    ========================================================================= */
 
 .orca-map-frame {
-  border: 1px solid rgba(127, 212, 193, 0.15);
+  border: 1px solid rgba(14, 165, 233, 0.25);
+  box-shadow: 0 20px 40px -15px rgba(2, 44, 74, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.6);
 }
 
 /* Subtle animated map frame */
 .orca-frame-glow {
   box-shadow:
-    inset 0 0 0 1px rgba(127, 212, 193, 0.05),
-    0 0 10px rgba(34, 211, 238, 0.02);
+    inset 0 0 0 1px rgba(56, 189, 248, 0.15),
+    0 0 20px rgba(14, 165, 233, 0.08);
   animation: orcaFrameBreathe 6s ease-in-out infinite;
 }
 
 @keyframes orcaFrameBreathe {
-  0%, 100% { box-shadow: inset 0 0 0 1px rgba(127, 212, 193, 0.05), 0 0 5px rgba(34, 211, 238, 0.02); }
-  50% { box-shadow: inset 0 0 0 1px rgba(127, 212, 193, 0.1), 0 0 15px rgba(34, 211, 238, 0.05); }
+  0%, 100% { box-shadow: inset 0 0 0 1px rgba(56, 189, 248, 0.12), 0 0 8px rgba(14, 165, 233, 0.04); }
+  50% { box-shadow: inset 0 0 0 1px rgba(20, 184, 166, 0.25), 0 0 18px rgba(20, 184, 166, 0.12); }
 }
 
 /* Corner brackets — HUD / tactical chart styling */
@@ -566,13 +567,53 @@
   width: 22px;
   height: 22px;
   z-index: 360;
-  border-color: rgba(127, 212, 193, 0.55);
+  border-color: rgba(14, 165, 233, 0.65);
   opacity: 0.85;
+  transition: all 0.3s ease;
 }
-.orca-corner-tl { top: 10px; left: 10px; border-top: 2px solid; border-left: 2px solid; border-radius: 4px 0 0 0; }
-.orca-corner-tr { top: 10px; right: 10px; border-top: 2px solid; border-right: 2px solid; border-radius: 0 4px 0 0; }
-.orca-corner-bl { bottom: 10px; left: 10px; border-bottom: 2px solid; border-left: 2px solid; border-radius: 0 0 0 4px; }
-.orca-corner-br { bottom: 10px; right: 10px; border-bottom: 2px solid; border-right: 2px solid; border-radius: 0 0 4px 0; }
+.orca-corner-tl { top: 12px; left: 12px; border-top: 2px solid; border-left: 2px solid; border-radius: 6px 0 0 0; }
+.orca-corner-tr { top: 12px; right: 12px; border-top: 2px solid; border-right: 2px solid; border-radius: 0 6px 0 0; }
+.orca-corner-bl { bottom: 12px; left: 12px; border-bottom: 2px solid; border-left: 2px solid; border-radius: 0 0 0 6px; }
+.orca-corner-br { bottom: 12px; right: 12px; border-bottom: 2px solid; border-right: 2px solid; border-radius: 0 0 6px 0; }
+
+/* Leaflet Custom Glass Controls & Popups */
+.leaflet-control-zoom {
+  border: none !important;
+  border-radius: 14px !important;
+  overflow: hidden !important;
+  box-shadow: 0 8px 24px -4px rgba(15, 23, 42, 0.16), 0 0 0 1px rgba(226, 232, 240, 0.8) !important;
+}
+.leaflet-control-zoom-in,
+.leaflet-control-zoom-out {
+  background-color: rgba(255, 255, 255, 0.94) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  color: #0369a1 !important;
+  font-weight: bold !important;
+  font-size: 15px !important;
+  line-height: 32px !important;
+  width: 34px !important;
+  height: 34px !important;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.8) !important;
+  transition: all 0.2s ease !important;
+}
+.leaflet-control-zoom-in:hover,
+.leaflet-control-zoom-out:hover {
+  background-color: #f0f9ff !important;
+  color: #0284c7 !important;
+}
+.leaflet-popup-content-wrapper {
+  background: rgba(15, 23, 42, 0.96) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(56, 189, 248, 0.35) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.45) !important;
+  color: #e2e8f0 !important;
+}
+.leaflet-popup-tip {
+  background: rgba(15, 23, 42, 0.96) !important;
+}
 
 /* Cyber-Marine Glassmorphism (Multi-layered translucency + hairline highlights) */
 .orca-glass-panel,
@@ -1225,68 +1266,53 @@ html.lenis, html.lenis body {
 }
 
 /* ============================================================================
-   ORCA-X — Custom Visible Cyan Horizontal Scrollbars
+   ORCA-X — Clean Invisible Horizontal Scrollbars & Sleek Page Scrollbars
    ========================================================================= */
 .custom-scrollbar,
-.horizontal-snap-carousel {
+.horizontal-snap-carousel,
+.no-scrollbar,
+.apple-segmented-track,
+.orca-console .custom-scrollbar,
+.orca-console .horizontal-snap-carousel,
+.orca-console .apple-segmented-track {
   display: flex;
   overflow-x: auto;
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(6, 182, 212, 0.5) rgba(15, 23, 42, 0.6);
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
 }
 
 .custom-scrollbar::-webkit-scrollbar,
-.horizontal-snap-carousel::-webkit-scrollbar {
+.horizontal-snap-carousel::-webkit-scrollbar,
+.no-scrollbar::-webkit-scrollbar,
+.apple-segmented-track::-webkit-scrollbar,
+.orca-console .custom-scrollbar::-webkit-scrollbar,
+.orca-console .horizontal-snap-carousel::-webkit-scrollbar,
+.orca-console .apple-segmented-track::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* ── Ultra-Sleek Minimal Page Vertical Scrollbars ── */
+::-webkit-scrollbar {
+  width: 6px;
   height: 6px;
 }
 
-.custom-scrollbar::-webkit-scrollbar-track,
-.horizontal-snap-carousel::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.8);
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.35);
   border-radius: 9999px;
+  transition: background 0.2s ease;
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb,
-.horizontal-snap-carousel::-webkit-scrollbar-thumb {
-  background: rgba(6, 182, 212, 0.4);
-  border-radius: 9999px;
-  border: 1px solid rgba(6, 182, 212, 0.2);
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb:hover,
-.horizontal-snap-carousel::-webkit-scrollbar-thumb:hover {
-  background: rgba(6, 182, 212, 0.8);
-}
-
-/* ── Live Console Professional Light Scrollbars ── */
-.orca-console .custom-scrollbar,
-.orca-console .horizontal-snap-carousel {
-  scrollbar-color: rgba(2, 132, 199, 0.4) #f1f5f9;
-}
-
-.orca-console .custom-scrollbar::-webkit-scrollbar-track,
-.orca-console .horizontal-snap-carousel::-webkit-scrollbar-track,
-.orca-console::-webkit-scrollbar-track,
-.orca-console *::-webkit-scrollbar-track {
-  background: #f1f5f9;
-}
-
-.orca-console .custom-scrollbar::-webkit-scrollbar-thumb,
-.orca-console .horizontal-snap-carousel::-webkit-scrollbar-thumb,
-.orca-console::-webkit-scrollbar-thumb,
-.orca-console *::-webkit-scrollbar-thumb {
-  background: #bae6fd;
-  border-radius: 9999px;
-  border: 1px solid #7dd3fc;
-}
-
-.orca-console .custom-scrollbar::-webkit-scrollbar-thumb:hover,
-.orca-console .horizontal-snap-carousel::-webkit-scrollbar-thumb:hover,
-.orca-console::-webkit-scrollbar-thumb:hover,
-.orca-console *::-webkit-scrollbar-thumb:hover {
-  background: #38bdf8;
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(56, 189, 248, 0.7);
 }
 
 /* ── Live Console High-Contrast Wordmark & Logo Branding ── */
@@ -1375,33 +1401,36 @@ html.lenis, html.lenis body {
 
 /* ── Apple Liquid Glass Panels & Cards ── */
 .orca-console .apple-glass-card {
-  background: rgba(255, 255, 255, 0.86);
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(28px) saturate(190%);
+  -webkit-backdrop-filter: blur(28px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.9);
   box-shadow: 
-    0 4px 20px -2px rgba(15, 23, 42, 0.04),
-    0 1px 3px 0 rgba(15, 23, 42, 0.02),
-    inset 0 1px 0 rgba(255, 255, 255, 0.95);
-  transition: all 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+    0 4px 24px -2px rgba(15, 23, 42, 0.05),
+    0 1px 4px 0 rgba(15, 23, 42, 0.02),
+    inset 0 1px 0 rgba(255, 255, 255, 1);
+  transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .orca-console .apple-glass-card:hover {
   box-shadow: 
-    0 8px 30px -4px rgba(15, 23, 42, 0.07),
-    0 2px 6px 0 rgba(15, 23, 42, 0.03),
+    0 12px 36px -4px rgba(2, 132, 199, 0.09),
+    0 2px 8px 0 rgba(15, 23, 42, 0.04),
     inset 0 1px 0 rgba(255, 255, 255, 1);
+  border-color: rgba(186, 230, 253, 0.85);
 }
 
-/* ── Apple Segmented Control ── */
+/* ── Apple Segmented Control / Dock ── */
 .orca-console .apple-segmented-track {
-  background: rgba(241, 245, 249, 0.78);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(226, 232, 240, 0.8);
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(226, 232, 240, 0.9);
   border-radius: 1.25rem;
-  padding: 0.35rem;
-  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04);
+  padding: 0.3rem 0.4rem;
+  box-shadow: 
+    0 4px 20px -2px rgba(15, 23, 42, 0.03),
+    inset 0 1px 1px rgba(255, 255, 255, 0.95);
 }
 
 .orca-console .apple-segmented-item {
@@ -1412,19 +1441,25 @@ html.lenis, html.lenis body {
 }
 
 .orca-console .apple-segmented-item:hover {
-  background: rgba(255, 255, 255, 0.6);
-  color: #0f172a;
+  background: rgba(255, 255, 255, 0.85);
+  color: #0369a1;
+  border-color: rgba(186, 230, 253, 0.7);
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.06);
 }
 
 .orca-console .apple-segmented-item-active {
-  background: #ffffff !important;
-  color: #0369a1 !important;
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
+  color: #ffffff !important;
   font-weight: 600 !important;
-  border: 1px solid rgba(2, 132, 199, 0.22) !important;
+  border: 1px solid rgba(2, 132, 199, 0.4) !important;
   box-shadow: 
-    0 3px 12px -1px rgba(2, 132, 199, 0.12),
-    0 1px 3px 0 rgba(15, 23, 42, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 1) !important;
+    0 4px 14px -1px rgba(2, 132, 199, 0.35),
+    0 1px 3px 0 rgba(15, 23, 42, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35) !important;
+}
+
+.orca-console .apple-segmented-item-active span {
+  color: #ffffff !important;
 }
 
 /* ── Apple Intelligence Siri-Inspired Multi-Turn Chat Button ── */
