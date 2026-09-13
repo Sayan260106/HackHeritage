@@ -1,0 +1,214 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1780 1080" width="1780" height="1080"
+     font-family="Segoe UI, Calibri, Arial, sans-serif">
+  <defs>
+    <marker id="a" markerWidth="11" markerHeight="9" refX="10" refY="4.5" orient="auto">
+      <path d="M0,0 L11,4.5 L0,9 z" fill="#2E7FB8"/>
+    </marker>
+    <marker id="av" markerWidth="11" markerHeight="9" refX="10" refY="4.5" orient="auto">
+      <path d="M0,0 L11,4.5 L0,9 z" fill="#7E57C2"/>
+    </marker>
+    <marker id="ag" markerWidth="11" markerHeight="9" refX="10" refY="4.5" orient="auto">
+      <path d="M0,0 L11,4.5 L0,9 z" fill="#2E9E6B"/>
+    </marker>
+    <marker id="am" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+      <path d="M0,0 L9,3.5 L0,7 z" fill="#D79A3C"/>
+    </marker>
+  </defs>
+
+  <rect width="1780" height="1080" fill="#FFFFFF"/>
+
+  <!-- ══════════════ title ══════════════ -->
+  <text x="44" y="48" font-size="28" font-weight="700" fill="#0B2C42">ARCHITECTURE</text>
+  <text x="276" y="48" font-size="28" font-weight="700" fill="#2E9E6B">— A QUESTION, AND THE WAY BACK</text>
+  <text x="44" y="76" font-size="14" fill="#5B7387">The question leaves in the fisherman's language and returns in it. Everything between is evidence, and every figure names its source.</text>
+
+  <!-- ══════════════ the human, both ends of the circuit ══════════════ -->
+  <rect x="44" y="104" width="258" height="196" rx="14" fill="#E9F7F0" stroke="#2E9E6B" stroke-width="2.2"/>
+  <text x="66" y="134" font-size="12" font-weight="700" fill="#2E9E6B" letter-spacing="1.2">HE ASKS</text>
+  <text x="66" y="166" font-size="17" font-weight="700" fill="#145C3F">আজ যাওয়া কি নিরাপদ?</text>
+  <text x="66" y="192" font-size="13" fill="#3E6B55">Spoken, in any of India's</text>
+  <text x="66" y="210" font-size="13" fill="#3E6B55">coastal languages</text>
+  <text x="66" y="244" font-size="12.5" font-style="italic" fill="#5C8571">No typing. No reading.</text>
+  <text x="66" y="262" font-size="12.5" font-style="italic" fill="#5C8571">No knowing which website</text>
+  <text x="66" y="280" font-size="12.5" font-style="italic" fill="#5C8571">holds the answer.</text>
+
+  <rect x="44" y="470" width="258" height="186" rx="14" fill="#0B4A6F" stroke="#0B4A6F" stroke-width="2"/>
+  <text x="66" y="500" font-size="12" font-weight="700" fill="#7FD4AC" letter-spacing="1.2">HE HEARS</text>
+  <text x="66" y="530" font-size="14.5" font-weight="600" fill="#FFFFFF">"সকাল ৯টা থেকে বজ্রঝড়।</text>
+  <text x="66" y="552" font-size="14.5" font-weight="600" fill="#FFFFFF">খোলা নৌকায় আশ্রয় নেই —</text>
+  <text x="66" y="574" font-size="14.5" font-weight="600" fill="#FFFFFF">আজ বেরোবেন না।"</text>
+  <text x="66" y="606" font-size="12.5" fill="#BBDCEE">Spoken aloud · on the map ·</text>
+  <text x="66" y="624" font-size="12.5" fill="#BBDCEE">with the reasoning trace, so it</text>
+  <text x="66" y="642" font-size="12.5" fill="#BBDCEE">can be checked, not trusted</text>
+
+  <!-- down the left edge: the circuit closing -->
+  <path d="M173,300 L173,330" fill="none" stroke="#2E9E6B" stroke-width="2.4" marker-end="url(#ag)"/>
+  <path d="M173,440 L173,470" fill="none" stroke="#2E9E6B" stroke-width="2.4" marker-end="url(#ag)"/>
+  <rect x="44" y="336" width="258" height="98" rx="12" fill="#F2F8FD" stroke="#9CC6E4" stroke-width="1.8"/>
+  <text x="66" y="362" font-size="14.5" font-weight="700" fill="#0B2C42">Sarvam AI</text>
+  <text x="66" y="383" font-size="12.5" fill="#44637A">saaras:v3 speech → text</text>
+  <text x="66" y="401" font-size="12.5" fill="#44637A">mayura:v1 pivot to English</text>
+  <text x="66" y="419" font-size="12.5" fill="#44637A">bulbul:v3 text → speech</text>
+
+  <!-- ══════════════ the machinery ══════════════ -->
+  <path d="M302,202 L342,202" fill="none" stroke="#2E7FB8" stroke-width="2.4" marker-end="url(#a)"/>
+
+  <!-- guardrails -->
+  <rect x="348" y="150" width="236" height="104" rx="12" fill="#F2F8FD" stroke="#9CC6E4" stroke-width="1.8"/>
+  <text x="368" y="178" font-size="15" font-weight="700" fill="#0B2C42">Guardrails</text>
+  <text x="368" y="200" font-size="12.5" fill="#44637A">Is this about the sea at all?</text>
+  <text x="368" y="222" font-size="12.5" font-style="italic" fill="#2E7D5B">A greeting is answered as a</text>
+  <text x="368" y="240" font-size="12.5" font-style="italic" fill="#2E7D5B">greeting — no agent runs.</text>
+  <path d="M584,202 L624,202" fill="none" stroke="#2E7FB8" stroke-width="2.4" marker-end="url(#a)"/>
+
+  <!-- planner -->
+  <rect x="630" y="132" width="300" height="140" rx="12" fill="#DCEDF9" stroke="#2E7FB8" stroke-width="2.4"/>
+  <text x="652" y="162" font-size="16" font-weight="700" fill="#0B2C42">Planner</text>
+  <text x="652" y="184" font-size="12.5" fill="#44637A">Groq · openai/gpt-oss-120b</text>
+  <text x="652" y="212" font-size="12.5" fill="#44637A">Agents are callable tools.</text>
+  <text x="652" y="232" font-size="12.5" fill="#44637A">It reads what they found and</text>
+  <text x="652" y="252" font-size="12.5" fill="#44637A">may go back for more.</text>
+
+  <!-- THE LOOP — the part that matters -->
+  <path d="M780,272 L780,318" fill="none" stroke="#2E7FB8" stroke-width="2.6" marker-end="url(#a)"/>
+  <path d="M962,340 C1040,300 1000,214 946,202" fill="none" stroke="#2E7FB8" stroke-width="2.6"
+        stroke-dasharray="7 5" marker-end="url(#a)"/>
+  <text x="986" y="262" font-size="12.5" font-weight="700" fill="#2E7FB8">sees the evidence,</text>
+  <text x="986" y="280" font-size="12.5" font-weight="700" fill="#2E7FB8">asks again — up to 4 rounds</text>
+  <text x="986" y="300" font-size="12" font-style="italic" fill="#5B7387">how "tomorrow or the day after?"</text>
+  <text x="986" y="316" font-size="12" font-style="italic" fill="#5B7387">gets answered at all</text>
+
+  <!-- ══════════════ agents ══════════════ -->
+  <rect x="348" y="326" width="1388" height="286" rx="14" fill="#FBFDFF" stroke="#C6DEEF" stroke-width="1.8"/>
+  <text x="368" y="354" font-size="14" font-weight="700" fill="#0B2C42" letter-spacing="0.6">ELEVEN SPECIALIST AGENTS</text>
+  <text x="620" y="354" font-size="12.5" fill="#5B7387">— each returns findings with the source of every number it used</text>
+
+  <g font-size="11.5">
+    <!-- row 1 -->
+    <rect x="368" y="368" width="256" height="72" rx="9" fill="#F2F8FD" stroke="#9CC6E4" stroke-width="1.5"/>
+    <text x="384" y="392" font-size="13.5" font-weight="700" fill="#0B2C42">Weather Intelligence</text>
+    <text x="384" y="411" fill="#44637A">Open-Meteo marine + forecast,</text>
+    <text x="384" y="428" fill="#44637A">4-model spread, area sea grid</text>
+
+    <rect x="640" y="368" width="256" height="72" rx="9" fill="#F2F8FD" stroke="#9CC6E4" stroke-width="1.5"/>
+    <text x="656" y="392" font-size="13.5" font-weight="700" fill="#0B2C42">Ocean Analytics</text>
+    <text x="656" y="411" fill="#44637A">INCOIS PFZ · Copernicus CMEMS</text>
+    <text x="656" y="428" fill="#44637A">NOAA VIIRS chlorophyll</text>
+
+    <rect x="912" y="368" width="256" height="72" rx="9" fill="#F2F8FD" stroke="#9CC6E4" stroke-width="1.5"/>
+    <text x="928" y="392" font-size="13.5" font-weight="700" fill="#0B2C42">Geospatial</text>
+    <text x="928" y="411" fill="#44637A">Marine Regions EEZ v12,</text>
+    <text x="928" y="428" fill="#44637A">32 treaty lines · MoEFCC MPAs</text>
+
+    <rect x="1184" y="368" width="256" height="72" rx="9" fill="#F2F8FD" stroke="#9CC6E4" stroke-width="1.5"/>
+    <text x="1200" y="392" font-size="13.5" font-weight="700" fill="#0B2C42">Cyclone Watch</text>
+    <text x="1200" y="411" fill="#44637A">IMD / RSMC New Delhi —</text>
+    <text x="1200" y="428" fill="#44637A">systems now, 7-day formation</text>
+
+    <rect x="1456" y="368" width="264" height="72" rx="9" fill="#F2F8FD" stroke="#9CC6E4" stroke-width="1.5"/>
+    <text x="1472" y="392" font-size="13.5" font-weight="700" fill="#0B2C42">Risk Assessment</text>
+    <text x="1472" y="411" fill="#44637A">Douglas sea state physics</text>
+    <text x="1472" y="428" fill="#44637A">+ decision fusion</text>
+
+    <!-- row 2 -->
+    <rect x="368" y="452" width="256" height="72" rx="9" fill="#F2F8FD" stroke="#9CC6E4" stroke-width="1.5"/>
+    <text x="384" y="476" font-size="13.5" font-weight="700" fill="#0B2C42">Route Planning</text>
+    <text x="384" y="495" fill="#44637A">A* over the sea grid — never</text>
+    <text x="384" y="512" fill="#44637A">across land or the border</text>
+
+    <rect x="640" y="452" width="256" height="72" rx="9" fill="#F2F8FD" stroke="#9CC6E4" stroke-width="1.5"/>
+    <text x="656" y="476" font-size="13.5" font-weight="700" fill="#0B2C42">Historical Trends</text>
+    <text x="656" y="495" fill="#44637A">ERA5 archive · NOAA blended</text>
+    <text x="656" y="512" fill="#44637A">SST — a decade of seasons</text>
+
+    <rect x="912" y="452" width="256" height="72" rx="9" fill="#F2F8FD" stroke="#9CC6E4" stroke-width="1.5"/>
+    <text x="928" y="476" font-size="13.5" font-weight="700" fill="#0B2C42">Visualization</text>
+    <text x="928" y="495" fill="#44637A">Series drawn against the</text>
+    <text x="928" y="512" fill="#44637A">IMD and INCOIS warning levels</text>
+
+    <rect x="1184" y="452" width="256" height="72" rx="9" fill="#F2F8FD" stroke="#9CC6E4" stroke-width="1.5"/>
+    <text x="1200" y="476" font-size="13.5" font-weight="700" fill="#0B2C42">Reporting</text>
+    <text x="1200" y="495" fill="#44637A">Dated, sourced brief;</text>
+    <text x="1200" y="512" fill="#44637A">plans a span of days at once</text>
+
+    <rect x="1456" y="452" width="264" height="72" rx="9" fill="#F2F8FD" stroke="#9CC6E4" stroke-width="1.5"/>
+    <text x="1472" y="476" font-size="13.5" font-weight="700" fill="#0B2C42">Data Discovery</text>
+    <text x="1472" y="495" fill="#44637A">Probes each source live, and</text>
+    <text x="1472" y="512" fill="#44637A">reports what it rejected</text>
+
+    <!-- row 3: evidence + the two that back the agents -->
+    <rect x="368" y="536" width="256" height="62" rx="9" fill="#F2F8FD" stroke="#9CC6E4" stroke-width="1.5"/>
+    <text x="384" y="560" font-size="13.5" font-weight="700" fill="#0B2C42">Evidence Retrieval</text>
+    <text x="384" y="579" fill="#44637A">Only documents fetched from a</text>
+    <text x="384" y="593" fill="#44637A">URL that answered 200</text>
+  </g>
+
+  <!-- RAG, tied to the agent that is RAG -->
+  <rect x="640" y="536" width="392" height="62" rx="9" fill="#FFF6E8" stroke="#D79A3C" stroke-width="1.8"/>
+  <path d="M640,567 L624,567" fill="none" stroke="#D79A3C" stroke-width="2" marker-end="url(#am)"
+        transform="rotate(180 632 567)"/>
+  <text x="658" y="558" font-size="12.5" font-weight="700" fill="#7A4E12">RAG is here, and only here</text>
+  <text x="658" y="576" font-size="11.5" fill="#7A5A2E">BM25 + character n-grams over real fetched text.</text>
+  <text x="658" y="592" font-size="11.5" fill="#7A5A2E">No embeddings. No vector database. 512 MB host.</text>
+
+  <!-- ML, tied to Weather Intelligence -->
+  <rect x="1048" y="536" width="672" height="62" rx="9" fill="#FFF6E8" stroke="#D79A3C" stroke-width="1.8"/>
+  <text x="1066" y="558" font-size="12.5" font-weight="700" fill="#7A4E12">Machine learning feeds Weather Intelligence — forecast bias correction</text>
+  <text x="1066" y="576" font-size="11.5" fill="#7A5A2E">884,376 rows · 8 coastal stations · ERA5 truth · chronological splits. Gusts only, 21 groups: MAE 7.35 → 5.78 km/h.</text>
+  <text x="1066" y="592" font-size="11.5" font-style="italic" fill="#8A6A3A">Answers "how sure are you": P(gusts exceed the IMD line). Wind speed and waves were measured and left uncorrected.</text>
+  <path d="M496,440 C496,470 1384,470 1384,536" fill="none" stroke="#D79A3C" stroke-width="0"/>
+
+  <!-- back out of the agents, to the answer -->
+  <path d="M348,566 L318,566 L318,560" fill="none" stroke="#2E7FB8" stroke-width="2.4"/>
+  <path d="M318,566 L310,566" fill="none" stroke="#2E7FB8" stroke-width="2.4" marker-end="url(#a)"/>
+  <text x="330" y="618" font-size="11.5" font-weight="700" fill="#2E7FB8">findings</text>
+  <text x="330" y="634" font-size="11.5" font-weight="700" fill="#2E7FB8">+ sources</text>
+
+  <!-- ══════════════ the offline lane ══════════════ -->
+  <rect x="44" y="686" width="1692" height="250" rx="14" fill="#F7F2FE" stroke="#7E57C2" stroke-width="2.4"/>
+  <text x="68" y="720" font-size="17" font-weight="700" fill="#4A2C82">WHERE THE NETWORK ENDS</text>
+  <text x="358" y="720" font-size="13" fill="#6A5090">Cellular fades roughly 10–15 km offshore. Nothing above this line reaches the boat past that point. This does.</text>
+
+  <rect x="68" y="740" width="268" height="86" rx="10" fill="#FFFFFF" stroke="#B79BE0" stroke-width="1.8"/>
+  <text x="88" y="766" font-size="13.5" font-weight="700" fill="#4A2C82">Satellite — S-band MSS</text>
+  <text x="88" y="787" font-size="11.5" fill="#6A5090">ISRO Nabhmitra class.</text>
+  <text x="88" y="805" font-size="11.5" font-style="italic" fill="#8A6FB0">This hop is simulated, and we say so.</text>
+  <path d="M336,783 L376,783" fill="none" stroke="#7E57C2" stroke-width="2.4" marker-end="url(#av)"/>
+
+  <rect x="382" y="740" width="268" height="86" rx="10" fill="#FFFFFF" stroke="#B79BE0" stroke-width="1.8"/>
+  <text x="402" y="766" font-size="13.5" font-weight="700" fill="#4A2C82">Transponder — ESP32</text>
+  <text x="402" y="787" font-size="11.5" fill="#6A5090">BLE 0xA5C1 · down 0xA5C2 · up 0xA5C3</text>
+  <text x="402" y="805" font-size="11.5" font-style="italic" fill="#8A6FB0">This link is real, and is how it pairs.</text>
+  <path d="M650,783 L690,783" fill="none" stroke="#7E57C2" stroke-width="2.4" marker-end="url(#av)"/>
+
+  <rect x="696" y="740" width="300" height="86" rx="10" fill="#F0E6FE" stroke="#7E57C2" stroke-width="2"/>
+  <text x="716" y="766" font-size="13.5" font-weight="700" fill="#4A2C82">One frame — 20 bytes</text>
+  <text x="716" y="787" font-size="11.5" fill="#6A5090">cyclone · lightning (+ cell radius)</text>
+  <text x="716" y="805" font-size="11.5" fill="#6A5090">cyclone track · SOS · acknowledgement</text>
+  <path d="M996,783 L1036,783" fill="none" stroke="#7E57C2" stroke-width="2.4" marker-end="url(#av)"/>
+
+  <rect x="1042" y="740" width="300" height="86" rx="10" fill="#FFFFFF" stroke="#B79BE0" stroke-width="1.8"/>
+  <text x="1062" y="766" font-size="13.5" font-weight="700" fill="#4A2C82">The phone, with no network</text>
+  <text x="1062" y="787" font-size="11.5" fill="#6A5090">Siren + spoken warning in his language</text>
+  <text x="1062" y="805" font-size="11.5" fill="#6A5090">Hazard drawn violet — marked as transmitted</text>
+
+  <rect x="1388" y="740" width="316" height="86" rx="10" fill="#F0E6FE" stroke="#7E57C2" stroke-width="2"/>
+  <text x="1408" y="766" font-size="13.5" font-weight="700" fill="#4A2C82">SOS — and back up</text>
+  <text x="1408" y="787" font-size="11.5" fill="#6A5090">Hold two seconds → where he is, what is</text>
+  <text x="1408" y="805" font-size="11.5" fill="#6A5090">wrong, how many people are aboard</text>
+  <path d="M1388,812 C1360,876 1100,876 1058,830" fill="none" stroke="#7E57C2" stroke-width="2"
+        stroke-dasharray="6 5" marker-end="url(#av)"/>
+
+  <text x="68" y="866" font-size="12.5" font-weight="700" fill="#4A2C82">Why twenty bytes:</text>
+  <text x="212" y="866" font-size="12.5" fill="#6A5090">a Cospas-Sarsat distress beacon is 18, an AIS position report 21. A satellite message to a boat is tens of bytes, not kilobytes —</text>
+  <text x="68" y="886" font-size="12.5" fill="#6A5090">so no sentence is ever transmitted. A type code is, and the language lives on the phone. Which is why a second kind of warning cost nothing on the wire.</text>
+  <text x="68" y="914" font-size="12.5" font-style="italic" fill="#8A6FB0">Fishing zones are labelled estimates, never advisories. A source that is down is named rather than quietly skipped. An absence of data is never reported as an absence of danger.</text>
+
+  <!-- ══════════════ the thirteen steps ══════════════ -->
+  <text x="44" y="978" font-size="12.5" font-weight="700" fill="#0B2C42" letter-spacing="0.6">INSIDE ONE ANSWER — 13 STEPS, EACH ONE RETURNED IN THE REASONING TRACE</text>
+  <g font-size="11.5" fill="#44637A">
+    <text x="44" y="1006">1 recall the session   ·   2 identify the language   ·   3 pivot to English   ·   4 guardrail   ·   5 resolve the place named   ·   6 plan, call agents, read, call again</text>
+    <text x="44" y="1028">7 fall back to a dependency graph if the planner is gone   ·   8 decision gate — the statutory verdict wins   ·   9 compose the answer   ·   10 add the estimate caveat</text>
+    <text x="44" y="1050">11 check it came back in the right language   ·   12 strip markdown so the voice does not speak asterisks   ·   13 remember the turn, and return the trace</text>
+  </g>
+</svg>
