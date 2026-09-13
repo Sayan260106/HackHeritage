@@ -647,7 +647,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           fillOpacity: 0.16,
           interactive: false,
         })
-          .addTo(map)
+          .addTo(limitsGroup)
           .bringToBack();
       })
       .catch((err) => console.error('Failed to load India EEZ simplified boundary', err));
@@ -1204,13 +1204,36 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
     `);
 
     // 2. Waypoint Markers along the route with sequenced bearing and distance tags
+    let runningKm = 0;
     waypoints.forEach((wp: any, idx: number) => {
       const isStart = idx === 0;
       const isEnd = idx === waypoints.length - 1;
+
+      // Real cumulative distance calculation fallback if backend didn't attach it
+      if (idx > 0) {
+        const prev = waypoints[idx - 1];
+        if (wp.cumulativeDistanceKm != null) {
+          runningKm = wp.cumulativeDistanceKm;
+        } else {
+          // Haversine formula calculation between consecutive waypoints
+          const dLat = (wp.latitude - prev.latitude) * Math.PI / 180;
+          const dLon = (wp.longitude - prev.longitude) * Math.PI / 180;
+          const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(prev.latitude * Math.PI / 180) * Math.cos(wp.latitude * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+          runningKm += 6371 * c;
+        }
+      } else {
+        runningKm = wp.cumulativeDistanceKm != null ? wp.cumulativeDistanceKm : 0;
+      }
+      const effectiveDistKm = wp.cumulativeDistanceKm != null ? wp.cumulativeDistanceKm : runningKm;
+      const effectiveGeofenceStatus = wp.geofenceStatus || 'CLEAR';
+
       // Keep density balanced for long routes, but always include key inflection nodes
       if (!isStart && !isEnd && idx % 2 !== 0 && waypoints.length > 10) return;
 
-      const cumDistNm = ((wp.cumulativeDistanceKm || 0) / 1.852).toFixed(1);
+      const cumDistNm = (effectiveDistKm / 1.852).toFixed(1);
       const bearingStr = wp.bearingDeg != null ? `${wp.bearingDeg}°` : '—';
 
       const wpIcon = L.divIcon({
@@ -1254,7 +1277,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           <div class="space-y-1 text-[11px] bg-slate-950/80 p-2 rounded border border-slate-800">
             <div class="flex justify-between">
               <span class="text-slate-400">Cumulative Distance:</span>
-              <span class="font-bold text-cyan-300">${cumDistNm} NM (${(wp.cumulativeDistanceKm || 0).toFixed(1)} km)</span>
+              <span class="font-bold text-cyan-300">${cumDistNm} NM (${effectiveDistKm.toFixed(1)} km)</span>
             </div>
             ${wp.bearingDeg != null ? `
               <div class="flex justify-between">
@@ -1264,7 +1287,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
             ` : ''}
             <div class="flex justify-between border-t border-slate-800 pt-1">
               <span class="text-slate-400">Geofence Status:</span>
-              <span class="font-bold ${wp.geofenceStatus === 'CLEAR' ? 'text-emerald-400' : 'text-amber-400'}">${wp.geofenceStatus}</span>
+              <span class="font-bold ${effectiveGeofenceStatus === 'CLEAR' ? 'text-emerald-400' : 'text-amber-400'}">${effectiveGeofenceStatus}</span>
             </div>
           </div>
           <div class="pt-1">
