@@ -9,7 +9,8 @@ import {
   Waves,
   ShieldCheck,
   Zap,
-  Radio
+  Radio,
+  Server
 } from 'lucide-react';
 import { LanguageCode } from '../types';
 
@@ -33,6 +34,27 @@ interface SystemHealthData {
   services: Record<string, string>;
 }
 
+/** Served by GET /api/agents, so this panel cannot drift from what is wired in. */
+interface AgentRoster {
+  count: number;
+  agents: {
+    name: string;
+    title: string;
+    description: string;
+    sources: string[];
+    isStub: boolean;
+  }[];
+  reasoning: { provider: string | null; model: string | null; available: boolean; note: string };
+  language: {
+    provider: string | null;
+    speechToText: string | null;
+    textToSpeech: string | null;
+    translation: string | null;
+    note: string;
+  };
+  machineLearning: { shipped_variables: string[]; groups: number; truth: string | null };
+}
+
 export const SystemHealthModal: React.FC<SystemHealthModalProps> = ({
   isOpen,
   onClose,
@@ -40,17 +62,23 @@ export const SystemHealthModal: React.FC<SystemHealthModalProps> = ({
   const [healthData, setHealthData] = useState<SystemHealthData | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [pingLatency, setPingLatency] = useState<number | null>(null);
+  const [roster, setRoster] = useState<AgentRoster | null>(null);
 
   const fetchHealth = async () => {
     setIsRefreshing(true);
     const start = Date.now();
     try {
-      const res = await fetch('/api/health');
-      if (res.ok) {
-        const data = await res.json();
-        setHealthData(data);
+      const [health, agents] = await Promise.all([
+        fetch('/api/health'),
+        fetch('/api/agents'),
+      ]);
+      if (health.ok) {
+        setHealthData(await health.json());
         setPingLatency(Date.now() - start);
       }
+      // The agent roster is reported by the backend rather than listed here, so
+      // this panel can never claim an agent or a source that is not wired in.
+      if (agents.ok) setRoster(await agents.json());
     } catch {
       // ignore
     } finally {
@@ -76,11 +104,11 @@ export const SystemHealthModal: React.FC<SystemHealthModalProps> = ({
       isFallback: false,
     },
     {
-      name: 'Open-Meteo / Copernicus Marine',
-      category: 'Live Oceanography',
+      name: 'Copernicus Marine (CMEMS) fronts',
+      category: 'Satellite Oceanography',
       icon: Waves,
       status: 'ONLINE',
-      description: 'Wave height, swell, currents, Douglas scale, sea temperature',
+      description: 'Thermal and biological fronts across the EEZ, published daily; cloud-bypass by sea-level advection',
       isFallback: false,
     },
     {
@@ -92,33 +120,33 @@ export const SystemHealthModal: React.FC<SystemHealthModalProps> = ({
       isFallback: false,
     },
     {
-      name: 'XGBoost Marine Risk Engine',
-      category: 'Machine Learning',
+      name: 'Risk engine — Douglas sea state',
+      category: 'Deterministic',
       icon: Cpu,
       status: healthData?.liveStatus?.mlService === 'ONLINE' ? 'ONLINE' : 'FALLBACK READY',
       description: healthData?.liveStatus?.mlService === 'ONLINE'
-        ? 'FastAPI XGBoost inference service (Port 8000)'
-        : 'Autonomous in-memory physics & Douglas risk engine active',
+        ? 'Douglas sea state and Beaufort physics; the stored XGBoost model is refused for target leakage'
+        : 'Douglas sea state and Beaufort physics; the stored XGBoost model is refused for target leakage',
       isFallback: healthData?.liveStatus?.mlService !== 'ONLINE',
     },
     {
-      name: 'BGE-M3 + Qdrant Evidence Search',
-      category: 'Vector RAG',
+      name: 'Evidence retrieval — BM25 + subword',
+      category: 'Lexical RAG',
       icon: Database,
       status: healthData?.liveStatus?.ragService === 'ONLINE' ? 'ONLINE' : 'FALLBACK READY',
       description: healthData?.liveStatus?.ragService === 'ONLINE'
-        ? '1024-dim dense embeddings + Qdrant vector retrieval (Port 8001)'
-        : 'Autonomous statutory lexical BM25 retrieval active',
+        ? 'BM25 with character n-grams over documents fetched from URLs that resolved; no dense embeddings'
+        : 'BM25 with character n-grams over documents fetched from URLs that resolved; no dense embeddings',
       isFallback: healthData?.liveStatus?.ragService !== 'ONLINE',
     },
     {
-      name: 'Gemini Agent Reasoning Engine',
-      category: 'Generative AI',
+      name: `Planner — ${roster?.reasoning?.provider ?? 'LLM'}`,
+      category: 'Reasoning',
       icon: Zap,
       status: healthData?.liveStatus?.geminiLlm === 'ACTIVE' ? 'ONLINE' : 'FALLBACK READY',
       description: healthData?.liveStatus?.geminiLlm === 'ACTIVE'
-        ? 'Google Gemini 2.5 Flash grounded synthesis'
-        : 'Rule-based intent synthesis & localized advisory engine active',
+        ? 'Calls agents as tools and may call again after seeing a result'
+        : 'Keyword planner selecting agents; reply composed from their summaries',
       isFallback: healthData?.liveStatus?.geminiLlm !== 'ACTIVE',
     },
     {
@@ -132,10 +160,13 @@ export const SystemHealthModal: React.FC<SystemHealthModalProps> = ({
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-2xl rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl text-slate-800">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+    <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+      {/* A column with a fixed ceiling: the header and the close button stay put
+          while only the body scrolls. Without the ceiling the card grew past the
+          viewport and took the close button off the bottom of the screen. */}
+      <div className="relative flex max-h-[90vh] w-full max-w-2xl flex-col rounded-2xl border border-slate-200 bg-white shadow-2xl text-slate-800">
+        {/* Header — pinned, so the close button is always reachable. */}
+        <div className="flex shrink-0 items-center justify-between border-b border-slate-100 px-6 pt-6 pb-4">
           <div className="flex items-center space-x-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-50 text-sky-600 border border-sky-200 shadow-2xs">
               <Activity className="h-5 w-5 animate-pulse" />
@@ -163,11 +194,12 @@ export const SystemHealthModal: React.FC<SystemHealthModalProps> = ({
           </button>
         </div>
 
+        <div className="flex-1 overflow-y-auto px-6 pb-6">
         {/* Top summary bar */}
         <div className="mt-4 flex items-center justify-between rounded-xl bg-slate-50 border border-slate-200 p-3 text-xs font-mono">
           <div className="flex items-center gap-2 text-slate-700">
             <Radio className="h-3.5 w-3.5 text-emerald-600 animate-pulse" />
-            <span>Core API: <strong className="text-slate-900">Port 3000 (Express)</strong></span>
+            <span>Core API: <strong className="text-slate-900">orca-core (FastAPI)</strong></span>
             {pingLatency && (
               <span className="text-slate-500">({pingLatency}ms ping)</span>
             )}
@@ -183,7 +215,7 @@ export const SystemHealthModal: React.FC<SystemHealthModalProps> = ({
         </div>
 
         {/* Component matrix */}
-        <div className="mt-4 space-y-2.5 max-h-[50vh] overflow-y-auto pr-1">
+        <div className="mt-4 space-y-2.5">
           {components.map((c, idx) => {
             const Icon = c.icon;
             return (
@@ -221,11 +253,90 @@ export const SystemHealthModal: React.FC<SystemHealthModalProps> = ({
         </div>
 
         {/* Resilience notice */}
+        {/* Agents and the sources behind each — reported by the backend, never
+            listed here, so this cannot drift from what is actually wired in. */}
+        {roster && (
+          <div className="mt-4">
+            <div className="flex items-center justify-between px-1 pb-2">
+              <h3 className="text-xs font-bold font-mono tracking-wide text-slate-800">
+                AGENTS IN WORK ({roster.count})
+              </h3>
+              <span className="text-[10px] text-slate-500 font-mono">reported by /api/agents</span>
+            </div>
+
+            <div className="space-y-2">
+              {roster.agents.map((agent) => (
+                <div
+                  key={agent.name}
+                  className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 shadow-2xs"
+                >
+                  <div className="flex items-center gap-2">
+                    <Server className="h-3.5 w-3.5 text-sky-600 shrink-0" />
+                    <span className="text-xs font-bold text-slate-900">{agent.title}</span>
+                    <span className="text-[10px] text-slate-500 font-mono">{agent.name}</span>
+                    {agent.isStub && (
+                      <span className="rounded bg-amber-50 px-1.5 py-0.5 text-[9px] font-bold text-amber-700 border border-amber-200 font-mono">
+                        STUB
+                      </span>
+                    )}
+                  </div>
+                  <p className="mt-1 text-[11px] leading-snug text-slate-600">{agent.description}</p>
+                  <ul className="mt-2 space-y-0.5">
+                    {agent.sources.map((source) => (
+                      <li key={source} className="flex gap-1.5 text-[10.5px] leading-snug text-slate-500">
+                        <span className="text-sky-500 shrink-0">&bull;</span>
+                        <span>{source}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-2.5 shadow-2xs">
+                <div className="text-[10px] font-bold font-mono text-slate-700">REASONING</div>
+                <dl className="mt-0.5 space-y-0.5 text-[10.5px] leading-snug">
+                  <div className="flex gap-1.5">
+                    <dt className="text-slate-500">Service provider</dt>
+                    <dd className="font-semibold text-slate-800">
+                      {roster.reasoning.provider ?? 'not configured'}
+                    </dd>
+                  </div>
+                  <div className="flex gap-1.5">
+                    <dt className="text-slate-500">Model</dt>
+                    <dd className="font-mono font-semibold text-slate-800">
+                      {roster.reasoning.model ?? '—'}
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+              <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-2.5 shadow-2xs">
+                <div className="text-[10px] font-bold font-mono text-slate-700">LANGUAGE</div>
+                <p className="mt-0.5 text-[10.5px] text-slate-500 leading-snug">
+                  {roster.language.provider
+                    ? `${roster.language.provider} — ${roster.language.speechToText} speech, ${roster.language.textToSpeech} voice, ${roster.language.translation} translation`
+                    : 'Not configured'}
+                </p>
+              </div>
+              <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-2.5 shadow-2xs">
+                <div className="text-[10px] font-bold font-mono text-slate-700">MACHINE LEARNING</div>
+                <p className="mt-0.5 text-[10.5px] text-slate-500 leading-snug">
+                  {roster.machineLearning.shipped_variables.length
+                    ? `Forecast bias correction for ${roster.machineLearning.shipped_variables.join(', ')} across ${roster.machineLearning.groups} fitted groups. Wind speed and waves were measured and left uncorrected.`
+                    : 'No correction shipped'}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="mt-4 rounded-xl border border-sky-200 bg-sky-50/80 p-3 text-[11px] text-slate-700 flex items-start gap-2.5 shadow-2xs">
           <ShieldCheck className="h-4 w-4 text-sky-600 shrink-0 mt-0.5" />
           <p className="leading-relaxed">
-            <strong className="text-sky-900">Deterministic Safety Architecture:</strong> If the Python ML microservice (Port 8000) or Qdrant Vector DB (Port 6333) are offline, ORCA-X immediately activates its in-memory Douglas sea-state risk engine and lexical evidence retriever. The platform is designed for zero downtime under real maritime field conditions.
+            <strong className="text-sky-900">Deterministic Safety Architecture:</strong> risk verdicts come from Douglas sea-state physics against published IMD and INCOIS thresholds, not from a learned model, so a verdict can be checked against a government bulletin. If the planner or a data source is unreachable the agents still run and the answer names the source that was missing, rather than reporting an absence of data as an absence of danger.
           </p>
+        </div>
         </div>
       </div>
     </div>
